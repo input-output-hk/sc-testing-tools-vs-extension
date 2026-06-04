@@ -25,12 +25,10 @@ export class BuildTestTreeExecutionError extends Error {
 
 const BUILD_TEST_TREE_TIMEOUT_MS = 10 * 60 * 1000;
 
-export async function runBuildTestTreeScript(extensionPath: string): Promise<BuildTestTreeResult> {
-  const scriptPath = path.join(extensionPath, 'scripts', 'list-tests-json.sh');
+export async function* runBuildTestTreeScript(extensionPath: string, script: string): AsyncGenerator<BuildTestTreeResult> {
+  const scriptPath = path.join(extensionPath, script);
 
-  return new Promise<BuildTestTreeResult>((resolve, reject) => {
     const child = spawn('bash', [scriptPath]);
-
     let stdout = '';
     let stderr = '';
     let timedOut = false;
@@ -40,61 +38,77 @@ export async function runBuildTestTreeScript(extensionPath: string): Promise<Bui
       child.kill('SIGTERM');
     }, BUILD_TEST_TREE_TIMEOUT_MS);
 
-    child.stdout.on('data', (chunk: Buffer | string) => {
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+
+    for await (const chunk of child.stdout) {
       stdout += chunk.toString();
-    });
-
-    child.stderr.on('data', (chunk: Buffer | string) => {
-      stderr += chunk.toString();
-    });
-
-    child.on('error', (error) => {
-      clearTimeout(timeout);
-      reject(new BuildTestTreeExecutionError('Failed to start list-tests script.', {
-        message: error.message,
-        stdout,
-        stderr,
-      }));
-    });
-
-    child.on('close', (code) => {
-      clearTimeout(timeout);
-
-      if (timedOut) {
-        reject(new BuildTestTreeExecutionError('list-tests script timed out.', {
-          message: `Timed out after ${BUILD_TEST_TREE_TIMEOUT_MS}ms.`,
-          exitCode: code,
-          stdout,
-          stderr,
-        }));
-        return;
-      }
-
-      if (code !== 0) {
-        reject(new BuildTestTreeExecutionError('list-tests script failed.', {
-          message: `Script exited with code ${String(code)}.`,
-          exitCode: code,
-          stdout,
-          stderr,
-        }));
-        return;
-      }
-
-      const fullOutput = stdout.trim();
-
-      try {
-        const rawOutput = extractFirstJsonValue(fullOutput);
+      let parts = stdout.split('\n');
+      while (parts.length > 1) {
+        let rawOutput = parts.shift()!;
         const parsed = JSON.parse(rawOutput);
-        resolve({ rawOutput, parsed });
-      } catch (error) {
-        reject(new BuildTestTreeExecutionError('Failed to parse list-tests JSON output.', {
-          message: error instanceof Error ? error.message : 'Unknown JSON parse error.',
-          stdout: fullOutput,
-          stderr,
-        }));
+        yield ({ rawOutput, parsed });
       }
+      stdout = parts[0];
+    }
+
+    const exitCode = await new Promise((resolve) => {
+        child.on('close', resolve);
     });
-  });
+
+    if (exitCode !== 0) {
+        throw new Error(`Process exited with code ${exitCode}`);
+    }
+
+    // child.on('error', (error) => {
+    //   clearTimeout(timeout);
+    //   reject(new BuildTestTreeExecutionError('Failed to start list-tests script.', {
+    //     message: error.message,
+    //     stdout,
+    //     stderr,
+    //   }));
+    // });
+
+    // child.on('close', (code) => {
+    //   clearTimeout(timeout);
+
+    //   if (timedOut) {
+    //     reject(new BuildTestTreeExecutionError('list-tests script timed out.', {
+    //       message: `Timed out after ${BUILD_TEST_TREE_TIMEOUT_MS}ms.`,
+    //       exitCode: code,
+    //       stdout,
+    //       stderr,
+    //     }));
+    //     return;
+    //   }
+
+    //   if (code !== 0) {
+    //     reject(new BuildTestTreeExecutionError('list-tests script failed.', {
+    //       message: `Script exited with code ${String(code)}.`,
+    //       exitCode: code,
+    //       stdout,
+    //       stderr,
+    //     }));
+    //     return;
+    //   }
+
+      // const fullOutput = stdout.trim();
+
+      // try {
+      //   const parsed = JSON.parse(fullOutput);
+      //   resolve({ rawOutput: fullOutput, parsed });
+      // } catch (error) {
+      //   reject(new BuildTestTreeExecutionError('Failed to parse list-tests JSON output.', {
+      //     message: error instanceof Error ? error.message : 'Unknown JSON parse error.',
+      //     stdout: fullOutput,
+      //     stderr,
+      //   }));
+      // }
+  // });
 }
 
 function extractFirstJsonValue(output: string): string {

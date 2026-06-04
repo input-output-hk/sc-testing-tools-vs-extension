@@ -24,7 +24,9 @@ export async function handleJsonRpcRequest(
 
   if (request.method === 'build-test-tree') {
     try {
-      const result = await runBuildTestTreeScript(context.extensionPath);
+      let result;
+      for await (result of runBuildTestTreeScript(context.extensionPath, 'scripts/list-tests-json.sh'))
+        break;
       return {
         jsonrpc: '2.0',
         id,
