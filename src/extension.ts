@@ -3,8 +3,20 @@ import { handleJsonRpcRequest } from './rpc/server';
 import { JsonRpcRequest, JsonRpcResponse } from './rpc/types';
 import { runBuildTestTreeScript } from './services/buildTestTree';
 
+interface SrcLocRanges {
+  file: string;
+  startLines: number[];
+  startCols: number[];
+  endLines: number[];
+  endCols: number[];
+  covered: boolean;
+  testItem?: vscode.TestItem;
+}
+
 let coverageIndex: {[key: string]: SrcLocRanges[]} = {};
 let coverageRanges: { [file: string]: { [key: string]: vscode.StatementCoverage } } = {};
+let leaves: {[key: number]: vscode.TestItem } = {};
+let testNames: {[key: number]: string } = {};
 export function activate(context: vscode.ExtensionContext) {
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
   context.subscriptions.push(outputChannel);
@@ -36,23 +48,61 @@ export function activate(context: vscode.ExtensionContext) {
     token: vscode.CancellationToken
   ) {
     const run = testController.createTestRun(request);
+    for (const leaf of Object.values(leaves)) {
+      run.enqueued(leaf);
+    }
 
     let packageRoot = "";
     try {
       for await (const result of runBuildTestTreeScript(context.extensionPath, 'scripts/run-tests-json.sh')) {
         // outputChannel.appendLine(JSON.stringify(result.parsed, null, 2));
-        outputChannel.appendLine((result.parsed as { event: string}).event);
-        if ((result.parsed as { packageRoot: string}).packageRoot) {
-          packageRoot = (result.parsed as { packageRoot: string}).packageRoot;
+        let event = result.parsed as {
+          event: string,
+          id: number,
+          packageRoot?: string,
+          covered?: SrcLocRanges[],
+          success?: boolean,
+          duration?: number,
+          description?: string,
+          percent?: number
+        };
+        let leaf = leaves[event.id];
+        outputChannel.appendLine(`${event.id} ${event.event}`);
+        if (event.packageRoot) {
+          packageRoot = event.packageRoot;
         }
-        let covered = (result.parsed as { covered: SrcLocRanges[] }).covered;
-        if (covered) {
-          covered.map(f => {
+        if (event.covered) {
+          event.covered.map(f => {
             f.covered = true;
+            f.testItem = leaf;
             let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
             coverageIndex[uri] ||= [];
             coverageIndex[uri].push(f);
           });
+        }
+        if (leaf) {
+          switch (event.event) {
+            case "test_started":
+              run.started(leaf);
+              run.appendOutput(`\r\n${leaf.label}`, undefined, leaf);
+              break;
+            case "test_progress":
+              if (event.description)
+                run.appendOutput(`\r\n  ${event.description.replace(/\n/g, "\r\n  ")}`, undefined, leaf);
+              if (event.percent)
+                leaf.label = `${testNames[event.id]} (${Math.floor(event.percent*100)}%)`;
+              break;
+            case "test_done":
+              leaf.label = testNames[event.id];
+              if (event.success) {
+                run.passed(leaf, event.duration && event.duration * 1000);
+              } else {
+                run.failed(leaf, new vscode.TestMessage(event.description || "-- no output --"), event.duration && event.duration * 1000);
+              }
+              if (event.description)
+                run.appendOutput(`\r\n  ` + event.description.replace(/\n/g, "\r\n  "), undefined, leaf);
+              break;
+          }
         }
       }
     } catch(e) {
@@ -64,7 +114,10 @@ export function activate(context: vscode.ExtensionContext) {
       let covDatas = coverageIndex[file];
       coverageRanges[file] ||= {};
 
+      let testItems: vscode.TestItem[] = [];
+
       for (const covData of covDatas) {
+        if (covData.testItem) testItems.push(covData.testItem);
         covData.startLines.map(function(startLine, i) {
           let startCol = covData.startCols[i];
           let endLine = covData.endLines[i];
@@ -87,7 +140,10 @@ export function activate(context: vscode.ExtensionContext) {
 
       run.addCoverage(new vscode.FileCoverage(
         vscode.Uri.parse(file),
-        new vscode.TestCoverageCount(covered, total)
+        new vscode.TestCoverageCount(covered, total),
+        undefined,
+        undefined,
+        testItems
       ));
     }
 
@@ -169,6 +225,8 @@ async function buildTestTreeInController(
 
     const leafId = `test::${test.id}::${pathSegments.join('/')}::${test.name}`;
     const leaf = testController.createTestItem(leafId, test.name, test.uri);
+    leaves[test.id] = leaf;
+    testNames[test.id] = test.name;
     parent.children.add(leaf);
   }
 
@@ -245,14 +303,6 @@ function extractTestsFromResult(result: unknown): ListedTest[] | null {
   return listedTests;
 }
 
-interface SrcLocRanges {
-  file: string;
-  startLines: number[];
-  startCols: number[];
-  endLines: number[];
-  endCols: number[];
-  covered: boolean;
-}
 function extractCoverageIndex(result: unknown): { [key: string]: SrcLocRanges[] } {
   let coverageIndex = (result as { parsed: { coverageIndex: SrcLocRanges[]} }).parsed.coverageIndex;
   let packageRoot = (result as { parsed: { packageRoot: string} }).parsed.packageRoot;
