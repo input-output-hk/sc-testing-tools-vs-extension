@@ -50,7 +50,10 @@ export async function* runBuildTestTreeScript(extensionPath: string, script: str
       let parts = stdout.split('\n');
       while (parts.length > 1) {
         let rawOutput = parts.shift()!;
-        const parsed = JSON.parse(rawOutput);
+        let parsed = null;
+        try {
+          parsed = JSON.parse(rawOutput);
+        } catch(e) {}
         yield ({ rawOutput, parsed });
       }
       stdout = parts[0];
@@ -60,9 +63,9 @@ export async function* runBuildTestTreeScript(extensionPath: string, script: str
         child.on('close', resolve);
     });
 
-    if (exitCode !== 0) {
-        throw new Error(`Process exited with code ${exitCode}`);
-    }
+    // if (exitCode !== 0) {
+    //     throw new Error(`Process exited with code ${exitCode}`);
+    // }
 
     // child.on('error', (error) => {
     //   clearTimeout(timeout);

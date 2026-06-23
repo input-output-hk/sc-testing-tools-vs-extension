@@ -17,6 +17,7 @@ export interface JsonRpcSuccessResponse {
   jsonrpc: '2.0';
   id: JsonRpcId;
   result: unknown;
+  output: string;
 }
 
 export interface JsonRpcErrorResponse {

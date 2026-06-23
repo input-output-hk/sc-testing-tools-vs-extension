@@ -25,12 +25,19 @@ export async function handleJsonRpcRequest(
   if (request.method === 'build-test-tree') {
     try {
       let result;
-      for await (result of runBuildTestTreeScript(context.extensionPath, 'scripts/list-tests-json.sh'))
-        break;
+      let output = "";
+      for await (result of runBuildTestTreeScript(context.extensionPath, 'scripts/list-tests-json.sh')) {
+        if (result.parsed) break;
+        output += result.rawOutput + "\n";
+      }
+      if (!result?.parsed) {
+        throw new BuildTestTreeExecutionError("No JSON retrieved", null!);
+      }
       return {
         jsonrpc: '2.0',
         id,
         result,
+        output
       };
     } catch (error) {
       if (error instanceof BuildTestTreeExecutionError) {

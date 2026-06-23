@@ -13,10 +13,19 @@ interface SrcLocRanges {
   testItem?: vscode.TestItem;
 }
 
-let coverageIndex: {[key: string]: SrcLocRanges[]} = {};
-let coverageRanges: { [file: string]: { [key: string]: vscode.StatementCoverage } } = {};
+let baseCoverageIndex: {[key: string]: SrcLocRanges[]} = {};
+let coverageRanges: {
+  [name: string] : {
+    [file: string]: {
+      [testId : string]: {
+        [key: string]: vscode.StatementCoverage
+      }
+    }
+  }
+} = {};
 let leaves: {[key: number]: vscode.TestItem } = {};
 let testNames: {[key: number]: string } = {};
+let globalKey = "#GLOBAL#";
 export function activate(context: vscode.ExtensionContext) {
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
   context.subscriptions.push(outputChannel);
@@ -47,15 +56,24 @@ export function activate(context: vscode.ExtensionContext) {
     request: vscode.TestRunRequest,
     token: vscode.CancellationToken
   ) {
-    const run = testController.createTestRun(request);
+    const name = (request.include||[]).map(val => val.label).join(",") || "Complete testrun";
+    const run = testController.createTestRun(request, name);
     for (const leaf of Object.values(leaves)) {
       run.enqueued(leaf);
     }
 
+    coverageRanges[name] = {};
+
+    let coverageIndex: {[key: string]: SrcLocRanges[]} = {};
+    for (let k in baseCoverageIndex)
+      coverageIndex[k] = baseCoverageIndex[k].concat([]);
     let packageRoot = "";
     try {
       for await (const result of runBuildTestTreeScript(context.extensionPath, 'scripts/run-tests-json.sh')) {
-        // outputChannel.appendLine(JSON.stringify(result.parsed, null, 2));
+        if (!result.parsed) {
+          run.appendOutput("\r\n" + result.rawOutput);
+          continue;
+        }
         let event = result.parsed as {
           event: string,
           id: number,
@@ -67,7 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
           percent?: number
         };
         let leaf = leaves[event.id];
-        outputChannel.appendLine(`${event.id} ${event.event}`);
+        if (!(event.event in {test_trace:1, test_progress:1}))
+          outputChannel.appendLine(`${event.event} ${event.id===undefined?"":event.id}`);
         if (event.packageRoot) {
           packageRoot = event.packageRoot;
         }
@@ -75,9 +94,12 @@ export function activate(context: vscode.ExtensionContext) {
           event.covered.map(f => {
             f.covered = true;
             f.testItem = leaf;
+
             let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
-            coverageIndex[uri] ||= [];
-            coverageIndex[uri].push(f);
+            if (!request.include || request.include.find(l => l == leaf)) {
+              coverageIndex[uri] ||= [];
+              coverageIndex[uri].push(f);
+            }
           });
         }
         if (leaf) {
@@ -108,16 +130,23 @@ export function activate(context: vscode.ExtensionContext) {
     } catch(e) {
       outputChannel.appendLine("Error while running tests: ");
       outputChannel.appendLine(JSON.stringify(e));
+      console.error(e);
     }
 
     for (let file in coverageIndex) {
       let covDatas = coverageIndex[file];
-      coverageRanges[file] ||= {};
+      coverageRanges[name][file] ||= {};
+      coverageRanges[name][file][globalKey] ||= {};
 
-      let testItems: vscode.TestItem[] = [];
+      let testItems: {[k: string]: vscode.TestItem} = {};
 
       for (const covData of covDatas) {
-        if (covData.testItem) testItems.push(covData.testItem);
+        let testItemId:string;
+        if (covData.testItem) {
+          testItems[covData.testItem.id] = covData.testItem;
+          testItemId = covData.testItem.id;
+          coverageRanges[name][file][testItemId] ||= {};
+        }
         covData.startLines.map(function(startLine, i) {
           let startCol = covData.startCols[i];
           let endLine = covData.endLines[i];
@@ -128,23 +157,17 @@ export function activate(context: vscode.ExtensionContext) {
           );
           let key = `${startLine},${startCol}-${endLine},${endCol}`;
           let cov = new vscode.StatementCoverage(covData.covered, rng);
-          if (!coverageRanges[file][key]?.executed)
-            coverageRanges[file][key] = cov;
+          if (!coverageRanges[name][file][globalKey][key]?.executed)
+            coverageRanges[name][file][globalKey][key] = cov;
+          if (testItemId && !coverageRanges[name][file][testItemId][key]?.executed) {
+            coverageRanges[name][file][testItemId][key] = cov;
+          }
         })
       }
-      let total = 0, covered = 0;
-      for (const cov of Object.values(coverageRanges[file])) {
-        total++;
-        if (cov.executed) covered++;
-      }
 
-      run.addCoverage(new vscode.FileCoverage(
-        vscode.Uri.parse(file),
-        new vscode.TestCoverageCount(covered, total),
-        undefined,
-        undefined,
-        testItems
-      ));
+      let fileCoverage = vscode.FileCoverage.fromDetails(vscode.Uri.parse(file), Object.values(coverageRanges[name][file][globalKey]));
+      fileCoverage.includesTests = Object.values(testItems);
+      run.addCoverage(fileCoverage);
     }
 
     run.end();
@@ -158,14 +181,31 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  coverageProfile.loadDetailedCoverage = async (_testRun, coverage) => {
-    outputChannel.appendLine(`Loading coverage for ${coverage.uri}`);
-    let details = coverageRanges[coverage.uri.toString()];
+  function loadDetailedCoverageForTest(testRun: vscode.TestRun, coverage: vscode.FileCoverage, testItemId: string) {
+    outputChannel.appendLine(`loadDetailedCoverageForTest ${testItemId}`)
+    if (!testRun.name || !coverageRanges[testRun.name]) {
+      outputChannel.appendLine(`No coverage found for ${testRun.name}, only for ${Object.keys(coverageRanges)}`);
+      return [];
+    }
+    let allDetails = coverageRanges[testRun.name][coverage.uri.toString()];
+    if (!allDetails) {
+      outputChannel.appendLine(`No coverage found for ${coverage.uri}, only for ${Object.keys(coverageRanges[testRun.name])}`);
+      return [];
+    }
+    let details = allDetails[testItemId];
     if (!details) {
-      outputChannel.appendLine(`No coverage found for ${coverage.uri}, only for ${Object.keys(coverageRanges)}`);
+      outputChannel.appendLine(`No coverage found for ${testItemId}, only for ${Object.keys(allDetails)}`);
       return [];
     }
     return Object.values(details);
+  }
+
+  coverageProfile.loadDetailedCoverage = async (testRun, coverage) => {
+    return loadDetailedCoverageForTest(testRun, coverage, globalKey);
+  }
+
+  coverageProfile.loadDetailedCoverageForTest = async (testRun, coverage, fromTestItem) => {
+    return loadDetailedCoverageForTest(testRun, coverage, fromTestItem.id);
   }
 
   void buildTestTree();
@@ -232,7 +272,7 @@ async function buildTestTreeInController(
 
   testController.items.replace([rootItem]);
 
-  coverageIndex = extractCoverageIndex(response.result);
+  baseCoverageIndex = extractCoverageIndex(response.result);
 
   outputChannel.appendLine(`Loaded ${tests.length} tests into Testing view.`);
 }
