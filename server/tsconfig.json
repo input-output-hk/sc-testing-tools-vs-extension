@@ -2,12 +2,12 @@
 	"compilerOptions": {
 		"module": "Node16",
 		"target": "ES2022",
-		"outDir": "out",
+		"outDir": "../out/server",
 		"lib": [
 			"ES2022"
 		],
 		"sourceMap": true,
-		"rootDir": "src",
+		"rootDir": ".",
 		"strict": true,   /* enable all strict type-checking options */
 		"types": [
 			"node"
@@ -17,5 +17,5 @@
 		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 	},
-	"exclude": ["server", "webview-ui"]
+	"include": [".", "../shared"]
 }

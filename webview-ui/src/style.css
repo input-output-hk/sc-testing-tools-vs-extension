@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@source "../../src/**/*.ts";
+@source "./**/*.tsx";
+
+@theme {
+  /* Blue */
+  --color-blue-01: #75BEFF;
+  --color-blue-02: #40A6FF;
+  --color-blue-03: #3399CC;
+  --color-blue-04: #3794FF;
+  --color-blue-05: #0097FB;
+  --color-blue-06: #007ACC;
+  --color-blue-07: #0E639C;
+  --color-blue-08: #264F78;
+  --color-blue-09: #094771;
+  --color-blue-10: #062F4A;
+  --color-blue-11: #001F33;
+
+  /* Red */
+  --color-red-01: #F14C4C;
+  --color-red-02: #C74E39;
+  --color-red-03: #FF0000;
+  --color-red-04: #A31515;
+
+  /* Green */
+  --color-green-01: #73C991;
+  --color-green-02: #40C8AE;
+  --color-green-03: #16825D;
+  --color-green-04: #327E36;
+  --color-green-05: #28632B;
+
+  /* Purple */
+  --color-purple-01: #6C6CC4;
+  --color-purple-02: #B180D7;
+  --color-purple-03: #BC3FBC;
+  --color-purple-04: #68217A;
+
+  /* Yellow */
+  --color-yellow-01: #D7BA7D;
+  --color-yellow-02: #CCA700;
+  --color-yellow-03: #B89500;
+  --color-yellow-04: #BF8803;
+  --color-yellow-05: #FFFF00;
+
+  /* Orange */
+  --color-orange-01: #CC6633;
+  --color-orange-02: #EE9D28;
+  --color-orange-03: #EA5C00;
+
+  /* Base */
+  --color-base-01: #FFFFFF;
+  --color-base-02: #F0F0F0;
+  --color-base-03: #E7E7E7;
+  --color-base-04: #E5E5E5;
+  --color-base-05: #D4D4D4;
+  --color-base-06: #CCCCCC;
+  --color-base-07: #C6C6C6;
+  --color-base-08: #BBBBBB;
+  --color-base-09: #A0A0A0;
+  --color-base-10: #808080;
+  --color-base-11: #7F7F7F;
+  --color-base-12: #606060;
+  --color-base-13: #454545;
+  --color-base-14: #3C3C3C;
+  --color-base-15: #3A3D41;
+  --color-base-16: #333333;
+  --color-base-17: #303031;
+  --color-base-18: #292929;
+  --color-base-19: #252526;
+  --color-base-20: #1E1E1E;
+  --color-base-21: #000000;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
