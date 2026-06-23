@@ -2,6 +2,8 @@ import * as rpc from 'vscode-jsonrpc/node';
 
 import { runScript } from './services/runScript';
 
+// TODO: Split this into multiple files for handling test list and test run functionality
+
 interface TestListResult {
   event: 'suite_started';
   tests: Array<TestListItem>;
@@ -66,6 +68,7 @@ function isTestRun(value: unknown): value is TestRun {
   return typeof value === 'object' && value !== null && value.hasOwnProperty('event') && (value as TestRun).event === 'test_done';
 }
 
+// TODO: Handle coverage
 const runTest = (testIds: number[]): void => {
   (async () => {
     for await (const output of runScript('run-tests-json.sh')) {
