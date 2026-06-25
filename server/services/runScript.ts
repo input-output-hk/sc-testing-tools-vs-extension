@@ -22,8 +22,6 @@ function findBash(): string {
 export async function* runScript(script: string): AsyncGenerator<ScriptResult> {
   const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', script);
   const bash = findBash();
-  console.error('[runScript] using bash:', bash);
-  console.error('[runScript] script path:', scriptPath);
   const child = spawn(bash, [scriptPath]);
   let stdout = '';
   let stderr = '';
@@ -33,7 +31,6 @@ export async function* runScript(script: string): AsyncGenerator<ScriptResult> {
 
   child.stderr.on('data', (chunk: string) => {
     stderr += chunk;
-    console.error('[runScript] stderr:', chunk.trimEnd());
   });
 
   for await (const chunk of child.stdout) {
