@@ -1,5 +1,6 @@
 .vscode/**
 src/**
+webview-ui/**
 .gitignore
 **/tsconfig.json
 **/*.map

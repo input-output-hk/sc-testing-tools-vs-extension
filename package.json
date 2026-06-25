@@ -1,12 +1,17 @@
 {
   "name": "pbt-extension",
-  "displayName": "PBT Extension",
+  "publisher": "cardano-ha",
+  "displayName": "PBT",
   "description": "",
+  "icon": "images/pbt-logo.png",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.118.0"
   },
   "categories": [
+    "Debuggers",
+    "Testing",
+    "Programming Languages",
     "Other"
   ],
   "activationEvents": [
@@ -19,21 +24,41 @@
         "command": "pbt-extension.buildTestTree",
         "title": "PBT: Build Test Tree"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pbt-test-tree",
+          "title": "PBT",
+          "icon": "images/pbt-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pbt-test-tree": [
+        {
+          "id": "pbt-test-tree",
+          "name": "PBT",
+          "type": "webview",
+          "icon": "images/pbt-icon.svg"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview",
+    "compile:extension": "npm install && tsc -p ./",
+    "compile:server": "cd server && npm install && npm run build && cd ..",
+    "compile:webview": "cd webview-ui && npm install && npm run build && cd .."
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2",
-    "eslint": "^9.39.3",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.45",
+    "vscode-jsonrpc": "^8.2.1"
   }
 }
