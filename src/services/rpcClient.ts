@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as rpc from 'vscode-jsonrpc/node';
 
+import { PbtContext } from '../extension';
+
 type TestListParams = {
 
 }
@@ -22,32 +24,27 @@ export default class RpcClient {
 
   constructor(context: vscode.ExtensionContext) {
     this.childProcess = cp.spawn('node', [context.asAbsolutePath('out/server/index.js')]);
-
-    this.childProcess.stdout?.on('data', (data) => {
-      console.log(`\nRPC STDOUT>\n${data}`);
-      return data;
-    });
-    
-    this.childProcess.stderr?.on('data', (data) => {
-      console.log(`\nRPC STDERR>\n${data}`);
-      return data;
-    });
     
     this.connection = rpc.createMessageConnection(
       new rpc.StreamMessageReader(this.childProcess.stdout!),
       new rpc.StreamMessageWriter(this.childProcess.stdin!)
     );
+  }
+
+  public async initialize(context: PbtContext): Promise<void> {
+    this.childProcess.stderr?.on('data', (data) => {
+      context.outputChannel.append(`> ERROR\n${data}`);
+      return data;
+    });
 
     this.connection.listen();
 
     this.connection.trace(rpc.Trace.Verbose, {
       log: (message: string, data?: string) => {
-        console.log(`\nRPC TRACE>\n${message}\n${data}`);
+        context.outputChannel.append(`> ${message}\n${data}`);
       }
     });
   }
-
-  public async initialize(): Promise<void> {}
 
   public onTestResult(callback: (test: TestResult) => void): void {
     this.connection.onNotification('testResult', (test: TestResult) => {

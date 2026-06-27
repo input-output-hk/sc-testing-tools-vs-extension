@@ -8,6 +8,7 @@ export type PbtContext = {
   extension: vscode.ExtensionContext;
   testStore: TestStore;
   testTreeView: TestTreeView;
+  outputChannel: vscode.OutputChannel;
 };
 
 // This method is called when your extension is activated
@@ -19,11 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
   // Init test tree view
   const testTreeView = new TestTreeView();
 
+  // Init output channel
+  const outputChannel = vscode.window.createOutputChannel('PBT Extension');
+
   // Init context
   const pbtContext: PbtContext = {
     extension: context,
     testStore,
     testTreeView,
+    outputChannel,
   };
 
   // Init workspaces
@@ -31,6 +36,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Activate modules
     testTreeView.activate(pbtContext);
   });
+
+  // Add subscriptions to context
+  context.subscriptions.push(outputChannel);
 }
 
 // This method is called when your extension is deactivated

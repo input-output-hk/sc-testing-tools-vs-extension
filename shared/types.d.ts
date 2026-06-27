@@ -18,11 +18,37 @@ type Location = {
   endCharacter: number;
 }
 
+type TestList = Record<number, Test>;
+
+type TestTree = Record<string, TreeNode>;
+
+type TestSuite = {
+  testList: TestList;
+  testTree: TestTree;
+};
+
+type TreeNode = {
+  type: "group" | "test";
+};
+
+type TreeGroupNode = TreeNode & {
+  type: "group";
+  name: string;
+  isOpen: boolean;
+  nodes: TestTree;
+};
+
+type TreeTestNode = TreeNode & {
+  type: "test";
+  testId: number;
+};
+
 type ExtensionToWebviewMessage =
-  | { type: "test-list", payload: { testList: Array<Test> } }
-  | { type: "test-result", payload: { test: Test } };
+  | { type: "test-suite", payload: TestSuite }
+  | { type: "test-update", payload: { test: Test } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
-  | { type: "build-test-list" }
+  | { type: "build-test-suite" }
+  | { type: "update-test-tree", payload: { testTree: TestTree } }
   | { type: "run-test", payload?: { testIds: Array<number> } };
