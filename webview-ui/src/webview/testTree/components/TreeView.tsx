@@ -4,7 +4,11 @@ import {
   VscodeTree,
   VscodeTreeItem,
 } from '@vscode-elements/react-elements';
+
+import TestStatusIcon from '../../../components/TestStatusIcon';
+
 import type { VscodeTreeItem as VscodeTreeItemElement } from '@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js';
+
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -124,10 +128,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, testList, onRunTest }
   const test = testList[node.testId];
   return (
     <VscodeTreeItem>
-      {test.status === 'undetermined' && <i className="codicon codicon-circle opacity-60 translate-y-0.75" slot="icon-leaf" />}
-      {test.status === 'valid' && <i className="codicon codicon-pass text-green-01 translate-y-0.75" slot="icon-leaf" />}
-      {test.status === 'invalid' && <i className="codicon codicon-error text-red-01 translate-y-0.75" slot="icon-leaf" />}
-      {test.status === 'running' && <i className="codicon codicon-question text-purple-02 translate-y-0.75" slot="icon-leaf" />}
+      <TestStatusIcon status={test.status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {test.name}

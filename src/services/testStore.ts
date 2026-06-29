@@ -60,14 +60,6 @@ export default class TestStore {
     };
   }
 
-  public getTestList(): TestList | null {
-    return this.testList;
-  }
-
-  public getTestTree(): TestTree | null {
-    return this.testTree;
-  }
-
   public getTestSuite(): TestSuite | null {
     if (this.testList === null || this.testTree === null) {
       return null;
@@ -78,7 +70,7 @@ export default class TestStore {
     };
   };
 
-  public updateTestTree(testTree: TestTree): void {
+  public setTestTree(testTree: TestTree): void {
     this.testTree = testTree;
   }
 

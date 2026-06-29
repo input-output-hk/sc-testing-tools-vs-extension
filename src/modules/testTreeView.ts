@@ -90,7 +90,7 @@ export default class TestTreeView {
   }
 
   private updateTestTree(testTree: TestTree): void {
-    this.context.testStore.updateTestTree(testTree);
+    this.context.testStore.setTestTree(testTree);
   }
 
   private sendTestUpdateToWebview(test: Test): void {
