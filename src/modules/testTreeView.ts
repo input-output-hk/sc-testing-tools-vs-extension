@@ -46,21 +46,20 @@ export default class TestTreeView {
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.testStore.onTestUpdate((test: Test) => {
-      if (this.webview !== null) {
-        this.webview.postMessage({ type: 'test-result', payload: { test } });
-      }
-    });
+    this.context.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-            this.fetchTestList();
+            this.fetchTestSuite();
             break;
-          case 'build-test-list':
-              this.buildTestList();
-              break;
+          case 'build-test-suite':
+            this.buildTestSuite();
+            break;
+          case 'update-test-tree':
+            this.updateTestTree(message.payload.testTree);
+            break;
           case 'run-test':
             this.runTests(message.payload!.testIds);
             break;
@@ -71,22 +70,32 @@ export default class TestTreeView {
     );
   }
 
-  private fetchTestList(): void {
-    const testList = this.context.testStore.getTestList();
-    if (testList !== null) {
-      this.sendTestListToWebview(testList);
+  private fetchTestSuite(): void {
+    const testSuite = this.context.testStore.getTestSuite();
+    if (testSuite !== null) {
+      this.sendTestSuiteToWebview(testSuite);
     }
   }
 
-  private buildTestList(): void {
-    this.context.testStore.buildTestList().then((testList: Array<Test>) => {
-      this.sendTestListToWebview(testList);
+  private buildTestSuite(): void {
+    this.context.testStore.buildTestSuite().then((testSuite: TestSuite) => {
+      this.sendTestSuiteToWebview(testSuite);
     });
   }
 
-  private sendTestListToWebview(testList: Array<Test>): void {
+  private sendTestSuiteToWebview(testSuite: TestSuite): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-list', payload: { testList } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-suite', payload: testSuite } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private updateTestTree(testTree: TestTree): void {
+    this.context.testStore.setTestTree(testTree);
+  }
+
+  private sendTestUpdateToWebview(test: Test): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-update', payload: { test } } as ExtensionToWebviewMessage);
     }
   }
 

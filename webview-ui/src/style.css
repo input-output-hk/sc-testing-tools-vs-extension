@@ -46,29 +46,6 @@
   --color-orange-01: #CC6633;
   --color-orange-02: #EE9D28;
   --color-orange-03: #EA5C00;
-
-  /* Base */
-  --color-base-01: #FFFFFF;
-  --color-base-02: #F0F0F0;
-  --color-base-03: #E7E7E7;
-  --color-base-04: #E5E5E5;
-  --color-base-05: #D4D4D4;
-  --color-base-06: #CCCCCC;
-  --color-base-07: #C6C6C6;
-  --color-base-08: #BBBBBB;
-  --color-base-09: #A0A0A0;
-  --color-base-10: #808080;
-  --color-base-11: #7F7F7F;
-  --color-base-12: #606060;
-  --color-base-13: #454545;
-  --color-base-14: #3C3C3C;
-  --color-base-15: #3A3D41;
-  --color-base-16: #333333;
-  --color-base-17: #303031;
-  --color-base-18: #292929;
-  --color-base-19: #252526;
-  --color-base-20: #1E1E1E;
-  --color-base-21: #000000;
 }
 
 @keyframes fadeIn {
