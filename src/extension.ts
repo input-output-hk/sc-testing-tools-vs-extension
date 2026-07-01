@@ -82,7 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
           success?: boolean,
           duration?: number,
           description?: string,
-          percent?: number
+          percent?: number,
+          trace?: {threatModels: {testId: number, covered: SrcLocRanges[] }[] }
         };
         let leaf = leaves[event.id];
         if (!(event.event in {test_trace:1, test_progress:1}))
@@ -113,6 +114,23 @@ export function activate(context: vscode.ExtensionContext) {
                 run.appendOutput(`\r\n  ${event.description.replace(/\n/g, "\r\n  ")}`, undefined, leaf);
               if (event.percent)
                 leaf.label = `${testNames[event.id]} (${Math.floor(event.percent*100)}%)`;
+              break;
+            case "test_trace":
+              if (event.trace) {
+                event.trace.threatModels.map(tm => {
+                  let tmLeaf = leaves[tm.testId];
+                  tm.covered.map(f => {
+                    f.covered = true;
+                    f.testItem = tmLeaf;
+
+                    let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
+                    if (!request.include || request.include.find(l => l == tmLeaf)) {
+                      coverageIndex[uri] ||= [];
+                      coverageIndex[uri].push(f);
+                    }
+                  });
+                })
+              }
               break;
             case "test_done":
               leaf.label = testNames[event.id];
