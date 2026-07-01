@@ -1,27 +1,45 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from "react";
 
-import { VscodeTreeItem } from '@vscode-elements/react-elements';
-import type { VscodeTreeItem as VscodeTreeItemElement } from '@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js';
+import { VscodeTreeItem } from "@vscode-elements/react-elements";
+import type { VscodeTreeItem as VscodeTreeItemElement } from "@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js";
 
-import TreeViewNode from './TreeViewNode';
-import { getGroupTestIds, nodeMatchesFilter } from '../../utils/treeUtils';
+import TreeViewNode from "./TreeViewNode";
+import { getGroupTestIds, nodeMatchesFilter } from "../../utils/treeUtils";
 
 interface TreeViewGroupProps {
   node: TreeGroupNode;
   path: Array<string>;
   testList: TestList;
   filterText: string;
+  showAll: boolean;
   onRunTest: (testIds: Array<number>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
-const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, filterText, onRunTest, onToggleTreeGroup }) => {
+const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
+  node,
+  path,
+  testList,
+  filterText,
+  showAll,
+  onRunTest,
+  onToggleTreeGroup,
+}) => {
   const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
 
-  const filteredNodes = useMemo(
-    () => Object.keys(node.nodes).filter((key) => !filterText || nodeMatchesFilter(node.nodes[key], filterText, testList)),
-    [node.nodes, filterText, testList]
-  );
+  const showAllChildren =
+    showAll ||
+    !filterText ||
+    node.name.toLowerCase().includes(filterText.toLowerCase());
+
+  const filteredNodes = useMemo(() => {
+    if (showAllChildren) {
+      return Object.keys(node.nodes);
+    }
+    return Object.keys(node.nodes).filter((key) =>
+      nodeMatchesFilter(node.nodes[key], filterText, testList),
+    );
+  }, [node.nodes, filterText, testList, showAllChildren]);
 
   useEffect(() => {
     const treeItem = treeItemRef.current;
@@ -30,11 +48,11 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, fil
     }
 
     const observer = new MutationObserver((mutations) => {
-      if (!mutations.some((mutation) => mutation.attributeName === 'open')) {
+      if (!mutations.some((mutation) => mutation.attributeName === "open")) {
         return;
       }
 
-      const isOpen = treeItem.hasAttribute('open');
+      const isOpen = treeItem.hasAttribute("open");
       if (isOpen !== node.isOpen) {
         onToggleTreeGroup(path, isOpen);
       }
@@ -42,7 +60,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, fil
 
     observer.observe(treeItem, {
       attributes: true,
-      attributeFilter: ['open'],
+      attributeFilter: ["open"],
     });
 
     return () => {
@@ -54,13 +72,19 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, fil
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTest(getGroupTestIds(node));
+    const visibleNodes = Object.fromEntries(
+      filteredNodes.map((key) => [key, node.nodes[key]]),
+    );
+    onRunTest(getGroupTestIds({ ...node, nodes: visibleNodes }));
   };
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
       <i className="codicon codicon-folder translate-y-1" slot="icon-branch" />
-      <i className="codicon codicon-folder-opened translate-y-1" slot="icon-branch-opened" />
+      <i
+        className="codicon codicon-folder-opened translate-y-1"
+        slot="icon-branch-opened"
+      />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
@@ -73,17 +97,18 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, fil
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {filteredNodes.map((key) =>
+      {filteredNodes.map((key) => (
         <TreeViewNode
           key={key}
           node={node.nodes[key]}
           path={[...path, key]}
           testList={testList}
           filterText={filterText}
+          showAll={showAllChildren}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
         />
-      )}
+      ))}
     </VscodeTreeItem>
   );
 };

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 
-import { VscodeTree, VscodeTextfield } from '@vscode-elements/react-elements';
+import { VscodeTree, VscodeTextfield } from "@vscode-elements/react-elements";
 
-import TreeViewNode from './TreeView/TreeViewNode';
-import { nodeMatchesFilter } from '../utils/treeUtils';
+import TreeViewNode from "./TreeView/TreeViewNode";
+import { nodeMatchesFilter } from "../utils/treeUtils";
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -12,20 +12,29 @@ interface TreeViewProps {
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, testList, onRunTest, onToggleTreeGroup }) => {
-  const [filterText, setFilterText] = useState('');
+const TreeView: React.FC<TreeViewProps> = ({
+  testTree,
+  testList,
+  onRunTest,
+  onToggleTreeGroup,
+}) => {
+  const [filterText, setFilterText] = useState("");
 
   const handleFilterInput = (e: Event) => {
     setFilterText((e.target as HTMLInputElement).value);
   };
 
   const handleFilterToggle = () => {
-    console.log('filter toggle clicked');
+    console.log("filter toggle clicked");
   };
 
   const filteredRoots = useMemo(
-    () => Object.keys(testTree).filter((key) => !filterText || nodeMatchesFilter(testTree[key], filterText, testList)),
-    [testTree, filterText, testList]
+    () =>
+      Object.keys(testTree).filter(
+        (key) =>
+          !filterText || nodeMatchesFilter(testTree[key], filterText, testList),
+      ),
+    [testTree, filterText, testList],
   );
 
   return (
@@ -43,7 +52,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, testList, onRunTest, onTo
         />
       </VscodeTextfield>
       <VscodeTree>
-        {filteredRoots.map((key) =>
+        {filteredRoots.map((key) => (
           <TreeViewNode
             key={key}
             node={testTree[key]}
@@ -53,7 +62,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, testList, onRunTest, onTo
             onRunTest={onRunTest}
             onToggleTreeGroup={onToggleTreeGroup}
           />
-        )}
+        ))}
       </VscodeTree>
     </div>
   );
