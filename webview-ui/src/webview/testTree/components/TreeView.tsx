@@ -38,7 +38,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   );
 
   return (
-    <div className="h-full overflow-y-scroll">
+    <div className="h-full flex flex-col">
       <VscodeTextfield
         className="px-2 py-1 w-full"
         placeholder="Filter (e.g. test)"
@@ -51,19 +51,21 @@ const TreeView: React.FC<TreeViewProps> = ({
           onClick={handleFilterToggle}
         />
       </VscodeTextfield>
-      <VscodeTree>
-        {filteredRoots.map((key) => (
-          <TreeViewNode
-            key={key}
-            node={testTree[key]}
-            path={[key]}
-            testList={testList}
-            filterText={filterText}
-            onRunTest={onRunTest}
-            onToggleTreeGroup={onToggleTreeGroup}
-          />
-        ))}
-      </VscodeTree>
+      <div className="flex-1 overflow-y-auto">
+        <VscodeTree>
+          {filteredRoots.map((key) => (
+            <TreeViewNode
+              key={key}
+              node={testTree[key]}
+              path={[key]}
+              testList={testList}
+              filterText={filterText}
+              onRunTest={onRunTest}
+              onToggleTreeGroup={onToggleTreeGroup}
+            />
+          ))}
+        </VscodeTree>
+      </div>
     </div>
   );
 };
