@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { VscodeTree, VscodeTextfield } from "@vscode-elements/react-elements";
 
 import TreeViewNode from "./TreeView/TreeViewNode";
-import { nodeMatchesFilter } from "../utils/treeUtils";
+import FilterMenu from "./TreeView/FilterMenu";
+import { nodeMatchesFilter, nodeMatchesStatus } from "../utils/treeUtils";
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -19,22 +20,49 @@ const TreeView: React.FC<TreeViewProps> = ({
   onToggleTreeGroup,
 }) => {
   const [filterText, setFilterText] = useState("");
+  const [statusFilters, setStatusFilters] = useState<Set<TestStatus>>(
+    () => new Set(["valid", "undetermined", "invalid"]),
+  );
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
 
   const handleFilterInput = (e: Event) => {
     setFilterText((e.target as HTMLInputElement).value);
   };
 
   const handleFilterToggle = () => {
-    console.log("filter toggle clicked");
+    setIsFilterMenuOpen((open) => !open);
   };
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const wrapper = filterWrapperRef.current;
+      if (wrapper && !wrapper.contains(event.target as Node)) {
+        setIsFilterMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFilterMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const filteredRoots = useMemo(
     () =>
       Object.keys(testTree).filter(
         (key) =>
-          !filterText || nodeMatchesFilter(testTree[key], filterText, testList),
+          nodeMatchesStatus(testTree[key], statusFilters, testList) &&
+          (!filterText || nodeMatchesFilter(testTree[key], filterText, testList)),
       ),
-    [testTree, filterText, testList],
+    [testTree, filterText, statusFilters, testList],
   );
 
   return (
@@ -45,11 +73,13 @@ const TreeView: React.FC<TreeViewProps> = ({
         value={filterText}
         onInput={handleFilterInput}
       >
-        <i
-          slot="content-after"
-          className="codicon codicon-filter cursor-pointer opacity-70 hover:opacity-100 mr-1"
-          onClick={handleFilterToggle}
-        />
+        <span slot="content-after" ref={filterWrapperRef} className="relative inline-flex items-center">
+          <i
+            className="codicon codicon-filter cursor-pointer opacity-70 hover:opacity-100 mr-1"
+            onClick={handleFilterToggle}
+          />
+          <FilterMenu isOpen={isFilterMenuOpen} statusFilters={statusFilters} onChange={setStatusFilters} />
+        </span>
       </VscodeTextfield>
       <div className="flex-1 overflow-y-auto">
         <VscodeTree>
@@ -60,6 +90,7 @@ const TreeView: React.FC<TreeViewProps> = ({
               path={[key]}
               testList={testList}
               filterText={filterText}
+              statusFilters={statusFilters}
               onRunTest={onRunTest}
               onToggleTreeGroup={onToggleTreeGroup}
             />

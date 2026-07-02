@@ -11,6 +11,16 @@ export const nodeMatchesFilter = (node: TreeNode, filter: string, testList: Test
   );
 };
 
+/** Returns true if the node or any of its descendants match the status filter. */
+export const nodeMatchesStatus = (node: TreeNode, statusFilters: Set<TestStatus>, testList: TestList): boolean => {
+  if (node.type === 'test') {
+    const status = testList[(node as TreeTestNode).testId].status;
+    return status === 'running' || statusFilters.has(status);
+  }
+  const group = node as TreeGroupNode;
+  return Object.values(group.nodes).some((child) => nodeMatchesStatus(child, statusFilters, testList));
+};
+
 /** Collects all test IDs nested within a group, recursively. */
 export const getGroupTestIds = (group: TreeGroupNode): Array<number> => {
   const testIds: Array<number> = [];

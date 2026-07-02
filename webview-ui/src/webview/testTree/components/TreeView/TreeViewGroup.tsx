@@ -4,13 +4,14 @@ import { VscodeTreeItem } from "@vscode-elements/react-elements";
 import type { VscodeTreeItem as VscodeTreeItemElement } from "@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js";
 
 import TreeViewNode from "./TreeViewNode";
-import { getGroupTestIds, nodeMatchesFilter } from "../../utils/treeUtils";
+import { getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from "../../utils/treeUtils";
 
 interface TreeViewGroupProps {
   node: TreeGroupNode;
   path: Array<string>;
   testList: TestList;
   filterText: string;
+  statusFilters: Set<TestStatus>;
   showAll: boolean;
   onRunTest: (testIds: Array<number>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
@@ -21,6 +22,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   path,
   testList,
   filterText,
+  statusFilters,
   showAll,
   onRunTest,
   onToggleTreeGroup,
@@ -33,13 +35,13 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     node.name.toLowerCase().includes(filterText.toLowerCase());
 
   const filteredNodes = useMemo(() => {
-    if (showAllChildren) {
-      return Object.keys(node.nodes);
-    }
-    return Object.keys(node.nodes).filter((key) =>
-      nodeMatchesFilter(node.nodes[key], filterText, testList),
-    );
-  }, [node.nodes, filterText, testList, showAllChildren]);
+    return Object.keys(node.nodes).filter((key) => {
+      if (!nodeMatchesStatus(node.nodes[key], statusFilters, testList)) {
+        return false;
+      }
+      return showAllChildren || nodeMatchesFilter(node.nodes[key], filterText, testList);
+    });
+  }, [node.nodes, filterText, statusFilters, testList, showAllChildren]);
 
   useEffect(() => {
     const treeItem = treeItemRef.current;
@@ -104,6 +106,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           path={[...path, key]}
           testList={testList}
           filterText={filterText}
+          statusFilters={statusFilters}
           showAll={showAllChildren}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
