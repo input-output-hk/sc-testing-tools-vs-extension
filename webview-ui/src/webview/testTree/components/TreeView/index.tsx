@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 
-import { VscodeTree, VscodeTextfield } from "@vscode-elements/react-elements";
+import { VscodeTree } from "@vscode-elements/react-elements";
 
-import TreeViewNode from "./TreeView/TreeViewNode";
-import { nodeMatchesFilter } from "../utils/treeUtils";
+import TreeViewNode from "./TreeViewNode";
+import { nodeMatchesFilter } from "../../utils/treeUtils";
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -20,8 +20,8 @@ const TreeView: React.FC<TreeViewProps> = ({
 }) => {
   const [filterText, setFilterText] = useState("");
 
-  const handleFilterInput = (e: Event) => {
-    setFilterText((e.target as HTMLInputElement).value);
+  const handleFilterInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilterText(e.target.value);
   };
 
   const handleFilterToggle = () => {
@@ -39,18 +39,19 @@ const TreeView: React.FC<TreeViewProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <VscodeTextfield
-        className="px-2 py-1 w-full"
-        placeholder="Filter (e.g. test)"
-        value={filterText}
-        onInput={handleFilterInput}
-      >
+      <div className="relative flex items-center w-full px-2 py-2">
+        <input
+          type="text"
+          className="w-full pl-2 pr-6 py-1 text-sm rounded border border-transparent bg-[#3c3c3c] text-base-06 outline-none focus:border-blue-06 placeholder:text-base-06"
+          placeholder="Filter (e.g. test)"
+          value={filterText}
+          onChange={handleFilterInput}
+        />
         <i
-          slot="content-after"
-          className="codicon codicon-filter cursor-pointer opacity-70 hover:opacity-100 mr-1"
+          className="codicon codicon-filter cursor-pointer text-base-06 opacity-70 hover:opacity-100 absolute right-3"
           onClick={handleFilterToggle}
         />
-      </VscodeTextfield>
+      </div>
       <div className="flex-1 overflow-y-auto">
         <VscodeTree>
           {filteredRoots.map((key) => (
