@@ -12,7 +12,6 @@ interface TreeViewGroupProps {
   testList: TestList;
   filterText: string;
   statusFilter: TestStatus | null;
-  showAll: boolean;
   onRunTest: (testIds: Array<number>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
@@ -23,25 +22,25 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   testList,
   filterText,
   statusFilter,
-  showAll,
   onRunTest,
   onToggleTreeGroup,
 }) => {
   const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
 
-  const showAllChildren =
-    showAll ||
-    !filterText ||
-    node.name.toLowerCase().includes(filterText.toLowerCase());
+  const effectiveFilterText =
+    !filterText || node.name.toLowerCase().includes(filterText.toLowerCase())
+      ? ""
+      : filterText;
 
-  const filteredNodes = useMemo(() => {
-    return Object.keys(node.nodes).filter((key) => {
-      if (!nodeMatchesStatus(node.nodes[key], statusFilter, testList)) {
-        return false;
-      }
-      return showAllChildren || nodeMatchesFilter(node.nodes[key], filterText, testList);
-    });
-  }, [node.nodes, filterText, statusFilter, testList, showAllChildren]);
+  const filteredNodes = useMemo(
+    () =>
+      Object.keys(node.nodes).filter(
+        (key) =>
+          nodeMatchesStatus(node.nodes[key], statusFilter, testList) &&
+          nodeMatchesFilter(node.nodes[key], effectiveFilterText, testList),
+      ),
+    [node.nodes, effectiveFilterText, statusFilter, testList],
+  );
 
   useEffect(() => {
     const treeItem = treeItemRef.current;
@@ -105,9 +104,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           node={node.nodes[key]}
           path={[...path, key]}
           testList={testList}
-          filterText={filterText}
+          filterText={effectiveFilterText}
           statusFilter={statusFilter}
-          showAll={showAllChildren}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
         />

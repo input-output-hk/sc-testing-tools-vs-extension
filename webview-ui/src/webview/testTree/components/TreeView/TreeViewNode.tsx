@@ -7,7 +7,6 @@ interface TreeViewNodeProps {
   testList: TestList;
   filterText: string;
   statusFilter: TestStatus | null;
-  showAll?: boolean;
   onRunTest: (testIds: Array<number>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
@@ -18,7 +17,6 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   testList,
   filterText,
   statusFilter,
-  showAll = false,
   onRunTest,
   onToggleTreeGroup,
 }) =>
@@ -29,7 +27,6 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       testList={testList}
       filterText={filterText}
       statusFilter={statusFilter}
-      showAll={showAll}
       onRunTest={onRunTest}
       onToggleTreeGroup={onToggleTreeGroup}
     />
