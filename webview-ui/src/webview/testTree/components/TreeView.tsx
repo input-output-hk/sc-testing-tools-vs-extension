@@ -20,9 +20,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   onToggleTreeGroup,
 }) => {
   const [filterText, setFilterText] = useState("");
-  const [statusFilters, setStatusFilters] = useState<Set<TestStatus>>(
-    () => new Set(["valid", "undetermined", "invalid"]),
-  );
+  const [statusFilter, setStatusFilter] = useState<TestStatus | null>(null);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
 
@@ -32,6 +30,11 @@ const TreeView: React.FC<TreeViewProps> = ({
 
   const handleFilterToggle = () => {
     setIsFilterMenuOpen((open) => !open);
+  };
+
+  const handleStatusFilterChange = (nextStatusFilter: TestStatus | null) => {
+    setStatusFilter(nextStatusFilter);
+    setIsFilterMenuOpen(false);
   };
 
   useEffect(() => {
@@ -47,10 +50,10 @@ const TreeView: React.FC<TreeViewProps> = ({
       }
     };
 
-    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("click", handleDocumentClick, true);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("click", handleDocumentClick, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
@@ -59,10 +62,10 @@ const TreeView: React.FC<TreeViewProps> = ({
     () =>
       Object.keys(testTree).filter(
         (key) =>
-          nodeMatchesStatus(testTree[key], statusFilters, testList) &&
+          nodeMatchesStatus(testTree[key], statusFilter, testList) &&
           (!filterText || nodeMatchesFilter(testTree[key], filterText, testList)),
       ),
-    [testTree, filterText, statusFilters, testList],
+    [testTree, filterText, statusFilter, testList],
   );
 
   return (
@@ -78,7 +81,7 @@ const TreeView: React.FC<TreeViewProps> = ({
             className="codicon codicon-filter cursor-pointer opacity-70 hover:opacity-100 mr-1"
             onClick={handleFilterToggle}
           />
-          <FilterMenu isOpen={isFilterMenuOpen} statusFilters={statusFilters} onChange={setStatusFilters} />
+          <FilterMenu isOpen={isFilterMenuOpen} statusFilter={statusFilter} onChange={handleStatusFilterChange} />
         </span>
       </VscodeTextfield>
       <div className="flex-1 overflow-y-auto">
@@ -90,7 +93,7 @@ const TreeView: React.FC<TreeViewProps> = ({
               path={[key]}
               testList={testList}
               filterText={filterText}
-              statusFilters={statusFilters}
+              statusFilter={statusFilter}
               onRunTest={onRunTest}
               onToggleTreeGroup={onToggleTreeGroup}
             />

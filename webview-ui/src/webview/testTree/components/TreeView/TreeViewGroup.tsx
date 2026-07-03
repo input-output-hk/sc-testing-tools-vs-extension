@@ -11,7 +11,7 @@ interface TreeViewGroupProps {
   path: Array<string>;
   testList: TestList;
   filterText: string;
-  statusFilters: Set<TestStatus>;
+  statusFilter: TestStatus | null;
   showAll: boolean;
   onRunTest: (testIds: Array<number>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
@@ -22,7 +22,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   path,
   testList,
   filterText,
-  statusFilters,
+  statusFilter,
   showAll,
   onRunTest,
   onToggleTreeGroup,
@@ -36,12 +36,12 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
 
   const filteredNodes = useMemo(() => {
     return Object.keys(node.nodes).filter((key) => {
-      if (!nodeMatchesStatus(node.nodes[key], statusFilters, testList)) {
+      if (!nodeMatchesStatus(node.nodes[key], statusFilter, testList)) {
         return false;
       }
       return showAllChildren || nodeMatchesFilter(node.nodes[key], filterText, testList);
     });
-  }, [node.nodes, filterText, statusFilters, testList, showAllChildren]);
+  }, [node.nodes, filterText, statusFilter, testList, showAllChildren]);
 
   useEffect(() => {
     const treeItem = treeItemRef.current;
@@ -106,7 +106,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           path={[...path, key]}
           testList={testList}
           filterText={filterText}
-          statusFilters={statusFilters}
+          statusFilter={statusFilter}
           showAll={showAllChildren}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
