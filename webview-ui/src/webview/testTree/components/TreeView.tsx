@@ -11,55 +11,195 @@ import type { VscodeTreeItem as VscodeTreeItemElement } from '@vscode-elements/e
 
 
 interface TreeViewProps {
-  testTree: TestTree;
-  testList: TestList;
-  onRunTest: (testIds: Array<number>) => void;
+  tests: TestList;
+  packages: TestPackageList;
+  onRunTest: (testIds: Array<string>) => void;
+  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
+  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
+}
+
+interface TreeViewPackageProps {
+  tests: TestList;
+  package: TestPackage;
+  onRunTest: (testIds: Array<string>) => void;
+  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
+  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
+}
+
+interface TreeViewSuiteProps {
+  tests: TestList;
+  path: Array<string>;
+  suite: TestSuite;
+  onRunTest: (testIds: Array<string>) => void;
+  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
 interface TreeViewNodeProps {
-  node: TreeNode;
+  node: TestTreeNode;
   path: Array<string>;
-  testList: TestList;
-  onRunTest: (testIds: Array<number>) => void;
+  tests: TestList;
+  onRunTest: (testIds: Array<string>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
 interface TreeViewGroupProps {
-  node: TreeGroupNode;
+  node: TestTreeGroupNode;
   path: Array<string>;
-  testList: TestList;
-  onRunTest: (testIds: Array<number>) => void;
+  tests: TestList;
+  onRunTest: (testIds: Array<string>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
 interface TreeViewTestProps {
-  node: TreeTestNode;
-  testList: TestList;
-  onRunTest: (testIds: Array<number>) => void;
+  node: TestTreeTestNode;
+  tests: TestList;
+  onRunTest: (testIds: Array<string>) => void;
 }
 
-const getGroupTestIds = (group: TreeGroupNode): Array<number> => {
-  const testIds: Array<number> = [];
+const getGroupTestIds = (group: TestTreeGroupNode): Array<string> => {
+  const testIds: Array<string> = [];
   for (const node of Object.values(group.nodes)) {
     if (node.type === 'test') {
-      testIds.push((node as TreeTestNode).testId);
+      testIds.push((node as TestTreeTestNode).testId);
     } else if (node.type === 'group') {
-      testIds.push(...getGroupTestIds(node as TreeGroupNode));
+      testIds.push(...getGroupTestIds(node as TestTreeGroupNode));
     }
   }
   return testIds;
 };
 
-const TreeViewNode: React.FC<TreeViewNodeProps> = ({ node, path, testList, onRunTest, onToggleTreeGroup }) => (
+const TreeViewPackage: React.FC<TreeViewPackageProps> = ({ package: pkg, tests, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup }) => {
+  const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
+
+  useEffect(() => {
+    const treeItem = treeItemRef.current;
+    if (!treeItem) {
+      return;
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (!mutations.some((mutation) => mutation.attributeName === 'open')) {
+        return;
+      }
+
+      const isOpen = treeItem.hasAttribute('open');
+      if (isOpen !== pkg.isOpen) {
+        onToggleTreeGroup([pkg.name], isOpen);
+      }
+    });
+
+    observer.observe(treeItem, {
+      attributes: true,
+      attributeFilter: ['open'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [pkg.isOpen, pkg.name, onToggleTreeGroup]);
+
+  return (
+    <VscodeTreeItem ref={treeItemRef} open={pkg.isOpen}>
+      <i className="codicon codicon-package" />
+      <span className="flex flex-row w-full items-center justify-between gap-0.5">
+        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+          {pkg.name}
+        </span>
+      </span>
+      {Object.keys(pkg.suites).map((key, index) =>
+        <TestTreeSuite
+          key={index}
+          suite={pkg.suites[key]}
+          path={[pkg.name, key]}
+          tests={tests}
+          onRunTest={onRunTest}
+          onBuildTestSuiteTree={onBuildTestSuiteTree}
+          onToggleTreeGroup={onToggleTreeGroup}
+        />
+      )}
+    </VscodeTreeItem>
+  );
+};
+
+const TestTreeSuite: React.FC<TreeViewSuiteProps> = ({ suite, path, tests, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup }) => {
+  const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
+
+  useEffect(() => {
+    const treeItem = treeItemRef.current;
+    if (!treeItem) {
+      return;
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (!mutations.some((mutation) => mutation.attributeName === 'open')) {
+        return;
+      }
+
+      const isOpen = treeItem.hasAttribute('open');
+      if (isOpen !== suite.isOpen) {
+        onToggleTreeGroup(path, isOpen);
+      }
+    });
+
+    observer.observe(treeItem, {
+      attributes: true,
+      attributeFilter: ['open'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [suite.isOpen, onToggleTreeGroup, path]);
+
+  return (
+    <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
+      <i className="codicon codicon-project" />
+      <span className="flex flex-row w-full items-center justify-between gap-0.5">
+        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+          {suite.name}
+        </span>
+        {suite.status !== 'building' &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              event.nativeEvent.stopImmediatePropagation();
+              onBuildTestSuiteTree(path[0], path[1]);
+            }}
+          >
+            <i className="codicon codicon-symbol-property" />
+          </button>
+        }
+        {suite.status === 'building' &&
+          <i className="codicon codicon-loading h-5 w-5 animate-spin" />
+        }
+      </span>
+      {Object.keys(suite.tree).map((key, index) =>
+        <TreeViewNode
+          key={index}
+          node={suite.tree[key]}
+          path={[...path, key]}
+          tests={tests}
+          onRunTest={onRunTest}
+          onToggleTreeGroup={onToggleTreeGroup}
+        />
+      )}
+    </VscodeTreeItem>
+  );
+};
+
+const TreeViewNode: React.FC<TreeViewNodeProps> = ({ node, path, tests, onRunTest, onToggleTreeGroup }) => (
   node.type === 'group' ? (
-    <TreeViewGroup node={node as TreeGroupNode} path={path} testList={testList} onRunTest={onRunTest} onToggleTreeGroup={onToggleTreeGroup} />
+    <TreeViewGroup node={node as TestTreeGroupNode} path={path} tests={tests} onRunTest={onRunTest} onToggleTreeGroup={onToggleTreeGroup} />
   ) : (
-    <TreeViewTest node={node as TreeTestNode} testList={testList} onRunTest={onRunTest} />
+    <TreeViewTest node={node as TestTreeTestNode} tests={tests} onRunTest={onRunTest} />
   )
 );
 
-const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, onRunTest, onToggleTreeGroup }) => {
+const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, tests, onRunTest, onToggleTreeGroup }) => {
   const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
 
   useEffect(() => {
@@ -115,7 +255,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, onR
           key={index}
           node={node.nodes[key]}
           path={[...path, key]}
-          testList={testList}
+          tests={tests}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
         />
@@ -124,8 +264,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, testList, onR
   );
 };
 
-const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, testList, onRunTest }) => {
-  const test = testList[node.testId];
+const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest }) => {
+  const test = tests[node.testId];
   return (
     <VscodeTreeItem>
       <TestStatusIcon status={test.status} />
@@ -155,16 +295,16 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, testList, onRunTest }
   );
 };
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, testList, onRunTest, onToggleTreeGroup }) => (
+const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup }) => (
   <div className="h-full overflow-y-scroll">
     <VscodeTree>
-      {Object.keys(testTree).map((key, index) =>
-        <TreeViewNode
+      {Object.values(packages).map((pkg, index) =>
+        <TreeViewPackage
           key={index}
-          node={testTree[key]}
-          path={[key]}
-          testList={testList}
+          package={pkg}
+          tests={tests}
           onRunTest={onRunTest}
+          onBuildTestSuiteTree={onBuildTestSuiteTree}
           onToggleTreeGroup={onToggleTreeGroup}
         />
       )}

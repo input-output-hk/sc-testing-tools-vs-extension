@@ -52,16 +52,16 @@ export default class TestTreeView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-            this.fetchTestSuite();
+            this.fetchTestPackages();
             break;
-          case 'build-test-suite':
-            this.buildTestSuite();
+          case 'build-test-suite-tree':
+            this.buildTestSuiteTree(message.payload.packageName, message.payload.suiteName);
             break;
-          case 'update-test-tree':
-            this.updateTestTree(message.payload.testTree);
+          case 'update-test-packages-list':
+            this.updateTestPackagesList(message.payload.packages);
             break;
-          case 'run-test':
-            this.runTests(message.payload!.testIds);
+          case 'run-tests':
+            this.runTests(message.payload.testIds);
             break;
         }
       },
@@ -70,27 +70,33 @@ export default class TestTreeView {
     );
   }
 
-  private fetchTestSuite(): void {
-    const testSuite = this.context.testStore.getTestSuite();
-    if (testSuite !== null) {
-      this.sendTestSuiteToWebview(testSuite);
+  private fetchTestPackages(): void {
+    const data = this.context.testStore.getTestPackages();
+    if (data !== null) {
+      this.sendTestPackagesToWebview(data);
+    } else {
+      this.context.testStore.buildTestPackages().then((data: TestPackageData) => {
+        this.sendTestPackagesToWebview(data);
+      });
     }
   }
 
-  private buildTestSuite(): void {
-    this.context.testStore.buildTestSuite().then((testSuite: TestSuite) => {
-      this.sendTestSuiteToWebview(testSuite);
+  private sendTestPackagesToWebview(data: TestPackageData | null): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-package-list', payload: data } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private buildTestSuiteTree(packageName: string, suiteName: string): void {
+    this.context.testStore.buildSuiteTestTree('docker', packageName, suiteName).then((data: TestSuiteData | null) => {
+      if (this.webview !== null && data !== null) {
+        this.webview.postMessage({ type: 'test-suite-tree', payload: data } as ExtensionToWebviewMessage);
+      }
     });
   }
 
-  private sendTestSuiteToWebview(testSuite: TestSuite): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-suite', payload: testSuite } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private updateTestTree(testTree: TestTree): void {
-    this.context.testStore.setTestTree(testTree);
+  private updateTestPackagesList(packages: TestPackageList): void {
+    this.context.testStore.updateTestPackages(packages);
   }
 
   private sendTestUpdateToWebview(test: Test): void {
@@ -99,7 +105,21 @@ export default class TestTreeView {
     }
   }
 
-  private runTests(testIds: number[]): void {
-    this.context.testStore.runTest(testIds);
+  private runTests(testIds: string[]): void {
+    const groupedTests: Record<string, string[]> = {};
+    for (const testId of testIds) {
+      const [packageName] = testId.split(':');
+      if (!groupedTests[packageName]) {
+        groupedTests[packageName] = [];
+      }
+      groupedTests[packageName].push(testId);
+    }
+    for (const packageName in groupedTests) {
+      const ids = groupedTests[packageName];
+      const workspacePath = this.context.testStore.getTestPackages()?.packages[packageName]?.path;
+      if (workspacePath !== undefined) {
+        this.context.testStore.runTests('docker', workspacePath, ids);
+      }
+    }
   }
 }
