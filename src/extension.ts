@@ -9,14 +9,13 @@ interface SrcLocRanges {
   startCols: number[];
   endLines: number[];
   endCols: number[];
-  covered: boolean;
   testItem?: vscode.TestItem;
 }
 
-let baseCoverageIndex: {[key: string]: SrcLocRanges[]} = {};
+let baseCoverageIndex: {[uri: string]: {[key: string]: vscode.StatementCoverage}} = {};
 let coverageRanges: {
   [name: string] : {
-    [file: string]: {
+    [uri: string]: {
       [testId : string]: {
         [key: string]: vscode.StatementCoverage
       }
@@ -63,10 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     coverageRanges[name] = {};
+    for (let uri in baseCoverageIndex) {
+      coverageRanges[name][uri] = mergeRanges(coverageRanges[name][uri] || {}, baseCoverageIndex[uri]);
+    }
 
-    let coverageIndex: {[key: string]: SrcLocRanges[]} = {};
-    for (let k in baseCoverageIndex)
-      coverageIndex[k] = baseCoverageIndex[k].concat([]);
     let packageRoot = "";
     try {
       for await (const result of runBuildTestTreeScript(context.extensionPath, 'scripts/run-tests-json.sh')) {
@@ -93,13 +92,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
         if (event.covered) {
           event.covered.map(f => {
-            f.covered = true;
-            f.testItem = leaf;
-
+            let rngs = toRanges(f, 1);
             let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
             if (!request.include || request.include.find(l => l == leaf)) {
-              coverageIndex[uri] ||= [];
-              coverageIndex[uri].push(f);
+              coverageRanges[name][uri] = mergeRanges(coverageRanges[name][uri] || {}, rngs, leaf.id);
             }
           });
         }
@@ -120,13 +116,10 @@ export function activate(context: vscode.ExtensionContext) {
                 event.trace.threatModels.map(tm => {
                   let tmLeaf = leaves[tm.testId];
                   tm.covered.map(f => {
-                    f.covered = true;
-                    f.testItem = tmLeaf;
-
+                    let rngs = toRanges(f, 1);
                     let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
                     if (!request.include || request.include.find(l => l == tmLeaf)) {
-                      coverageIndex[uri] ||= [];
-                      coverageIndex[uri].push(f);
+                      coverageRanges[name][uri] = mergeRanges(coverageRanges[name][uri] || {}, rngs, tmLeaf.id);
                     }
                   });
                 })
@@ -151,41 +144,8 @@ export function activate(context: vscode.ExtensionContext) {
       console.error(e);
     }
 
-    for (let file in coverageIndex) {
-      let covDatas = coverageIndex[file];
-      coverageRanges[name][file] ||= {};
-      coverageRanges[name][file][globalKey] ||= {};
-
-      let testItems: {[k: string]: vscode.TestItem} = {};
-
-      for (const covData of covDatas) {
-        let testItemId:string;
-        if (covData.testItem) {
-          testItems[covData.testItem.id] = covData.testItem;
-          testItemId = covData.testItem.id;
-          coverageRanges[name][file][testItemId] ||= {};
-        }
-        covData.startLines.map(function(startLine, i) {
-          let startCol = covData.startCols[i];
-          let endLine = covData.endLines[i];
-          let endCol = covData.endCols[i];
-          let rng = new vscode.Range(
-            new vscode.Position(startLine - 1, startCol - 1),
-            new vscode.Position(endLine - 1, endCol - 1)
-          );
-          let key = `${startLine},${startCol}-${endLine},${endCol}`;
-          let cov = new vscode.StatementCoverage(covData.covered, rng);
-          if (!coverageRanges[name][file][globalKey][key]?.executed)
-            coverageRanges[name][file][globalKey][key] = cov;
-          if (testItemId && !coverageRanges[name][file][testItemId][key]?.executed) {
-            coverageRanges[name][file][testItemId][key] = cov;
-          }
-        })
-      }
-
-      let fileCoverage = vscode.FileCoverage.fromDetails(vscode.Uri.parse(file), Object.values(coverageRanges[name][file][globalKey]));
-      fileCoverage.includesTests = Object.values(testItems);
-      run.addCoverage(fileCoverage);
+    for (let file in coverageRanges[name]) {
+      run.addCoverage(vscode.FileCoverage.fromDetails(vscode.Uri.parse(file), Object.values(coverageRanges[name][file][globalKey])));
     }
 
     run.end();
@@ -215,7 +175,10 @@ export function activate(context: vscode.ExtensionContext) {
       outputChannel.appendLine(`No coverage found for ${testItemId}, only for ${Object.keys(allDetails)}`);
       return [];
     }
-    return Object.values(details);
+    return Object.values(details).map(c => {
+      c.executed = (c.executed as number) / 100;
+      return c;
+    });
   }
 
   coverageProfile.loadDetailedCoverage = async (testRun, coverage) => {
@@ -361,17 +324,55 @@ function extractTestsFromResult(result: unknown): ListedTest[] | null {
   return listedTests;
 }
 
-function extractCoverageIndex(result: unknown): { [key: string]: SrcLocRanges[] } {
+function extractCoverageIndex(result: unknown): {[uri: string]: {[key: string]: vscode.StatementCoverage}} {
   let coverageIndex = (result as { parsed: { coverageIndex: SrcLocRanges[]} }).parsed.coverageIndex;
   let packageRoot = (result as { parsed: { packageRoot: string} }).parsed.packageRoot;
-  let map: { [key: string]: SrcLocRanges[] } = {};
-  coverageIndex.map(f => {
-    f.covered = false;
-    map[vscode.Uri.file(packageRoot + '/' + f.file).toString()] = [f];
-  });
-  return map;
+  return Object.fromEntries(coverageIndex.map(f =>
+    [ vscode.Uri.file(packageRoot + '/' + f.file).toString()
+    , toRanges(f, 0)
+    ]));
 }
 
 function isRecord(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null;
+}
+
+function toRanges(covData: SrcLocRanges, covered: number): {[key: string]: vscode.StatementCoverage} {
+  let res:{[key: string]: vscode.StatementCoverage} = {};
+  covData.startLines.map(function(startLine, i) {
+    let startCol = covData.startCols[i];
+    let endLine = covData.endLines[i];
+    let endCol = covData.endCols[i];
+    let rng = new vscode.Range(
+      new vscode.Position(startLine - 1, startCol - 1),
+      new vscode.Position(endLine - 1, endCol - 1)
+    );
+    let key = `${startLine},${startCol}-${endLine},${endCol}`;
+    let cov = new vscode.StatementCoverage(covered, rng);
+    res[key] = cov;
+  })
+  return res;
+}
+
+function mergeRanges(
+  covRanges: {[testItemId: string]: {[key: string]: vscode.StatementCoverage}},
+  covData: {[key: string]: vscode.StatementCoverage},
+  testItemId?: string
+):{[testId: string]: {[key: string]: vscode.StatementCoverage}} {
+  covRanges[globalKey] ||= {};
+  for (let key in covData) {
+    let cov = covData[key];
+    if (!covRanges[globalKey][key]?.executed)
+      covRanges[globalKey][key] = cov;
+    else
+      covRanges[globalKey][key].executed = (covRanges[globalKey][key].executed as number) + 1;
+    if (testItemId) {
+      covRanges[testItemId] ||= {};
+      if (!covRanges[testItemId][key]?.executed)
+        covRanges[testItemId][key] = cov;
+      else
+        covRanges[testItemId][key].executed = (covRanges[testItemId][key].executed as number) + 1;
+    }
+  }
+  return covRanges;
 }
