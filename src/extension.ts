@@ -23,6 +23,7 @@ let coverageRanges: {
   }
 } = {};
 let leaves: {[key: number]: vscode.TestItem } = {};
+let compareTo: {[key: string]: string} = {};
 let testNames: {[key: number]: string } = {};
 let globalKey = "#GLOBAL#";
 export function activate(context: vscode.ExtensionContext) {
@@ -57,14 +58,12 @@ export function activate(context: vscode.ExtensionContext) {
   ) {
     const name = (request.include||[]).map(val => val.label).join(",") || "Complete testrun";
     const run = testController.createTestRun(request, name);
-    for (const leaf of Object.values(leaves)) {
+    const testItems = request.include || Object.values(leaves);
+    for (const leaf of testItems) {
       run.enqueued(leaf);
     }
 
     coverageRanges[name] = {};
-    for (let uri in baseCoverageIndex) {
-      coverageRanges[name][uri] = mergeRanges(coverageRanges[name][uri] || {}, baseCoverageIndex[uri]);
-    }
 
     let packageRoot = "";
     try {
@@ -115,6 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
               if (event.trace) {
                 event.trace.threatModels.map(tm => {
                   let tmLeaf = leaves[tm.testId];
+                  compareTo[tmLeaf.id] = leaf.id;
                   tm.covered.map(f => {
                     let rngs = toRanges(f, 1);
                     let uri = vscode.Uri.file(packageRoot + '/' + f.file).toString();
@@ -145,7 +145,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     for (let file in coverageRanges[name]) {
-      run.addCoverage(vscode.FileCoverage.fromDetails(vscode.Uri.parse(file), Object.values(coverageRanges[name][file][globalKey])));
+      let uri = vscode.Uri.parse(file);
+      let cov = vscode.FileCoverage.fromDetails(uri, loadDetailedCoverageForTest(name, uri, globalKey));
+      let testsWithCoverage: vscode.TestItem[] = [];
+      for (let testItem of testItems) {
+        if (coverageRanges[name][file][testItem.id])
+          testsWithCoverage.push(testItem);
+      }
+      cov.includesTests = testsWithCoverage;
+      run.addCoverage(cov);
     }
 
     run.end();
@@ -159,15 +167,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  function loadDetailedCoverageForTest(testRun: vscode.TestRun, coverage: vscode.FileCoverage, testItemId: string) {
+  function loadDetailedCoverageForTest(testRunName: string | undefined, coverageUri: vscode.Uri, testItemId: string): vscode.FileCoverageDetail[] {
     outputChannel.appendLine(`loadDetailedCoverageForTest ${testItemId}`)
-    if (!testRun.name || !coverageRanges[testRun.name]) {
-      outputChannel.appendLine(`No coverage found for ${testRun.name}, only for ${Object.keys(coverageRanges)}`);
+    if (!testRunName || !coverageRanges[testRunName]) {
+      outputChannel.appendLine(`No coverage found for ${testRunName}, only for ${Object.keys(coverageRanges)}`);
       return [];
     }
-    let allDetails = coverageRanges[testRun.name][coverage.uri.toString()];
+    let allDetails = coverageRanges[testRunName][coverageUri.toString()];
     if (!allDetails) {
-      outputChannel.appendLine(`No coverage found for ${coverage.uri}, only for ${Object.keys(coverageRanges[testRun.name])}`);
+      outputChannel.appendLine(`No coverage found for ${coverageUri}, only for ${Object.keys(coverageRanges[testRunName])}`);
       return [];
     }
     let details = allDetails[testItemId];
@@ -175,18 +183,33 @@ export function activate(context: vscode.ExtensionContext) {
       outputChannel.appendLine(`No coverage found for ${testItemId}, only for ${Object.keys(allDetails)}`);
       return [];
     }
-    return Object.values(details).map(c => {
-      c.executed = (c.executed as number) / 100;
-      return c;
-    });
+    if (compareTo[testItemId]) {
+      let compare = allDetails[compareTo[testItemId]];
+      let result = [];
+      for (let key in details)
+        if (!compare[key]) result.push(details[key]);
+      for (let key in compare) {
+        if (!details[key]) {
+          result.push(new vscode.StatementCoverage(false, compare[key].location))
+        }
+      }
+      return result;
+    } else {
+      let base = baseCoverageIndex[coverageUri.toString()];
+      if (!base) {
+        outputChannel.appendLine(`No coverage index found for ${coverageUri}, only for ${Object.keys(baseCoverageIndex)}`);
+        return [];
+      }
+      return Object.values(Object.assign({}, base, details));
+    }
   }
 
   coverageProfile.loadDetailedCoverage = async (testRun, coverage) => {
-    return loadDetailedCoverageForTest(testRun, coverage, globalKey);
+    return loadDetailedCoverageForTest(testRun.name, coverage.uri, globalKey);
   }
 
   coverageProfile.loadDetailedCoverageForTest = async (testRun, coverage, fromTestItem) => {
-    return loadDetailedCoverageForTest(testRun, coverage, fromTestItem.id);
+    return loadDetailedCoverageForTest(testRun.name, coverage.uri, fromTestItem.id);
   }
 
   void buildTestTree();
@@ -338,8 +361,7 @@ function isRecord(value: unknown): value is Record<string, any> {
 }
 
 function toRanges(covData: SrcLocRanges, covered: number): {[key: string]: vscode.StatementCoverage} {
-  let res:{[key: string]: vscode.StatementCoverage} = {};
-  covData.startLines.map(function(startLine, i) {
+  return Object.fromEntries(covData.startLines.map((startLine, i) => {
     let startCol = covData.startCols[i];
     let endLine = covData.endLines[i];
     let endCol = covData.endCols[i];
@@ -347,11 +369,8 @@ function toRanges(covData: SrcLocRanges, covered: number): {[key: string]: vscod
       new vscode.Position(startLine - 1, startCol - 1),
       new vscode.Position(endLine - 1, endCol - 1)
     );
-    let key = `${startLine},${startCol}-${endLine},${endCol}`;
-    let cov = new vscode.StatementCoverage(covered, rng);
-    res[key] = cov;
-  })
-  return res;
+    return [`${startLine},${startCol}-${endLine},${endCol}`, new vscode.StatementCoverage(covered, rng)];
+  }));
 }
 
 function mergeRanges(
@@ -365,13 +384,13 @@ function mergeRanges(
     if (!covRanges[globalKey][key]?.executed)
       covRanges[globalKey][key] = cov;
     else
-      covRanges[globalKey][key].executed = (covRanges[globalKey][key].executed as number) + 1;
+      (covRanges[globalKey][key].executed as number)++;
     if (testItemId) {
       covRanges[testItemId] ||= {};
       if (!covRanges[testItemId][key]?.executed)
         covRanges[testItemId][key] = cov;
       else
-        covRanges[testItemId][key].executed = (covRanges[testItemId][key].executed as number) + 1;
+        (covRanges[testItemId][key].executed as number)++;
     }
   }
   return covRanges;
