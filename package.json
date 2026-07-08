@@ -38,9 +38,14 @@
       "pbt-test-tree": [
         {
           "id": "pbt-test-tree",
-          "name": "PBT",
+          "name": "Test Panel",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
+        },
+        {
+          "id": "pbt-test-customization",
+          "name": "Test Customization",
+          "type": "webview"
         }
       ]
     }

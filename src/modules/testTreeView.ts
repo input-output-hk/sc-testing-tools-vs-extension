@@ -1,32 +1,7 @@
 import * as vscode from 'vscode';
-import { getWebviewHtml } from '../utils/webview';
+import { GenericWebviewViewProvider, getWebviewHtml } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
-
-class TestTreeViewProvider implements vscode.WebviewViewProvider {
-  private extensionUri: vscode.Uri;
-  private onResolve: (webview: vscode.Webview) => void;
-
-  constructor(extensionUri: vscode.Uri, onResolve: (webview: vscode.Webview) => void) {
-    this.extensionUri = extensionUri;
-    this.onResolve = onResolve;
-  }
-
-  public resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ) {
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.extensionUri],
-    };
-
-    webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri, 'testTree');
-
-    this.onResolve(webviewView.webview);
-  }
-}
 
 export default class TestTreeView {
   private context: PbtContext;
@@ -38,7 +13,7 @@ export default class TestTreeView {
 
   public activate(context: PbtContext) {
     this.context = context;
-    const provider = new TestTreeViewProvider(context.extension.extensionUri, this.onWebviewResolved.bind(this));
+    const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testTree', this.onWebviewResolved.bind(this));
     const disposable = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
     context.extension.subscriptions.push(disposable);
   }
