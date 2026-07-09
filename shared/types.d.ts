@@ -106,7 +106,9 @@ type ListTestsParams = {
 type RunTestsParams = {
   mode: ExtensionMode;
   workspacePath: string;
-	testIds: Array<string>;
+	packageName: string;
+  suiteName: string;
+  testIds: Array<number>;
 }
 
 type TestResult = {

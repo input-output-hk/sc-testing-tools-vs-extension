@@ -3,11 +3,21 @@ import * as vscode from 'vscode';
 import RpcClient from './rpcClient';
 import { PbtContext } from '../extension';
 
+export interface TestSettings {
+  mode: ExtensionMode;
+  rounds: number;
+}
+
 export default class TestStore {
   private rpcClient: RpcClient;
   private tests: TestList = {};
   private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
+  
+  private settings: TestSettings = {
+    mode: 'docker',
+    rounds: 1,
+  };
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -64,7 +74,7 @@ export default class TestStore {
     };
   }
 
-  public async buildSuiteTestTree(mode: ExtensionMode, packageName: string, suiteName: string): Promise<TestSuiteData|null> {
+  public async buildSuiteTestTree(packageName: string, suiteName: string): Promise<TestSuiteData|null> {
     const testPackage = this.packages?.[packageName];
     if (!testPackage) return null;
 
@@ -72,7 +82,7 @@ export default class TestStore {
     if (!testSuite) return null;
 
     const testList = await this.rpcClient.listTests({
-      mode,
+      mode: this.settings.mode,
       workspacePath: testPackage.path,
       packageName,
       suiteName,
@@ -115,14 +125,27 @@ export default class TestStore {
     }
   }
 
-  public runTests(mode: ExtensionMode, workspacePath: string, testIds: Array<string>): void {
-    for (const testId of testIds) {
+  public runTests(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): void {
+    for (const id of testIds) {
+      const testId = `${packageName}:${suiteName}:${id}`;
       if (this.tests[testId]) {
         this.tests[testId]!.status = 'running';
         this.tests[testId]!.time = 0;
         this.notifyTestUpdate(this.tests[testId]!);
       }
     }
-    this.rpcClient.runTests({ mode, workspacePath, testIds });
+    this.rpcClient.runTests({ mode: this.settings.mode, workspacePath, packageName, suiteName, testIds });
+  }
+
+  public getSettings(): TestSettings {
+    return this.settings;
+  }
+
+  public setMode(mode: ExtensionMode): void {
+    this.settings.mode = mode;
+  }
+
+  public setRounds(rounds: number): void {
+    this.settings.rounds = rounds;
   }
 }

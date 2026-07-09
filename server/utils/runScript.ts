@@ -23,8 +23,8 @@ function getListScriptParams(workspacePath: string, packageName: string, suiteNa
   return [workspacePath, packageName, suiteName];
 }
 
-function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string): Array<string> {
-  return [workspacePath, packageName, suiteName];
+function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): Array<string> {
+  return [workspacePath, packageName, suiteName, testIds.join(',')];
 }
 
 function locateBash(): string {
@@ -84,8 +84,8 @@ export async function* runListScript(mode: string, workspacePath: string, packag
   for await (const result of runScript(scriptPath, params)) yield result;
 }
 
-export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptResult> {
+export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): AsyncGenerator<ScriptResult> {
   const scriptPath = getRunScriptPath(mode);
-  const params = getRunScriptParams(workspacePath, packageName, suiteName);
+  const params = getRunScriptParams(workspacePath, packageName, suiteName, testIds);
   for await (const result of runScript(scriptPath, params)) yield result;
 }

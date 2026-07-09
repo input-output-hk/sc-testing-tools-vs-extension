@@ -12,24 +12,14 @@ const isTestRun = (value: unknown): value is JsonTestRun => {
 };
 
 async function* runTests(params: RunTestsParams): AsyncGenerator<TestResult> {
-  const testRun = new Set<string>();
-  for (const testId of params.testIds) {
-    const parts = testId.split(':');
-    if (parts.length >= 2) {
-      testRun.add(`${parts[0]}:${parts[1]}`);
-    }    
-  }
-  for (const testRunItem of testRun) {
-    const [packageName, suiteName] = testRunItem.split(':');
-    for await (const result of runRunScript(params.mode, params.workspacePath, packageName, suiteName)) {
-      if (isTestRun(result.parsed)) {
-        const testResult = result.parsed as JsonTestRun;
-        yield ({
-          id: `${packageName}:${suiteName}:${testResult.id}`,
-          status: testResult.success ? 'valid' : 'invalid',
-          time: testResult.duration * 1000,
-        });
-      }
+  for await (const result of runRunScript(params.mode, params.workspacePath, params.packageName, params.suiteName, params.testIds)) {
+    if (isTestRun(result.parsed)) {
+      const testResult = result.parsed as JsonTestRun;
+      yield ({
+        id: `${params.packageName}:${params.suiteName}:${testResult.id}`,
+        status: testResult.success ? 'valid' : 'invalid',
+        time: testResult.duration * 1000,
+      });
     }
   }
 };

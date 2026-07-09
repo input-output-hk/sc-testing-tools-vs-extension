@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_PATH=$1
 PACKAGE_NAME=$2
 TEST_SUITE_NAME=$3
+TEST_IDS=$4
 VOLUME_NAME="pbt-extension-nix-store"
 
 docker volume create "$VOLUME_NAME" >/dev/null
@@ -22,4 +23,4 @@ docker run --rm "${DOCKER_TTY_ARGS[@]}" \
     --extra-experimental-features nix-command \
     --extra-experimental-features flakes \
     /project#$PACKAGE_NAME:test:$TEST_SUITE_NAME \
-    -- --streaming-json
+    -- --streaming-json --test-id $TEST_IDS

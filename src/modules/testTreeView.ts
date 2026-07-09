@@ -88,7 +88,7 @@ export default class TestTreeView {
   }
 
   private buildTestSuiteTree(packageName: string, suiteName: string): void {
-    this.context.testStore.buildSuiteTestTree('docker', packageName, suiteName).then((data: TestSuiteData | null) => {
+    this.context.testStore.buildSuiteTestTree(packageName, suiteName).then((data: TestSuiteData | null) => {
       if (this.webview !== null && data !== null) {
         this.webview.postMessage({ type: 'test-suite-tree', payload: data } as ExtensionToWebviewMessage);
       }
@@ -106,19 +106,21 @@ export default class TestTreeView {
   }
 
   private runTests(testIds: string[]): void {
-    const groupedTests: Record<string, string[]> = {};
+    const groupedTests: Record<string, Array<number>> = {};
     for (const testId of testIds) {
-      const [packageName] = testId.split(':');
-      if (!groupedTests[packageName]) {
-        groupedTests[packageName] = [];
+      const [packageName, suiteName, id] = testId.split(':');
+      const groupName = `${packageName}:${suiteName}`;
+      if (!groupedTests[groupName]) {
+        groupedTests[groupName] = [];
       }
-      groupedTests[packageName].push(testId);
+      groupedTests[groupName].push(Number(id));
     }
-    for (const packageName in groupedTests) {
-      const ids = groupedTests[packageName];
+    for (const groupName in groupedTests) {
+      const ids = groupedTests[groupName];
+      const [packageName, suiteName] = groupName.split(':');
       const workspacePath = this.context.testStore.getTestPackages()?.packages[packageName]?.path;
       if (workspacePath !== undefined) {
-        this.context.testStore.runTests('docker', workspacePath, ids);
+        this.context.testStore.runTests(workspacePath, packageName, suiteName, ids);
       }
     }
   }
