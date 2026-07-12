@@ -1,5 +1,6 @@
 {
   "name": "pbt-extension",
+  "private": true,
   "publisher": "cardano-ha",
   "displayName": "PBT",
   "description": "",
@@ -16,6 +17,10 @@
   ],
   "activationEvents": [
     "onStartupFinished"
+  ],
+  "workspaces": [
+    "server",
+    "webview-ui"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -48,9 +53,9 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview",
-    "compile:extension": "npm install && tsc -p ./",
-    "compile:server": "cd server && npm install && npm run build && cd ..",
-    "compile:webview": "cd webview-ui && npm install && npm run build && cd .."
+    "compile:extension": "tsc -p ./",
+    "compile:server": "npm run build -w server",
+    "compile:webview": "npm run build -w webview-ui"
   },
   "devDependencies": {
     "@types/node": "^22.19.19",
