@@ -1,73 +1,55 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from 'react';
 
-import { VscodeTreeItem } from "@vscode-elements/react-elements";
-import type { VscodeTreeItem as VscodeTreeItemElement } from "@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js";
+import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
-import TreeViewNode from "./TreeViewNode";
-import { getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from "../../utils/treeUtils";
+import TreeViewNode from './TreeViewNode';
+import useTreeItemState from './useTreeItemState';
+import { getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
-  node: TreeGroupNode;
+  node: TestTreeGroupNode;
   path: Array<string>;
-  testList: TestList;
+  tests: TestList;
   filterText: string;
   statusFilter: TestStatus | null;
-  onRunTest: (testIds: Array<number>) => void;
+  onRunTest: (testIds: Array<string>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
+  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
 
 const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   node,
   path,
-  testList,
+  tests,
   filterText,
   statusFilter,
   onRunTest,
   onToggleTreeGroup,
+  onUpdateSelection,
 }) => {
-  const treeItemRef = useRef<VscodeTreeItemElement | null>(null);
+  const treeItemRef = useTreeItemState({
+    onToggleCollapsed: (isCollapsed) => {
+      onToggleTreeGroup(path, !isCollapsed);
+    },
+    onToggleSelection: (selected) => {
+      onUpdateSelection(getGroupTestIds(node), selected);
+    },
+  });
 
   const effectiveFilterText =
     !filterText || node.name.toLowerCase().includes(filterText.toLowerCase())
-      ? ""
+      ? ''
       : filterText;
 
   const filteredNodes = useMemo(
     () =>
       Object.keys(node.nodes).filter(
         (key) =>
-          nodeMatchesStatus(node.nodes[key], statusFilter, testList) &&
-          nodeMatchesFilter(node.nodes[key], effectiveFilterText, testList),
+          nodeMatchesStatus(node.nodes[key], statusFilter, tests) &&
+          nodeMatchesFilter(node.nodes[key], effectiveFilterText, tests),
       ),
-    [node.nodes, effectiveFilterText, statusFilter, testList],
+    [node.nodes, effectiveFilterText, statusFilter, tests],
   );
-
-  useEffect(() => {
-    const treeItem = treeItemRef.current;
-    if (!treeItem) {
-      return;
-    }
-
-    const observer = new MutationObserver((mutations) => {
-      if (!mutations.some((mutation) => mutation.attributeName === "open")) {
-        return;
-      }
-
-      const isOpen = treeItem.hasAttribute("open");
-      if (isOpen !== node.isOpen) {
-        onToggleTreeGroup(path, isOpen);
-      }
-    });
-
-    observer.observe(treeItem, {
-      attributes: true,
-      attributeFilter: ["open"],
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [node.isOpen, onToggleTreeGroup, path]);
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -82,10 +64,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
       <i className="codicon codicon-folder translate-y-1" slot="icon-branch" />
-      <i
-        className="codicon codicon-folder-opened translate-y-1"
-        slot="icon-branch-opened"
-      />
+      <i className="codicon codicon-folder-opened translate-y-1" slot="icon-branch-opened" />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
@@ -103,11 +82,12 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           key={key}
           node={node.nodes[key]}
           path={[...path, key]}
-          testList={testList}
+          tests={tests}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
+          onUpdateSelection={onUpdateSelection}
         />
       ))}
     </VscodeTreeItem>

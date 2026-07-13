@@ -1,13 +1,23 @@
 import * as vscode from 'vscode';
 
-import RpcClient, { type TestResult } from './rpcClient';
+import RpcClient from './rpcClient';
 import { PbtContext } from '../extension';
+
+export interface TestSettings {
+  mode: ExtensionMode;
+  rounds: number;
+}
 
 export default class TestStore {
   private rpcClient: RpcClient;
-  private testList: TestList | null = null;
-  private testTree: TestTree | null = null;
+  private tests: TestList = {};
+  private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
+  
+  private settings: TestSettings = {
+    mode: 'docker',
+    rounds: 1,
+  };
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -17,61 +27,92 @@ export default class TestStore {
     await this.rpcClient.initialize(context);
 
     this.rpcClient.onTestResult((result: TestResult) => {
-      if (this.testList !== null && this.testList[result.id]) {
-        this.testList[result.id].status = result.status;
-        this.testList[result.id].time = result.time;
-        this.notifyTestUpdate(this.testList[result.id]);
+      if (this.tests !== null && this.tests[result.id]) {
+        this.tests[result.id].status = result.status;
+        this.tests[result.id].time = result.time;
+        this.notifyTestUpdate(this.tests[result.id]);
       }
     });
   }
 
+  private getTestTree(test: Test): TestTree | null {
+    const [packageName, suiteName] = test.id.split(':');
+    if (!this.packages || !this.packages[packageName]) return null;
+    const suite = this.packages[packageName].suites[suiteName];
+    if (!suite) return null;
+    return suite.tree;
+  }
+
   private createTestTreeNode(test: Test): void {
-    let node: TreeGroupNode | null = null;
+    let node: TestTreeGroupNode | null = null;
     for (const group of test.group) {
       if (node === null) {
-        node = this.getTestTreeGroupNode(this.testTree!, group);
+        const tree = this.getTestTree(test);
+        if (!tree) return;
+        node = this.getTestTreeGroupNode(tree, group);
       } else {
         node = this.getTestTreeGroupNode(node.nodes, group);
       }
     }
-    node!.nodes[test.id] = { type: 'test', testId: test.id } as TreeTestNode;
+    node!.nodes[test.id] = { type: 'test', testId: test.id } as TestTreeTestNode;
   }
 
-  private getTestTreeGroupNode(nodes: TestTree, group: string): TreeGroupNode {
+  private getTestTreeGroupNode(nodes: TestTree, group: string): TestTreeGroupNode {
     if (nodes[group] !== undefined) {
-      return nodes[group] as TreeGroupNode;
+      return nodes[group] as TestTreeGroupNode;
     }
-    const newNode = { type: 'group', isOpen: false, name: group, nodes: {} } as TreeGroupNode;
+    const newNode = { type: 'group', isOpen: false, name: group, nodes: {} } as TestTreeGroupNode;
     nodes[group] = newNode;
     return newNode;
   }
 
-  public async buildTestSuite(): Promise<TestSuite> {
-    const testList = await this.rpcClient.buildTestList();
-    this.testList = {};
-    this.testTree = {};
-    for (const test of testList) {
-      this.testList[test.id] = test;
-      this.createTestTreeNode(test);
-    }
+  public async buildTestPackages(): Promise<TestPackageData> {
+    this.packages = await this.rpcClient.listSuites();
     return {
-      testList: this.testList!,
-      testTree: this.testTree!
+      packages: this.packages,
+      tests: this.tests,
     };
   }
 
-  public getTestSuite(): TestSuite | null {
-    if (this.testList === null || this.testTree === null) {
+  public async buildSuiteTestTree(packageName: string, suiteName: string): Promise<TestSuiteData|null> {
+    const testPackage = this.packages?.[packageName];
+    if (!testPackage) return null;
+
+    const testSuite = testPackage.suites[suiteName];
+    if (!testSuite) return null;
+
+    const testList = await this.rpcClient.listTests({
+      mode: this.settings.mode,
+      workspacePath: testPackage.path,
+      packageName,
+      suiteName,
+    });
+
+    for (const test of testList) {
+      this.tests[test.id] = test;
+      this.createTestTreeNode(test);
+    }
+
+    return {
+      packageName,
+      suiteName,
+      tree: testSuite.tree,
+      tests: testList,
+    }
+  }
+
+  public getTestPackages(): TestPackageData | null {
+    if (this.packages === null) {
       return null;
     }
     return {
-      testList: this.testList,
-      testTree: this.testTree
+      packages: this.packages,
+      tests: this.tests
     };
   };
 
-  public setTestTree(testTree: TestTree): void {
-    this.testTree = testTree;
+  public updateTestPackages(packages: TestPackageList): void {
+    this.packages = packages;
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
@@ -84,17 +125,27 @@ export default class TestStore {
     }
   }
 
-  public runTest(testIds: number[]): void {
-    if (this.testList === null) {
-      return;
-    }
-    for (const testId of testIds) {
-      if (this.testList[testId]) {
-        this.testList[testId]!.status = 'running';
-        this.testList[testId]!.time = 0;
-        this.notifyTestUpdate(this.testList[testId]!);
+  public runTests(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): void {
+    for (const id of testIds) {
+      const testId = `${packageName}:${suiteName}:${id}`;
+      if (this.tests[testId]) {
+        this.tests[testId]!.status = 'running';
+        this.tests[testId]!.time = 0;
+        this.notifyTestUpdate(this.tests[testId]!);
       }
     }
-    this.rpcClient.runTest(testIds);
+    this.rpcClient.runTests({ mode: this.settings.mode, workspacePath, packageName, suiteName, testIds });
+  }
+
+  public getSettings(): TestSettings {
+    return this.settings;
+  }
+
+  public setMode(mode: ExtensionMode): void {
+    this.settings.mode = mode;
+  }
+
+  public setRounds(rounds: number): void {
+    this.settings.rounds = rounds;
   }
 }

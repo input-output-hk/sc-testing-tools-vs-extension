@@ -1,25 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { VscodeTree } from "@vscode-elements/react-elements";
+import { VscodeTree } from '@vscode-elements/react-elements';
 
-import TreeViewNode from "./TreeViewNode";
-import FilterMenu from "./FilterMenu";
-import { nodeMatchesFilter, nodeMatchesStatus } from "../../utils/treeUtils";
+import TreeViewPackage from './TreeViewPackage';
+import FilterMenu from './FilterMenu';
+import { packageMatchesFilter, packageMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewProps {
-  testTree: TestTree;
-  testList: TestList;
-  onRunTest: (testIds: Array<number>) => void;
+  tests: TestList;
+  packages: TestPackageList;
+  onRunTest: (testIds: Array<string>) => void;
+  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({
-  testTree,
-  testList,
-  onRunTest,
-  onToggleTreeGroup,
-}) => {
-  const [filterText, setFilterText] = useState("");
+const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup }) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<TestStatus | null>(null);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
@@ -45,28 +42,55 @@ const TreeView: React.FC<TreeViewProps> = ({
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         setIsFilterMenuOpen(false);
       }
     };
 
-    document.addEventListener("click", handleDocumentClick, true);
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener('click', handleDocumentClick, true);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener("click", handleDocumentClick, true);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener('click', handleDocumentClick, true);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
-  const filteredRoots = useMemo(
+  const filteredPackageKeys = useMemo(
     () =>
-      Object.keys(testTree).filter(
+      Object.keys(packages).filter(
         (key) =>
-          nodeMatchesStatus(testTree[key], statusFilter, testList) &&
-          (!filterText || nodeMatchesFilter(testTree[key], filterText, testList)),
+          packageMatchesStatus(packages[key], statusFilter, tests) &&
+          (!filterText || packageMatchesFilter(packages[key], filterText, tests)),
       ),
-    [testTree, filterText, statusFilter, testList],
+    [packages, filterText, statusFilter, tests],
   );
+
+  const onUpdateSelection = (testIds: Array<string>, selected: boolean) => {
+    setSelected((prevSelected) => {
+      const joinedTestIds = testIds.join(',');
+      const newSelected = new Set(prevSelected);
+      if (selected) {
+        newSelected.add(joinedTestIds);
+      } else {
+        newSelected.delete(joinedTestIds);
+      }
+      return newSelected;
+    });
+  };
+
+  const handleRunTest = (testIds: Array<string>) => {
+    if (selected.has(testIds.join(','))) {
+      const testRun: Set<string> = new Set();
+      for (const selectedTestIds of selected) {
+        for (const testId of selectedTestIds.split(',')) {
+          testRun.add(testId);
+        }
+      }
+      onRunTest(Array.from(testRun));
+    } else {
+      onRunTest(testIds);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -87,17 +111,18 @@ const TreeView: React.FC<TreeViewProps> = ({
         </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <VscodeTree>
-          {filteredRoots.map((key) => (
-            <TreeViewNode
+        <VscodeTree multiSelect>
+          {filteredPackageKeys.map((key) => (
+            <TreeViewPackage
               key={key}
-              node={testTree[key]}
-              path={[key]}
-              testList={testList}
+              package={packages[key]}
+              tests={tests}
               filterText={filterText}
               statusFilter={statusFilter}
-              onRunTest={onRunTest}
+              onRunTest={handleRunTest}
+              onBuildTestSuiteTree={onBuildTestSuiteTree}
               onToggleTreeGroup={onToggleTreeGroup}
+              onUpdateSelection={onUpdateSelection}
             />
           ))}
         </VscodeTree>

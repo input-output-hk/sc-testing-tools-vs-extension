@@ -1,40 +1,44 @@
-import TreeViewGroup from "./TreeViewGroup";
-import TreeViewTest from "./TreeViewTest";
+import TreeViewGroup from './TreeViewGroup';
+import TreeViewTest from './TreeViewTest';
 
 interface TreeViewNodeProps {
-  node: TreeNode;
+  node: TestTreeNode;
   path: Array<string>;
-  testList: TestList;
+  tests: TestList;
   filterText: string;
   statusFilter: TestStatus | null;
-  onRunTest: (testIds: Array<number>) => void;
+  onRunTest: (testIds: Array<string>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
+  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   node,
   path,
-  testList,
+  tests,
   filterText,
   statusFilter,
   onRunTest,
   onToggleTreeGroup,
+  onUpdateSelection,
 }) =>
-  node.type === "group" ? (
+  node.type === 'group' ? (
     <TreeViewGroup
-      node={node as TreeGroupNode}
+      node={node as TestTreeGroupNode}
       path={path}
-      testList={testList}
+      tests={tests}
       filterText={filterText}
       statusFilter={statusFilter}
       onRunTest={onRunTest}
       onToggleTreeGroup={onToggleTreeGroup}
+      onUpdateSelection={onUpdateSelection}
     />
   ) : (
     <TreeViewTest
-      node={node as TreeTestNode}
-      testList={testList}
+      node={node as TestTreeTestNode}
+      tests={tests}
       onRunTest={onRunTest}
+      onUpdateSelection={onUpdateSelection}
     />
   );
 

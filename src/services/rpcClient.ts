@@ -3,20 +3,6 @@ import * as cp from 'child_process';
 import * as rpc from 'vscode-jsonrpc/node';
 
 import { PbtContext } from '../extension';
-
-type TestListParams = {
-
-}
-
-type RunTestParams = {
-	testIds: number[];
-}
-
-export type TestResult = {
-  id: number;
-  status: TestStatus;
-  time: number;
-}
   
 export default class RpcClient {
   private childProcess: cp.ChildProcess;
@@ -37,13 +23,13 @@ export default class RpcClient {
       return data;
     });
 
-    this.connection.listen();
-
     this.connection.trace(rpc.Trace.Verbose, {
       log: (message: string, data?: string) => {
         context.outputChannel.append(`> ${message}\n${data}`);
       }
     });
+
+    this.connection.listen();
   }
 
   public onTestResult(callback: (test: TestResult) => void): void {
@@ -52,13 +38,19 @@ export default class RpcClient {
     });
   }
 
-  public async buildTestList(): Promise<Array<Test>> {
-    const request = new rpc.RequestType<TestListParams, Array<Test>, void>('buildTestList');
-    return await this.connection.sendRequest(request, {});
+  public async listSuites(): Promise<TestPackageList> {
+    const request = new rpc.RequestType<ListSuitesParams, TestPackageList, void>('listSuites');
+    const workspacePaths = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
+    return await this.connection.sendRequest(request, { workspacePaths });
   }
 
-  public runTest(testIds: number[]): void {
-    const notification = new rpc.NotificationType<RunTestParams>('runTest');
-    this.connection.sendNotification(notification, { testIds });
+  public async listTests(params: ListTestsParams): Promise<Array<Test>> {
+    const request = new rpc.RequestType<ListTestsParams, Array<Test>, void>('listTests');
+    return await this.connection.sendRequest(request, params);
+  }
+
+  public runTests(params: RunTestsParams): void {
+    const notification = new rpc.NotificationType<RunTestsParams>('runTests');
+    this.connection.sendNotification(notification, params);
   }
 }
