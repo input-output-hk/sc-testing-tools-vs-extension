@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
+import useSyncedSpin from './useSyncedSpin';
 import useTreeItemState from './useTreeItemState';
 import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
@@ -34,6 +35,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
       onToggleTreeGroup(path, !isCollapsed);
     },
   });
+
+  const spinRef = useSyncedSpin();
 
   const effectiveFilterText =
     !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
@@ -70,7 +73,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           </button>
         }
         {suite.status === 'building' &&
-          <i className="codicon codicon-loading h-5 w-5 animate-spin" />
+          <i ref={spinRef} className="codicon codicon-loading h-5 w-5" />
         }
       </span>
       {filteredNodeKeys.map((key) => (

@@ -1,6 +1,7 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
+import useSyncedSpin from './useSyncedSpin';
 import useTreeItemState from './useTreeItemState';
 
 interface TreeViewTestProps {
@@ -12,6 +13,7 @@ interface TreeViewTestProps {
 
 const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onUpdateSelection }) => {
   const test = tests[node.testId];
+  const spinRef = useSyncedSpin();
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
@@ -41,7 +43,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
           </button>
         }
         {test.status === 'running' &&
-          <i className="codicon codicon-loading h-5 w-5 animate-spin" />
+          <i ref={spinRef} className="codicon codicon-loading h-5 w-5" />
         }
       </span>
     </VscodeTreeItem>
