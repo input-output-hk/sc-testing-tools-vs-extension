@@ -17,9 +17,12 @@ docker run --rm "${DOCKER_TTY_ARGS[@]}" \
   -v "$VOLUME_NAME:/nix" \
   -v "$PROJECT_PATH:/project" \
   nixos/nix \
-  nix run \
-    --accept-flake-config \
-    --extra-experimental-features nix-command \
-    --extra-experimental-features flakes \
-    /project#$PACKAGE_NAME:test:$TEST_SUITE_NAME \
-    -- --list-tests-json
+  sh -lc '
+    git config --system --add safe.directory "*"
+    nix run \
+      --accept-flake-config \
+      --extra-experimental-features nix-command \
+      --extra-experimental-features flakes \
+      /project#$1:test:$2 \
+      -- --list-tests-json
+  ' _ "$PACKAGE_NAME" "$TEST_SUITE_NAME"
