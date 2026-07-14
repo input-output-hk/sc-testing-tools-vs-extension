@@ -16,7 +16,7 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
     error: false,
     message: 'No dependencies were detected. Please ensure that at least one is properly installed so your testing tool can run.',
   };
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>('Docker');
+  const [executionMode, setExecutionMode] = useState<ExtensionMode>('docker');
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -24,7 +24,6 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
       if (message.type === 'execution-mode-config') {
-        console.log('Set initial execution mode:', message.payload.executionMode);
         setExecutionMode(message.payload.executionMode);
       }
     };
@@ -34,8 +33,7 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const onExecutionModeChange = (mode: ExecutionMode) => {
-    console.log('Execution mode changed to:', mode);
+  const onExecutionModeChange = (mode: ExtensionMode) => {
     setExecutionMode(mode);
     vscode.postMessage({ type: 'update-execution-mode', payload: { executionMode: mode } } as WebviewToExtensionMessage);
   };
@@ -71,16 +69,16 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
             <VscodeRadioGroup>
               <VscodeRadio
                 name="execution-mode"
-                checked={executionMode === 'Nix'}
-                onChange={() => onExecutionModeChange('Nix')}
+                checked={executionMode === 'nix'}
+                onChange={() => onExecutionModeChange('nix')}
                 className="mr-4"
               >
                 NIX
               </VscodeRadio>
               <VscodeRadio
                 name="execution-mode"
-                checked={executionMode === 'Docker'}
-                onChange={() => onExecutionModeChange('Docker')}
+                checked={executionMode === 'docker'}
+                onChange={() => onExecutionModeChange('docker')}
               >
                 Docker
               </VscodeRadio>

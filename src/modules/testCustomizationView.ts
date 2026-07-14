@@ -40,12 +40,12 @@ export default class TestCustomizationView {
   private sendExecutionModeConfig(): void {
     const executionMode = vscode.workspace
       .getConfiguration('pbt-extension')
-      .get<ExecutionMode>('executionMode', 'Docker');
+      .get<ExtensionMode>('executionMode', 'docker');
 
     this.webview?.postMessage({ type: 'execution-mode-config', payload: { executionMode } } as ExtensionToWebviewMessage);
   }
 
-  private updateExecutionMode(executionMode: ExecutionMode): void {
+  private updateExecutionMode(executionMode: ExtensionMode): void {
     vscode.workspace
       .getConfiguration('pbt-extension')
       .update('executionMode', executionMode, vscode.ConfigurationTarget.Global);
