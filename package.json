@@ -25,6 +25,18 @@
         "title": "PBT: Build Test Tree"
       }
     ],
+    "configuration": {
+      "title": "PBT Configuration",
+      "type": "object",
+      "properties": {
+        "pbt-extension.executionMode": {
+          "type": "string",
+          "enum": ["Docker", "Nix"],
+          "default": "Docker",
+          "description": "Select the mode for executing commands with PBT."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {

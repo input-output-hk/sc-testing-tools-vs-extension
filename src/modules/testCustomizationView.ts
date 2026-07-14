@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { GenericWebviewViewProvider, getWebviewHtml } from '../utils/webview';
+import { GenericWebviewViewProvider } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
 
@@ -19,8 +19,36 @@ export default class TestCustomizationView {
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
-      this.webview = webview;
-  
-    }
+    this.webview = webview;
+
+    this.webview.onDidReceiveMessage(
+      (message: WebviewToExtensionMessage) => {
+        switch (message.type) {
+          case 'webview-ready':
+            this.sendExecutionModeConfig();
+            break;
+          case 'update-execution-mode':
+            this.updateExecutionMode(message.payload.executionMode);
+            break;
+        }
+      },
+      undefined,
+      this.context.extension.subscriptions
+    );
+  }
+
+  private sendExecutionModeConfig(): void {
+    const executionMode = vscode.workspace
+      .getConfiguration('pbt-extension')
+      .get<ExecutionMode>('executionMode', 'Docker');
+
+    this.webview?.postMessage({ type: 'execution-mode-config', payload: { executionMode } } as ExtensionToWebviewMessage);
+  }
+
+  private updateExecutionMode(executionMode: ExecutionMode): void {
+    vscode.workspace
+      .getConfiguration('pbt-extension')
+      .update('executionMode', executionMode, vscode.ConfigurationTarget.Global);
+  }
 
 }

@@ -43,12 +43,16 @@ type TreeTestNode = TreeNode & {
   testId: number;
 };
 
+type ExecutionMode = "Docker" | "Nix";
+
 type ExtensionToWebviewMessage =
   | { type: "test-suite", payload: TestSuite }
-  | { type: "test-update", payload: { test: Test } };
+  | { type: "test-update", payload: { test: Test } }
+  | { type: "execution-mode-config", payload: { executionMode: ExecutionMode } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "build-test-suite" }
   | { type: "update-test-tree", payload: { testTree: TestTree } }
-  | { type: "run-test", payload?: { testIds: Array<number> } };
+  | { type: "run-test", payload?: { testIds: Array<number> } }
+  | { type: "update-execution-mode", payload: { executionMode: ExecutionMode } };

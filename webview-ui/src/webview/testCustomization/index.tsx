@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
+
 import type { WebviewApi } from 'vscode-webview';
 
-import { VscodeTextfield, VscodeRadioGroup, VscodeRadio } from '@vscode-elements/react-elements';
+import { VscodeRadioGroup, VscodeRadio, VscodeLabel } from '@vscode-elements/react-elements';
 
 import Tooltip from '../../components/Tooltip';
 
@@ -8,39 +10,82 @@ interface Props {
   vscode: WebviewApi<unknown>;
 }
 
-const TestCustomizationView: React.FC<Props> = () => {
+const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
+  // TODO: replace with real dependency detection reported from the extension host.
+  const error = {
+    error: false,
+    message: 'No dependencies were detected. Please ensure that at least one is properly installed so your testing tool can run.',
+  };
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>('Docker');
+
+  useEffect(() => {
+    vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
+
+    const messageHandler = (event: MessageEvent) => {
+      const message = event.data as ExtensionToWebviewMessage;
+      if (message.type === 'execution-mode-config') {
+        console.log('Set initial execution mode:', message.payload.executionMode);
+        setExecutionMode(message.payload.executionMode);
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    return () => window.removeEventListener('message', messageHandler);
+  }, [vscode]);
+
+  const onExecutionModeChange = (mode: ExecutionMode) => {
+    console.log('Execution mode changed to:', mode);
+    setExecutionMode(mode);
+    vscode.postMessage({ type: 'update-execution-mode', payload: { executionMode: mode } } as WebviewToExtensionMessage);
+  };
+
   return (
     <div className="h-full p-[16px]">
       <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-1.5 font-semibold">
-              Rounds
-              <i id="rounds-per-test" className="codicon codicon-info opacity-60" />
-              <Tooltip content="Number of rounds of transactions generated, similar to QuickCheck." id="rounds-per-test" />
+              <VscodeLabel className="font-semibold">
+                Settings
+              </VscodeLabel>
             </span>
-            <VscodeTextfield
-              id="rounds-per-test-textfield"
-              className="w-full"
-              type="number"
-              min={0}
-              value="100"
-            />
+            <p className="text-[12px] opacity-60">
+              All settings are currently defined in the source code. Each test suite provides an option to view and modify these configurations.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="flex items-center gap-1.5 font-semibold">
-              Execution Mode
-              <i id="execution-mode" className="codicon codicon-info opacity-60" />
-              <Tooltip content="Select the mode for executing commands." id="execution-mode" />
+            <span className="flex items-center gap-1.5">
+              <VscodeLabel htmlFor="execution-mode" className="font-semibold">
+                Execution Mode
+              </VscodeLabel>
+              <i
+                id="execution-mode"
+                className={error.error ? 'codicon codicon-error text-red-01' : 'codicon codicon-info opacity-60'}
+              />
+              <Tooltip content={error.message ?? 'Select the mode for executing commands.'} id="execution-mode" />
             </span>
+            {error.error ? (
+              <p className="text-[12px] opacity-60">{error.message}</p>
+            ) : 
             <VscodeRadioGroup>
-              <VscodeRadio name="execution-mode" defaultChecked className="mr-4">
+              <VscodeRadio
+                name="execution-mode"
+                checked={executionMode === 'Nix'}
+                onChange={() => onExecutionModeChange('Nix')}
+                className="mr-4"
+              >
                 NIX
               </VscodeRadio>
-              <VscodeRadio name="execution-mode">
+              <VscodeRadio
+                name="execution-mode"
+                checked={executionMode === 'Docker'}
+                onChange={() => onExecutionModeChange('Docker')}
+              >
                 Docker
               </VscodeRadio>
             </VscodeRadioGroup>
+            }
           </div>
         </div>
     </div>
