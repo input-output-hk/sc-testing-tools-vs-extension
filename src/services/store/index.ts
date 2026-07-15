@@ -19,9 +19,7 @@ export default class Store {
 
   public async initialize(context: PbtContext): Promise<void> {
     this.settingStore.initialize(context);
-    await Promise.all([
-      this.testStore.initialize(context),
-      this.dependencyStore.initialize(),
-    ]);
+    await this.testStore.initialize(context);
+    this.dependencyStore.initialize();
   }
 }
