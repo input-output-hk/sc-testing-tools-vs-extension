@@ -10,13 +10,9 @@ interface Props {
   vscode: WebviewApi<unknown>;
 }
 
-const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
-  // TODO: replace with real dependency detection reported from the extension host.
-  const error = {
-    error: false,
-    message: 'No dependencies were detected. Please ensure that at least one is properly installed so your testing tool can run.',
-  };
+const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   const [executionMode, setExecutionMode] = useState<ExtensionMode>('docker');
+  const [error, setError] = useState({ hasError: false, message: '' });
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -25,6 +21,9 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
       const message = event.data as ExtensionToWebviewMessage;
       if (message.type === 'execution-mode-config') {
         setExecutionMode(message.payload.executionMode);
+      }
+      if (message.type === 'dependency-status') {
+        setError({ hasError: message.payload.hasError, message: message.payload.message });
       }
     };
 
@@ -60,13 +59,13 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
               </VscodeLabel>
               <i
                 id="execution-mode"
-                className={error.error ? 'codicon codicon-error text-red-01' : 'codicon codicon-info opacity-60'}
+                className={error.hasError ? 'codicon codicon-error text-red-01' : 'codicon codicon-info opacity-60'}
               />
-              <Tooltip content={error.message ?? 'Select the mode for executing commands.'} id="execution-mode" />
+              {!error.hasError && <Tooltip content="Select the mode for executing commands." id="execution-mode" />}
             </span>
-            {error.error ? (
+            {error.hasError ? (
               <p className="text-[12px] opacity-60">{error.message}</p>
-            ) : 
+            ) :
             <VscodeRadioGroup>
               <VscodeRadio
                 name="execution-mode"
@@ -91,4 +90,4 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
   );
 };
 
-export default TestCustomizationView;
+export default TestConfigurationView;

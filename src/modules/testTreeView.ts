@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { GenericWebviewViewProvider, getWebviewHtml } from '../utils/webview';
+import { GenericWebviewViewProvider } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
 

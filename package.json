@@ -60,8 +60,8 @@
           "icon": "images/pbt-icon.svg"
         },
         {
-          "id": "pbt-test-customization",
-          "name": "Test Customization",
+          "id": "pbt-test-run-configuration",
+          "name": "Test Run Configuration",
           "type": "webview"
         }
       ]
