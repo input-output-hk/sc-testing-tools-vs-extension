@@ -1,6 +1,6 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
-import runWithDocker from './runWithDocker';
+import runScript from './runScript';
 
 export default class TestRunMethod {
 
@@ -15,15 +15,11 @@ export default class TestRunMethod {
 
 
   private runTests(params: RunTestsParams): void {
-    if (params.mode === 'docker') {
-      (async () => {
-        for await (const result of runWithDocker(params)) {
-          this.sendTestResult(result);
-        }
-      })();
-    } else {
-      throw new Error(`Unsupported mode: ${params.mode}`);
-    }
+    (async () => {
+      for await (const result of runScript(params)) {
+        this.sendTestResult(result);
+      }
+    })();
   };
 
   public sendTestResult(result: TestResult): void {

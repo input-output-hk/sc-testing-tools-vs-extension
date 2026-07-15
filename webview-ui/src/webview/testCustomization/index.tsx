@@ -39,7 +39,7 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
   };
 
   return (
-    <div className="h-full p-[16px]">
+    <div className="p-4">
       <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-1.5 font-semibold">
