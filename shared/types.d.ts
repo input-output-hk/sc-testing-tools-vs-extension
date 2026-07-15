@@ -80,13 +80,15 @@ type TestSuiteStatus = "pending" | "building" | "ready";
 type ExtensionToWebviewMessage =
   | { type: "test-package-list", payload: TestPackageData }
   | { type: "test-suite-tree", payload: TestSuiteData }
-  | { type: "test-update", payload: { test: Test } };
+  | { type: "test-update", payload: { test: Test } }
+  | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }; 
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
-  | { type: "run-tests", payload: { testIds: Array<string> } };
+  | { type: "run-tests", payload: { testIds: Array<string> } }
+  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };  
 
 // RPC message
 

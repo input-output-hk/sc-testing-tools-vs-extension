@@ -46,6 +46,9 @@
   --color-orange-01: #CC6633;
   --color-orange-02: #EE9D28;
   --color-orange-03: #EA5C00;
+
+  /* VS Code editor hover widget theme tokens */
+  --color-vscode-hover-bg: var(--vscode-editorHoverWidget-background);
 }
 
 @keyframes fadeIn {
@@ -58,4 +61,20 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+body.vscode-dark, body.vscode-high-contrast {
+  color-scheme: dark;
+}
+
+body.vscode-light, body.vscode-high-contrast-light {
+  color-scheme: light;
+}
+
+input[type=number]::-webkit-inner-spin-button:hover {
+  opacity: 1;
+}
+
+.react-tooltip-content-wrapper {
+  padding: 0 !important;
 }

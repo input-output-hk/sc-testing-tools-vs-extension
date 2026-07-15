@@ -19,6 +19,7 @@ export interface DiscoveredPackage {
 }
 
 export async function discoverPackages(workspacePath: string): Promise<Array<DiscoveredPackage>> {
+  
   await ensureWorkspaceDirectory(workspacePath);
 
   const cabalFiles = await collectCabalFiles(workspacePath);
