@@ -32,8 +32,8 @@ export default class RpcClient {
     this.connection.listen();
   }
 
-  public onTestResult(callback: (test: TestResult) => void): void {
-    this.connection.onNotification('testResult', (test: TestResult) => {
+  public onTestResult(callback: (test: TestRunResult) => void): void {
+    this.connection.onNotification('testResult', (test: TestRunResult) => {
       callback(test);
     });
   }

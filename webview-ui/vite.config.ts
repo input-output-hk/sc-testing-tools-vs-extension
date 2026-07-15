@@ -15,6 +15,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         testTree: resolve(__dirname, 'entrypoint/testTree.html'),
+        testResult: resolve(__dirname, 'entrypoint/testResult.html'),
       },
       output: {
         entryFileNames: `assets/[name].js`,

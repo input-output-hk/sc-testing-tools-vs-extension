@@ -1,6 +1,7 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
+import { useVscode } from '../../../../vscodeContext';
 import useTreeItemState from './useTreeItemState';
 
 interface TreeViewTestProps {
@@ -12,6 +13,7 @@ interface TreeViewTestProps {
 
 const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onUpdateSelection }) => {
   const test = tests[node.testId];
+  const vscode = useVscode();
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
@@ -31,6 +33,15 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
             </span>
           }
         </span>
+        {(test.status === 'valid' || test.status === 'invalid') &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={() => vscode.postMessage({ type: 'open-test-result', payload: { testId: test.id } } as WebviewToExtensionMessage)}
+          >
+            <i className="codicon codicon-book" />
+          </button>
+        }
         {test.status !== 'running' &&
           <button
             type="button"

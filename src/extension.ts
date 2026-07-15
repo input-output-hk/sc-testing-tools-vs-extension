@@ -3,11 +3,13 @@
 import * as vscode from 'vscode';
 import TestStore from './services/testStore';
 import TestTreeView from './modules/testTreeView';
+import TestResultView from './modules/testResultView';
 
 export type PbtContext = {
   extension: vscode.ExtensionContext;
   testStore: TestStore;
   testTreeView: TestTreeView;
+  testResultView: TestResultView;
   outputChannel: vscode.OutputChannel;
 };
 
@@ -20,6 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Init test tree view
   const testTreeView = new TestTreeView();
 
+  // Init test result view
+  const testResultView = new TestResultView();
+
   // Init output channel
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
 
@@ -28,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     extension: context,
     testStore,
     testTreeView,
+    testResultView,
     outputChannel,
   };
 
@@ -35,6 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
   testStore.initialize(pbtContext).then(() => {
     // Activate modules
     testTreeView.activate(pbtContext);
+    testResultView.activate(pbtContext);
   });
 
   // Add subscriptions to context

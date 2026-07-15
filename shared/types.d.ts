@@ -80,13 +80,15 @@ type TestSuiteStatus = "pending" | "building" | "ready";
 type ExtensionToWebviewMessage =
   | { type: "test-package-list", payload: TestPackageData }
   | { type: "test-suite-tree", payload: TestSuiteData }
-  | { type: "test-update", payload: { test: Test } };
+  | { type: "test-update", payload: { test: Test } }
+  | { type: "test-result", payload: { result: TestResult | null, tests: TestList } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
-  | { type: "run-tests", payload: { testIds: Array<string> } };
+  | { type: "run-tests", payload: { testIds: Array<string> } }
+  | { type: "open-test-result", payload: { testId: string } };
 
 // RPC message
 
@@ -111,8 +113,50 @@ type RunTestsParams = {
   testIds: Array<number>;
 }
 
-type TestResult = {
+type TestRunResult = {
   id: string;
   status: TestStatus;
   time: number;
 }
+
+// Test Result panel
+
+type TestResult = {
+  test: Test;
+  counterexampleSteps?: TestCounterexampleStep[];
+  graph?: TestGraph;
+};
+
+type TestCounterexampleStep = {
+  txHash: string;
+  data: Record<string, string>;
+  discarded: boolean;
+};
+
+type TestGraph = {
+  txs: {
+    hash: string;
+    block: string;
+    slot: number;
+    fees: number;
+    size: number;
+    outputAmount: {
+      unit: string;
+      quantity: number;
+    }[];
+    totalOutput: number;
+    inputs: string[];
+    outputs: string[];
+  }[];
+  utxos: {
+    txHash: string;
+    outputIndex: number;
+    address: string;
+    datum?: string;
+    referenceScriptHash?: string;
+    amount: {
+      unit: string;
+      quantity: number;
+    }[];
+  }[];
+};

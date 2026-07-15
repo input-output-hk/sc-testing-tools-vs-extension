@@ -63,6 +63,9 @@ export default class TestTreeView {
           case 'run-tests':
             this.runTests(message.payload.testIds);
             break;
+          case 'open-test-result':
+            this.context.testResultView.open(message.payload.testId);
+            break;
         }
       },
       undefined,

@@ -1,15 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import TestTreeView from '../webview/testTree';
-import { VscodeProvider } from '../vscodeContext';
+import TestResultView from '../webview/testResult';
 import '../style.css';
 
 const vscode = acquireVsCodeApi();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <VscodeProvider vscode={vscode}>
-      <TestTreeView vscode={vscode} />
-    </VscodeProvider>
+    <TestResultView vscode={vscode} />
   </StrictMode>,
 );

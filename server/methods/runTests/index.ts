@@ -26,7 +26,7 @@ export default class TestRunMethod {
     }
   };
 
-  public sendTestResult(result: TestResult): void {
+  public sendTestResult(result: TestRunResult): void {
     this.connection.sendNotification('testResult', result);
   };
 
