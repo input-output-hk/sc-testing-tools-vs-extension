@@ -1,6 +1,6 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
-import runWithDocker from './runWithDocker';
+import runScript from './runScript';
 
 export default class TestListMethod {
 
@@ -14,11 +14,7 @@ export default class TestListMethod {
   }
   
   private async listTests(params: ListTestsParams): Promise<Array<Test>> {
-    if (params.mode === 'docker') {
-      return await runWithDocker(params);
-    } else {
-      throw new Error(`Unsupported mode: ${params.mode}`);
-    }
+    return await runScript(params);
   };
 
 }
