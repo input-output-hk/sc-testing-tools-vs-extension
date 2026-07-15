@@ -36,8 +36,8 @@
       "properties": {
         "pbt-extension.executionMode": {
           "type": "string",
-          "enum": ["Docker", "Nix"],
-          "default": "Docker",
+          "enum": ["docker", "nix"],
+          "default": "docker",
           "description": "Select the mode for executing commands with PBT."
         }
       }

@@ -1,26 +1,19 @@
 import * as vscode from 'vscode';
 
-import RpcClient from './rpcClient';
-import { PbtContext } from '../extension';
-
-export interface TestSettings {
-  mode: ExtensionMode;
-  rounds: number;
-}
+import RpcClient from '../rpcClient';
+import type SettingStore from './settingStore';
+import { PbtContext } from '../../extension';
 
 export default class TestStore {
   private rpcClient: RpcClient;
+  private settingStore: SettingStore;
   private tests: TestList = {};
   private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
-  
-  private settings: TestSettings = {
-    mode: 'docker',
-    rounds: 1,
-  };
 
-  constructor(context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext, settingStore: SettingStore) {
     this.rpcClient = new RpcClient(context);
+    this.settingStore = settingStore;
   }
 
   public async initialize(context: PbtContext): Promise<void> {
@@ -82,7 +75,7 @@ export default class TestStore {
     if (!testSuite) return null;
 
     const testList = await this.rpcClient.listTests({
-      mode: this.settings.mode,
+      mode: this.settingStore.getSettings().mode,
       workspacePath: testPackage.path,
       packageName,
       suiteName,
@@ -134,18 +127,6 @@ export default class TestStore {
         this.notifyTestUpdate(this.tests[testId]!);
       }
     }
-    this.rpcClient.runTests({ mode: this.settings.mode, workspacePath, packageName, suiteName, testIds });
-  }
-
-  public getSettings(): TestSettings {
-    return this.settings;
-  }
-
-  public setMode(mode: ExtensionMode): void {
-    this.settings.mode = mode;
-  }
-
-  public setRounds(rounds: number): void {
-    this.settings.rounds = rounds;
+    this.rpcClient.runTests({ mode: this.settingStore.getSettings().mode, workspacePath, packageName, suiteName, testIds });
   }
 }

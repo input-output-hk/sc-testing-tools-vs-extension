@@ -48,9 +48,10 @@ const TestCustomizationView: React.FC<Props> = ({ vscode }) => {
               </VscodeLabel>
             </span>
             <p className="text-[12px] opacity-60">
-              All settings are currently defined in the source code. Each test suite provides an option to view and modify these configurations.
+              All settings are currently defined in the source code.
             </p>
           </div>
+          {/* add elements to select rounds */}
 
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-1.5">

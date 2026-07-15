@@ -21,6 +21,8 @@ export default class TestCustomizationView {
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
+    this.context.store.settingStore.onModeChange(() => this.sendExecutionModeConfig());
+
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
@@ -38,17 +40,13 @@ export default class TestCustomizationView {
   }
 
   private sendExecutionModeConfig(): void {
-    const executionMode = vscode.workspace
-      .getConfiguration('pbt-extension')
-      .get<ExtensionMode>('executionMode', 'docker');
+    const executionMode = this.context.store.settingStore.getSettings().mode;
 
     this.webview?.postMessage({ type: 'execution-mode-config', payload: { executionMode } } as ExtensionToWebviewMessage);
   }
 
   private updateExecutionMode(executionMode: ExtensionMode): void {
-    vscode.workspace
-      .getConfiguration('pbt-extension')
-      .update('executionMode', executionMode, vscode.ConfigurationTarget.Global);
+    this.context.store.settingStore.setMode(executionMode);
   }
 
 }

@@ -21,7 +21,7 @@ export default class TestTreeView {
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
+    this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -46,11 +46,11 @@ export default class TestTreeView {
   }
 
   private fetchTestPackages(): void {
-    const data = this.context.testStore.getTestPackages();
+    const data = this.context.store.testStore.getTestPackages();
     if (data !== null) {
       this.sendTestPackagesToWebview(data);
     } else {
-      this.context.testStore.buildTestPackages().then((data: TestPackageData) => {
+      this.context.store.testStore.buildTestPackages().then((data: TestPackageData) => {
         this.sendTestPackagesToWebview(data);
       });
     }
@@ -63,7 +63,7 @@ export default class TestTreeView {
   }
 
   private buildTestSuiteTree(packageName: string, suiteName: string): void {
-    this.context.testStore.buildSuiteTestTree(packageName, suiteName).then((data: TestSuiteData | null) => {
+    this.context.store.testStore.buildSuiteTestTree(packageName, suiteName).then((data: TestSuiteData | null) => {
       if (this.webview !== null && data !== null) {
         this.webview.postMessage({ type: 'test-suite-tree', payload: data } as ExtensionToWebviewMessage);
       }
@@ -71,7 +71,7 @@ export default class TestTreeView {
   }
 
   private updateTestPackagesList(packages: TestPackageList): void {
-    this.context.testStore.updateTestPackages(packages);
+    this.context.store.testStore.updateTestPackages(packages);
   }
 
   private sendTestUpdateToWebview(test: Test): void {
@@ -93,9 +93,9 @@ export default class TestTreeView {
     for (const groupName in groupedTests) {
       const ids = groupedTests[groupName];
       const [packageName, suiteName] = groupName.split(':');
-      const workspacePath = this.context.testStore.getTestPackages()?.packages[packageName]?.path;
+      const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.path;
       if (workspacePath !== undefined) {
-        this.context.testStore.runTests(workspacePath, packageName, suiteName, ids);
+        this.context.store.testStore.runTests(workspacePath, packageName, suiteName, ids);
       }
     }
   }
