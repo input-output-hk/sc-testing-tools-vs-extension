@@ -3,13 +3,15 @@
 import * as vscode from 'vscode';
 import Store from './services/store';
 import TestTreeView from './modules/testTreeView';
-import TestCustomizationView from './modules/testCustomizationView';
+import TestConfigurationView from './modules/testConfigurationView';
 
 export type PbtContext = {
   extension: vscode.ExtensionContext;
   store: Store;
   testTreeView: TestTreeView;
+  testConfigurationView: TestConfigurationView;
   outputChannel: vscode.OutputChannel;
+  statusBarItem: vscode.StatusBarItem;
 };
 
 // This method is called when your extension is activated
@@ -20,28 +22,32 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Init test tree view
   const testTreeView = new TestTreeView();
-  const testCustomizationView = new TestCustomizationView();
-
+  const testConfigurationView = new TestConfigurationView();
   // Init output channel
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
+
+  //Init status bar item
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
   // Init context
   const pbtContext: PbtContext = {
     extension: context,
     store,
     testTreeView,
+    testConfigurationView,
     outputChannel,
+    statusBarItem,
   };
 
   // Init workspaces
   store.initialize(pbtContext).then(() => {
     // Activate modules
     testTreeView.activate(pbtContext);
-    testCustomizationView.activate(pbtContext);
+    testConfigurationView.activate(pbtContext);
   });
 
   // Add subscriptions to context
-  context.subscriptions.push(outputChannel);
+  context.subscriptions.push(outputChannel, statusBarItem);
 }
 
 // This method is called when your extension is deactivated

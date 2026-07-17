@@ -81,7 +81,8 @@ type ExtensionToWebviewMessage =
   | { type: "test-package-list", payload: TestPackageData }
   | { type: "test-suite-tree", payload: TestSuiteData }
   | { type: "test-update", payload: { test: Test } }
-  | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }; 
+  | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
+  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
@@ -117,4 +118,11 @@ type TestResult = {
   id: string;
   status: TestStatus;
   time: number;
+}
+
+// Errors
+
+type DependencyError = {
+  hasError: boolean;
+  message: string;
 }
