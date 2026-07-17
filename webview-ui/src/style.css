@@ -63,6 +63,9 @@
   to { opacity: 1; }
 }
 
+@custom-variant dark (&:where(body.vscode-dark *));
+@custom-variant light (&:where(body.vscode-light *));
+
 html, body, #root {
   height: 100%;
   margin: 0;
