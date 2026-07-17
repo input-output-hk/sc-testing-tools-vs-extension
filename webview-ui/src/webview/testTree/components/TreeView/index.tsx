@@ -104,7 +104,7 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuild
         />
         <span ref={filterWrapperRef} className="absolute right-3 inline-flex items-center">
           <i
-            className="codicon codicon-filter cursor-pointer text-base-06 opacity-70 hover:opacity-100"
+            className={`codicon cursor-pointer hover:opacity-100 ${statusFilter !== null ? 'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70'}`}
             onClick={handleFilterToggle}
           />
           <FilterMenu isOpen={isFilterMenuOpen} statusFilter={statusFilter} onChange={handleStatusFilterChange} />
