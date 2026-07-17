@@ -3,6 +3,13 @@
 @source "./**/*.tsx";
 
 @theme {
+  /* Base */
+  --color-base-06: #CCCCCC;
+  --color-base-09: #A0A0A0;
+  --color-base-10: #808080;
+  --color-base-12: #606060;
+  --color-base-19: #252526;
+
   /* Blue */
   --color-blue-01: #75BEFF;
   --color-blue-02: #40A6FF;

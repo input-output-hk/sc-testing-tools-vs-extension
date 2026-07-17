@@ -1,24 +1,52 @@
+import { useMemo } from 'react';
+
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import useTreeItemState from './useTreeItemState';
+import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {
   tests: TestList;
   path: Array<string>;
   suite: TestSuite;
+  filterText: string;
+  statusFilter: TestStatus | null;
   onRunTest: (testIds: Array<string>) => void;
   onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
   onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
 
-const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({ suite, path, tests, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup, onUpdateSelection }) => {
+const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
+  suite,
+  path,
+  tests,
+  filterText,
+  statusFilter,
+  onRunTest,
+  onBuildTestSuiteTree,
+  onToggleTreeGroup,
+  onUpdateSelection,
+}) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onToggleTreeGroup(path, !isCollapsed);
     },
   });
+
+  const effectiveFilterText =
+    !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
+
+  const filteredNodeKeys = useMemo(
+    () =>
+      Object.keys(suite.tree).filter(
+        (key) =>
+          nodeMatchesStatus(suite.tree[key], statusFilter, tests) &&
+          (!effectiveFilterText || nodeMatchesFilter(suite.tree[key], effectiveFilterText, tests)),
+      ),
+    [suite.tree, effectiveFilterText, statusFilter, tests],
+  );
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
@@ -45,17 +73,19 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({ suite, path, tests, onRun
           <i className="codicon codicon-loading h-5 w-5 animate-spin" />
         }
       </span>
-      {Object.keys(suite.tree).map((key, index) =>
+      {filteredNodeKeys.map((key) => (
         <TreeViewNode
-          key={index}
+          key={key}
           node={suite.tree[key]}
           path={[...path, key]}
           tests={tests}
+          filterText={effectiveFilterText}
+          statusFilter={statusFilter}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
           onUpdateSelection={onUpdateSelection}
         />
-      )}
+      ))}
     </VscodeTreeItem>
   );
 };

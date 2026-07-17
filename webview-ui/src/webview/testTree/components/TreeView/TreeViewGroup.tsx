@@ -1,30 +1,32 @@
+import { useMemo } from 'react';
+
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import useTreeItemState from './useTreeItemState';
+import { getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
   node: TestTreeGroupNode;
   path: Array<string>;
   tests: TestList;
+  filterText: string;
+  statusFilter: TestStatus | null;
   onRunTest: (testIds: Array<string>) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
   onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
 
-const getGroupTestIds = (group: TestTreeGroupNode): Array<string> => {
-  const testIds: Array<string> = [];
-  for (const node of Object.values(group.nodes)) {
-    if (node.type === 'test') {
-      testIds.push((node as TestTreeTestNode).testId);
-    } else if (node.type === 'group') {
-      testIds.push(...getGroupTestIds(node as TestTreeGroupNode));
-    }
-  }
-  return testIds;
-};
-
-const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, tests, onRunTest, onToggleTreeGroup, onUpdateSelection }) => {
+const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
+  node,
+  path,
+  tests,
+  filterText,
+  statusFilter,
+  onRunTest,
+  onToggleTreeGroup,
+  onUpdateSelection,
+}) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onToggleTreeGroup(path, !isCollapsed);
@@ -33,6 +35,31 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, tests, onRunT
       onUpdateSelection(getGroupTestIds(node), selected);
     },
   });
+
+  const effectiveFilterText =
+    !filterText || node.name.toLowerCase().includes(filterText.toLowerCase())
+      ? ''
+      : filterText;
+
+  const filteredNodes = useMemo(
+    () =>
+      Object.keys(node.nodes).filter(
+        (key) =>
+          nodeMatchesStatus(node.nodes[key], statusFilter, tests) &&
+          nodeMatchesFilter(node.nodes[key], effectiveFilterText, tests),
+      ),
+    [node.nodes, effectiveFilterText, statusFilter, tests],
+  );
+
+  const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    const visibleNodes = Object.fromEntries(
+      filteredNodes.map((key) => [key, node.nodes[key]]),
+    );
+    onRunTest(getGroupTestIds({ ...node, nodes: visibleNodes }));
+  };
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
@@ -45,27 +72,24 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({ node, path, tests, onRunT
         <button
           type="button"
           className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-          onClickCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            event.nativeEvent.stopImmediatePropagation();
-            onRunTest(getGroupTestIds(node));
-          }}
+          onClickCapture={handleRunGroup}
         >
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {Object.keys(node.nodes).map((key, index) =>
+      {filteredNodes.map((key) => (
         <TreeViewNode
-          key={index}
+          key={key}
           node={node.nodes[key]}
           path={[...path, key]}
           tests={tests}
+          filterText={effectiveFilterText}
+          statusFilter={statusFilter}
           onRunTest={onRunTest}
           onToggleTreeGroup={onToggleTreeGroup}
           onUpdateSelection={onUpdateSelection}
         />
-      )}
+      ))}
     </VscodeTreeItem>
   );
 };
