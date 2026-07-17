@@ -2,7 +2,7 @@ import * as rpc from 'vscode-jsonrpc/node';
 
 import ListSuitesMethod from './methods/listSuites';
 import ListTestsMethod from './methods/listTests';
-import runTestsMethod from './methods/runTests';
+import RunTestsMethod from './methods/runTests';
 
 const connection = rpc.createMessageConnection(
   new rpc.StreamMessageReader(process.stdin),
@@ -11,6 +11,6 @@ const connection = rpc.createMessageConnection(
 
 new ListSuitesMethod(connection);
 new ListTestsMethod(connection);
-new runTestsMethod(connection);
+new RunTestsMethod(connection);
 
 connection.listen();

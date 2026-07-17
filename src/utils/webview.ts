@@ -1,6 +1,33 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
+export class GenericWebviewViewProvider implements vscode.WebviewViewProvider {
+  private extensionUri: vscode.Uri;
+  private webviewName: string;
+  private onResolve: (webview: vscode.Webview) => void;
+
+  constructor(extensionUri: vscode.Uri, webviewName: string, onResolve: (webview: vscode.Webview) => void) {
+    this.extensionUri = extensionUri;
+    this.webviewName = webviewName;
+    this.onResolve = onResolve;
+  }
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    token: vscode.CancellationToken
+  ) {
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this.extensionUri],
+    };
+
+    webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri, this.webviewName);
+
+    this.onResolve(webviewView.webview);
+  }
+}
+
 export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, webviewName: string): string {
   const webviewFolderPath = vscode.Uri.joinPath(extensionUri, 'build');
   const indexHtmlPath = vscode.Uri.joinPath(webviewFolderPath, `${webviewName}.html`);

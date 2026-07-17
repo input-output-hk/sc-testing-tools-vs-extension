@@ -30,6 +30,18 @@
         "title": "PBT: Build Test Tree"
       }
     ],
+    "configuration": {
+      "title": "PBT Configuration",
+      "type": "object",
+      "properties": {
+        "pbt-extension.executionMode": {
+          "type": "string",
+          "enum": ["docker", "nix"],
+          "default": "docker",
+          "description": "Select the mode for executing commands with PBT."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -43,9 +55,14 @@
       "pbt-test-tree": [
         {
           "id": "pbt-test-tree",
-          "name": "PBT",
+          "name": "Test Panel",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
+        },
+        {
+          "id": "pbt-test-customization",
+          "name": "Test Customization",
+          "type": "webview"
         }
       ]
     }

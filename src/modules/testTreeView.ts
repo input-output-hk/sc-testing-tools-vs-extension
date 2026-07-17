@@ -1,32 +1,7 @@
 import * as vscode from 'vscode';
-import { getWebviewHtml } from '../utils/webview';
+import { GenericWebviewViewProvider, getWebviewHtml } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
-
-class TestTreeViewProvider implements vscode.WebviewViewProvider {
-  private extensionUri: vscode.Uri;
-  private onResolve: (webview: vscode.Webview) => void;
-
-  constructor(extensionUri: vscode.Uri, onResolve: (webview: vscode.Webview) => void) {
-    this.extensionUri = extensionUri;
-    this.onResolve = onResolve;
-  }
-
-  public resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ) {
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.extensionUri],
-    };
-
-    webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri, 'testTree');
-
-    this.onResolve(webviewView.webview);
-  }
-}
 
 export default class TestTreeView {
   private context: PbtContext;
@@ -38,7 +13,7 @@ export default class TestTreeView {
 
   public activate(context: PbtContext) {
     this.context = context;
-    const provider = new TestTreeViewProvider(context.extension.extensionUri, this.onWebviewResolved.bind(this));
+    const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testTree', this.onWebviewResolved.bind(this));
     const disposable = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
     context.extension.subscriptions.push(disposable);
   }
@@ -46,7 +21,7 @@ export default class TestTreeView {
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
+    this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -71,11 +46,11 @@ export default class TestTreeView {
   }
 
   private fetchTestPackages(): void {
-    const data = this.context.testStore.getTestPackages();
+    const data = this.context.store.testStore.getTestPackages();
     if (data !== null) {
       this.sendTestPackagesToWebview(data);
     } else {
-      this.context.testStore.buildTestPackages().then((data: TestPackageData) => {
+      this.context.store.testStore.buildTestPackages().then((data: TestPackageData) => {
         this.sendTestPackagesToWebview(data);
       });
     }
@@ -88,7 +63,7 @@ export default class TestTreeView {
   }
 
   private buildTestSuiteTree(packageName: string, suiteName: string): void {
-    this.context.testStore.buildSuiteTestTree(packageName, suiteName).then((data: TestSuiteData | null) => {
+    this.context.store.testStore.buildSuiteTestTree(packageName, suiteName).then((data: TestSuiteData | null) => {
       if (this.webview !== null && data !== null) {
         this.webview.postMessage({ type: 'test-suite-tree', payload: data } as ExtensionToWebviewMessage);
       }
@@ -96,7 +71,7 @@ export default class TestTreeView {
   }
 
   private updateTestPackagesList(packages: TestPackageList): void {
-    this.context.testStore.updateTestPackages(packages);
+    this.context.store.testStore.updateTestPackages(packages);
   }
 
   private sendTestUpdateToWebview(test: Test): void {
@@ -118,9 +93,9 @@ export default class TestTreeView {
     for (const groupName in groupedTests) {
       const ids = groupedTests[groupName];
       const [packageName, suiteName] = groupName.split(':');
-      const workspacePath = this.context.testStore.getTestPackages()?.packages[packageName]?.path;
+      const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.path;
       if (workspacePath !== undefined) {
-        this.context.testStore.runTests(workspacePath, packageName, suiteName, ids);
+        this.context.store.testStore.runTests(workspacePath, packageName, suiteName, ids);
       }
     }
   }
