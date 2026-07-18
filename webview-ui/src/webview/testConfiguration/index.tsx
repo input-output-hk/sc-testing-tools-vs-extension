@@ -17,7 +17,6 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   const [hasDocker, setHasDocker] = useState<boolean>(false);
   const [hasNix, setHasNix] = useState<boolean>(false);
 
-
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
 
@@ -31,14 +30,12 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
         setHasDocker(message.payload.hasDocker);
         setHasNix(message.payload.hasNix);
 
-        if (!message.payload.hasDocker && executionMode === 'docker') {
-          setExecutionMode('nix');
-        }
-        if (!message.payload.hasNix && executionMode === 'nix') {
-          setExecutionMode('docker');
-        }
         if (!message.payload.hasDocker && !message.payload.hasNix) {
           setExecutionMode(null);
+        } else if (!message.payload.hasDocker) {
+          setExecutionMode('nix');
+        } else if (!message.payload.hasNix) {
+          setExecutionMode('docker');
         }
       }
     };
@@ -54,7 +51,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   };
 
   return (
-    <div className="h-full p-[16px]">
+    <div className="h-full p-4">
       <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-1.5 font-semibold">

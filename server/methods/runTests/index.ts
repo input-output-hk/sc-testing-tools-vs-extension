@@ -14,7 +14,6 @@ export default class TestRunMethod {
     this.connection.onNotification(runTestsNotification, this.runTests.bind(this));
   }
 
-
   private runTests(params: RunTestsParams): void {
     (async () => {
       try {
