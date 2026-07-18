@@ -12,8 +12,10 @@ interface Props {
 
 
 const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
-  const [executionMode, setExecutionMode] = useState<ExtensionMode>('docker');
+  const [executionMode, setExecutionMode] = useState<ExtensionMode | null>('docker');
   const [error, setError] = useState({ hasError: false, message: '' });
+  const [hasDocker, setHasDocker] = useState<boolean>(false);
+  const [hasNix, setHasNix] = useState<boolean>(false);
 
 
   useEffect(() => {
@@ -26,6 +28,18 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
       }
       if (message.type === 'dependency-status') {
         setError({ hasError: message.payload.hasError, message: message.payload.message });
+        setHasDocker(message.payload.hasDocker);
+        setHasNix(message.payload.hasNix);
+
+        if (!message.payload.hasDocker && executionMode === 'docker') {
+          setExecutionMode('nix');
+        }
+        if (!message.payload.hasNix && executionMode === 'nix') {
+          setExecutionMode('docker');
+        }
+        if (!message.payload.hasDocker && !message.payload.hasNix) {
+          setExecutionMode(null);
+        }
       }
     };
 
@@ -72,6 +86,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               <VscodeRadio
                 name="execution-mode"
                 checked={executionMode === 'nix'}
+                disabled={!hasNix}
                 onChange={() => onExecutionModeChange('nix')}
                 className="mr-4"
               >
@@ -80,6 +95,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               <VscodeRadio
                 name="execution-mode"
                 checked={executionMode === 'docker'}
+                disabled={!hasDocker}
                 onChange={() => onExecutionModeChange('docker')}
               >
                 Docker

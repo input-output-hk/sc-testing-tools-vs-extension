@@ -95,6 +95,14 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           return newPackages;
         });
       }
+      if (message.type === 'test-suite-update') {
+        setPackages(
+          packages => updateSuite({ ...packages! },
+            message.payload.packageName,
+            message.payload.suiteName,
+            message.payload.status)
+        );
+      }
       if (message.type === 'test-update') {
         setTests(tests => {
           const newTests = tests ? { ...tests } : {};
@@ -110,9 +118,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
   }, [vscode]);
 
   const onBuildTestSuiteTree = (packageName: string, suiteName: string) => {
-    const newPackages = updateSuite({ ...packages! }, packageName, suiteName, 'building');
     vscode.postMessage({ type: 'build-test-suite-tree', payload: { packageName, suiteName } } as WebviewToExtensionMessage);
-    setPackages(newPackages);
   };
 
   const onToggleTreeGroup = (path: Array<string>, isOpen: boolean) => {

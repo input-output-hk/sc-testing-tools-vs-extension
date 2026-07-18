@@ -43,7 +43,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
           </button>
         }
         {test.status === 'running' &&
-          <i ref={spinRef} className="codicon codicon-loading h-5 w-5" />
+          <i ref={spinRef} className="codicon codicon-loading origin-[50%_40%] h-5 w-5" />
         }
       </span>
     </VscodeTreeItem>

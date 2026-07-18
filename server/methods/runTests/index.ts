@@ -1,6 +1,7 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
 import runScript from './runScript';
+import { ScriptExecutionError } from '../../utils/runScript';
 
 export default class TestRunMethod {
 
@@ -16,14 +17,48 @@ export default class TestRunMethod {
 
   private runTests(params: RunTestsParams): void {
     (async () => {
-      for await (const result of runScript(params)) {
-        this.sendTestResult(result);
+      try {
+        for await (const result of runScript(params)) {
+          this.sendTestResult(result);
+        }
+      } catch (error) {
+        this.sendRunTestsError(this.buildRunTestsError(error, params));
       }
     })();
   };
 
+  private buildRunTestsError(error: unknown, params: RunTestsParams): RunTestsErrorData {
+    const runContext = {
+      packageName: params.packageName,
+      suiteName: params.suiteName,
+      testIds: params.testIds,
+    };
+
+    if (error instanceof ScriptExecutionError) {
+      return {
+        ...error.data,
+        runContext,
+      };
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      kind: 'script-execution-error',
+      scriptPath: '',
+      params: [],
+      exitCode: null,
+      stderr: message,
+      stdout: '',
+      runContext,
+    };
+  }
+
   public sendTestResult(result: TestResult): void {
     this.connection.sendNotification('testResult', result);
   };
+
+  public sendRunTestsError(error: RunTestsErrorData): void {
+    this.connection.sendNotification('runTestsError', error);
+  }
 
 }

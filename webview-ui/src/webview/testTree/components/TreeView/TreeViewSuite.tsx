@@ -73,7 +73,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           </button>
         }
         {suite.status === 'building' &&
-          <i ref={spinRef} className="codicon codicon-loading h-5 w-5" />
+          <i ref={spinRef} className="codicon codicon-loading origin-[50%_40%] h-5 w-5" />
         }
       </span>
       {filteredNodeKeys.map((key) => (

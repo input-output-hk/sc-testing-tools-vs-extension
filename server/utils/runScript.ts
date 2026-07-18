@@ -7,6 +7,16 @@ export interface ScriptResult {
   parsed: unknown;
 }
 
+export class ScriptExecutionError extends Error {
+  public readonly data: ScriptExecutionErrorData;
+
+  constructor(data: ScriptExecutionErrorData, message: string) {
+    super(message);
+    this.name = 'ScriptExecutionError';
+    this.data = data;
+  }
+}
+
 function getListScriptPath(mode: string): string {
   return path.join(getScriptBasePath(), `${mode}-list-tests-json.sh`);
 }
@@ -39,9 +49,24 @@ function locateBash(): string {
   throw new Error('Git Bash not found on Windows');
 }
 
-async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator<ScriptResult> {
-  const child = spawn(locateBash(), [scriptPath, ...(params || [])]);
+function buildScriptExecutionMessage(data: ScriptExecutionErrorData): string {
+  const exitCode = data.exitCode === null ? 'unknown' : String(data.exitCode);
+  const commandOutput = data.stderr.trim() || data.stdout.trim();
+  if (commandOutput.length > 0) {
+    return `Script ${path.basename(data.scriptPath)} failed (exit code ${exitCode}): ${commandOutput}`;
+  }
+  return `Script ${path.basename(data.scriptPath)} failed (exit code ${exitCode})`;
+}
 
+async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator<ScriptResult> {
+  const scriptParams = params ?? [];
+  const child = spawn(locateBash(), [scriptPath, ...scriptParams], { env: process.env });
+  const processStatePromise = new Promise<{ exitCode: number | null; spawnError: Error | null }>((resolve) => {
+    child.once('error', (spawnError: Error) => resolve({ exitCode: null, spawnError }));
+    child.once('close', (exitCode: number | null) => resolve({ exitCode, spawnError: null }));
+  });
+
+  let stdoutBuffer = '';
   let stdout = '';
   let stderr = '';
 
@@ -53,8 +78,10 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
   });
 
   for await (const chunk of child.stdout) {
-    stdout += chunk.toString();
-    let parts = stdout.split('\n');
+    const content = chunk.toString();
+    stdout += content;
+    stdoutBuffer += content;
+    let parts = stdoutBuffer.split('\n');
     while (parts.length > 1) {
       let rawOutput = parts.shift()!;
       if (!rawOutput.trim()) continue;
@@ -65,16 +92,44 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
         console.error('JSON line parsing failed:\n', rawOutput);
       }
     }
-    stdout = parts[0];
+    stdoutBuffer = parts[0];
   }
 
-  const exitCode = await new Promise((resolve) => {
-    child.on('close', resolve);
-  });
+  const finalOutput = stdoutBuffer.trim();
+  if (finalOutput.length > 0) {
+    try {
+      const parsed = JSON.parse(stdoutBuffer);
+      yield ({ rawOutput: stdoutBuffer, parsed });
+    } catch {
+      console.error('JSON line parsing failed:\n', stdoutBuffer);
+    }
+  }
 
-  if (exitCode !== 0) {
+  const processState = await processStatePromise;
+
+  if (processState.spawnError !== null) {
+    const data: ScriptExecutionErrorData = {
+      kind: 'script-execution-error',
+      scriptPath,
+      params: scriptParams,
+      exitCode: null,
+      stderr,
+      stdout,
+    };
+    throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
+  }
+
+  if (processState.exitCode !== 0) {
     console.error('Process stderr:\n', stderr);
-    throw new Error(`Process exited with code ${exitCode}`);
+    const data: ScriptExecutionErrorData = {
+      kind: 'script-execution-error',
+      scriptPath,
+      params: scriptParams,
+      exitCode: processState.exitCode,
+      stderr,
+      stdout,
+    };
+    throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
   }
 }
 

@@ -10,6 +10,7 @@ export default class TestStore {
   private tests: TestList = {};
   private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
+  private runTestsErrorCallbacks: ((error: RunTestsErrorData) => void)[] = [];
 
   constructor(context: vscode.ExtensionContext, settingStore: SettingStore) {
     this.rpcClient = new RpcClient(context);
@@ -25,6 +26,19 @@ export default class TestStore {
         this.tests[result.id].time = result.time;
         this.notifyTestUpdate(this.tests[result.id]);
       }
+    });
+
+    this.rpcClient.onRunTestsError((error: RunTestsErrorData) => {
+      const { packageName, suiteName, testIds } = error.runContext;
+      for (const id of testIds) {
+        const testId = `${packageName}:${suiteName}:${id}`;
+        if (this.tests[testId]) {
+          this.tests[testId]!.status = 'invalid';
+          this.notifyTestUpdate(this.tests[testId]!);
+        }
+      }
+      
+      this.notifyRunTestsError(error);
     });
   }
 
@@ -112,9 +126,19 @@ export default class TestStore {
     this.testUpdateCallbacks.push(callback);
   }
 
+  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
+    this.runTestsErrorCallbacks.push(callback);
+  }
+
   private notifyTestUpdate(test: Test): void {
     for (const callback of this.testUpdateCallbacks) {
       callback(test);
+    }
+  }
+
+  private notifyRunTestsError(error: RunTestsErrorData): void {
+    for (const callback of this.runTestsErrorCallbacks) {
+      callback(error);
     }
   }
 

@@ -73,16 +73,17 @@ type TestSuiteData = {
   tests: Array<Test>;
 }
 
-type TestSuiteStatus = "pending" | "building" | "ready";
+type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 
 // Webview message
 
 type ExtensionToWebviewMessage =
   | { type: "test-package-list", payload: TestPackageData }
   | { type: "test-suite-tree", payload: TestSuiteData }
+  | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
+  | { type: "dependency-status", payload: { hasError: boolean, hasDocker: boolean, hasNix: boolean, message: string } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
@@ -114,10 +115,30 @@ type RunTestsParams = {
   testIds: Array<number>;
 }
 
+type RunTestsContext = {
+  packageName: string;
+  suiteName: string;
+  testIds: Array<number>;
+}
+
 type TestResult = {
   id: string;
   status: TestStatus;
   time: number;
+}
+
+type ScriptExecutionErrorData = {
+  kind: 'script-execution-error';
+  scriptPath: string;
+  params: Array<string>;
+  exitCode: number | null;
+  stderr: string;
+  stdout: string;
+  runContext?: RunTestsContext;
+}
+
+type RunTestsErrorData = ScriptExecutionErrorData & {
+  runContext: RunTestsContext;
 }
 
 // Errors
