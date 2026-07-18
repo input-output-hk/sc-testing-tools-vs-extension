@@ -13,7 +13,7 @@ export default class Store {
 
   constructor(context: vscode.ExtensionContext) {
     this.settingStore = new SettingStore();
-    this.testStore = new TestStore(context, this.settingStore);
+    this.testStore = new TestStore(context);
     this.dependencyStore = new DependencyStore();
   }
 

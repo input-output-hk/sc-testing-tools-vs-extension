@@ -107,13 +107,17 @@ export default class TestTreeView {
       }
       groupedTests[groupName].push(Number(id));
     }
-    for (const groupName in groupedTests) {
-      const ids = groupedTests[groupName];
-      const [packageName, suiteName] = groupName.split(':');
-      const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.path;
-      if (workspacePath !== undefined) {
-        this.context.store.testStore.runTests(workspacePath, packageName, suiteName, ids);
+    try {
+      for (const groupName in groupedTests) {
+        const ids = groupedTests[groupName];
+        const [packageName, suiteName] = groupName.split(':');
+        const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.path;
+        if (workspacePath !== undefined) {
+          this.context.store.testStore.runTests(workspacePath, packageName, suiteName, ids);
+        }
       }
+    } catch (error) {
+      this.showError(`Test execution failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

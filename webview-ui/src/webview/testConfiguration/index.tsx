@@ -29,14 +29,6 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
         setError({ hasError: message.payload.hasError, message: message.payload.message });
         setHasDocker(message.payload.hasDocker);
         setHasNix(message.payload.hasNix);
-
-        if (!message.payload.hasDocker && !message.payload.hasNix) {
-          setExecutionMode(null);
-        } else if (!message.payload.hasDocker) {
-          setExecutionMode('nix');
-        } else if (!message.payload.hasNix) {
-          setExecutionMode('docker');
-        }
       }
     };
 

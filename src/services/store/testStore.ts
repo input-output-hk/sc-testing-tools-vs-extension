@@ -1,23 +1,23 @@
 import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
-import type SettingStore from './settingStore';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
+  private context: PbtContext | null = null;
   private rpcClient: RpcClient;
-  private settingStore: SettingStore;
   private tests: TestList = {};
   private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
   private runTestsErrorCallbacks: ((error: RunTestsErrorData) => void)[] = [];
 
-  constructor(context: vscode.ExtensionContext, settingStore: SettingStore) {
+  constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
-    this.settingStore = settingStore;
   }
 
   public async initialize(context: PbtContext): Promise<void> {
+    this.context = context;
+
     await this.rpcClient.initialize(context);
 
     this.rpcClient.onTestResult((result: TestResult) => {
@@ -37,7 +37,7 @@ export default class TestStore {
           this.notifyTestUpdate(this.tests[testId]!);
         }
       }
-      
+
       this.notifyRunTestsError(error);
     });
   }
@@ -89,7 +89,7 @@ export default class TestStore {
     if (!testSuite) return null;
 
     const testList = await this.rpcClient.listTests({
-      mode: this.settingStore.getSettings().mode,
+      mode: this.validateExecutionMode(),
       workspacePath: testPackage.path,
       packageName,
       suiteName,
@@ -151,6 +151,32 @@ export default class TestStore {
         this.notifyTestUpdate(this.tests[testId]!);
       }
     }
-    this.rpcClient.runTests({ mode: this.settingStore.getSettings().mode, workspacePath, packageName, suiteName, testIds });
+    this.rpcClient.runTests({
+      mode: this.validateExecutionMode(),
+      workspacePath, packageName, suiteName, testIds
+    });
+  }
+
+  private validateExecutionMode(): ExtensionMode {
+    const mode = this.getExecutionMode();
+    if (mode === null) {
+      const errorMessage = 'Invalid execution mode: required dependencies are missing';
+      this.context?.outputChannel.append(`> ERROR\n${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+    return mode;
+  }
+
+  private getExecutionMode(): ExtensionMode | null {
+    const mode = this.context?.store.settingStore.getSettings().mode;
+    const hasDocker = this.context?.store.dependencyStore.getHasDocker() ?? false;
+    const hasNix = this.context?.store.dependencyStore.getHasNix() ?? false;
+    if (mode === 'docker' && !hasDocker) {
+      return null;
+    }
+    if (mode === 'nix' && !hasNix) {
+      return null;
+    }
+    return mode ? mode : null;
   }
 }
