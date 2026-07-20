@@ -13,8 +13,14 @@ async function* runTests(params: RunTestsParams): AsyncGenerator<TestResult> {
     if (validate(testEvent)) {
       yield {
         id: `${params.packageName}:${params.suiteName}:${testEvent.id}`,
-        event: testEvent
+        event: testEvent,
+        error: undefined
       };
+    } else {
+      yield {
+        rawEvent: testEvent,
+        error: ajv.errorsText(validate.errors)
+      }
     }
   }
 };

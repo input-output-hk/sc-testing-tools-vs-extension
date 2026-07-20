@@ -50,7 +50,8 @@ type TestSuiteList = Record<string, TestSuite>;
 
 type TestPackage = {
   name: string;
-  path: string;
+  workspacePath: string;
+  packagePath: string;
   isOpen: boolean;
   suites: TestSuiteList;
 };
@@ -125,6 +126,10 @@ type RunTestsContext = {
 type TestResult = {
   id: string;
   event: import("./streaming-events").SCToolsStreamingEvent;
+  error: undefined;
+} | {
+  rawEvent: unknown;
+  error: string;
 }
 
 type ScriptExecutionErrorData = {

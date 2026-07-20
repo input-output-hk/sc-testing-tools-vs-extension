@@ -23,7 +23,7 @@ export default class TestTreeView {
 
     this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     this.context.store.testStore.onRunTestsError(this.handleRunTestsError.bind(this));
-    
+
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
@@ -111,7 +111,7 @@ export default class TestTreeView {
       for (const groupName in groupedTests) {
         const ids = groupedTests[groupName];
         const [packageName, suiteName] = groupName.split(':');
-        const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.path;
+        const workspacePath = this.context.store.testStore.getTestPackages()?.packages[packageName]?.workspacePath;
         if (workspacePath !== undefined) {
           this.context.store.testStore.runTests(workspacePath, packageName, suiteName, ids);
         }
