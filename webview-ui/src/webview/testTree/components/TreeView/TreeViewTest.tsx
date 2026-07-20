@@ -31,6 +31,10 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
             <span className="ml-1 opacity-60">
               {test.time.toFixed(2)}ms
             </span>
+           || (test.percentage !== undefined && test.percentage > 0) &&
+            <span className="ml-1 opacity-60">
+              {test.percentage.toFixed(0)}%
+            </span>
           }
         </span>
         {test.status !== 'running' &&

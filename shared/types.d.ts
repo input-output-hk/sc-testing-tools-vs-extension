@@ -7,6 +7,7 @@ type Test = {
   location: Location;
   status: TestStatus;
   time?: number;
+  percentage?: number;
 };
 
 type TestStatus = "undetermined" | "running" | "valid" | "invalid";
@@ -90,7 +91,7 @@ type WebviewToExtensionMessage =
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
   | { type: "run-tests", payload: { testIds: Array<string> } }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };  
+  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };
 
 // RPC message
 
@@ -123,8 +124,7 @@ type RunTestsContext = {
 
 type TestResult = {
   id: string;
-  status: TestStatus;
-  time: number;
+  event: import("./streaming-events").SCToolsStreamingEvent;
 }
 
 type ScriptExecutionErrorData = {

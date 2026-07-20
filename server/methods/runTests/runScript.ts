@@ -1,25 +1,20 @@
 import { runRunScript } from '../../utils/runScript';
+import { SCToolsStreamingEvent } from '../../../shared/streaming-events';
+import streamingEventSchema from "./streaming-events.schema.json";
+import Ajv from "ajv";
 
-interface JsonTestRun {
-  id: number;
-  event: 'test_done';
-  success: boolean;
-  duration: number;
-}
-
-const isTestRun = (value: unknown): value is JsonTestRun => {
-  return typeof value === 'object' && value !== null && value.hasOwnProperty('event') && (value as JsonTestRun).event === 'test_done';
-};
+const ajv = new Ajv();
+ajv.addFormat("double", true);
+const validate = ajv.compile<SCToolsStreamingEvent>(streamingEventSchema);
 
 async function* runTests(params: RunTestsParams): AsyncGenerator<TestResult> {
   for await (const result of runRunScript(params.mode, params.workspacePath, params.packageName, params.suiteName, params.testIds)) {
-    if (isTestRun(result.parsed)) {
-      const testResult = result.parsed as JsonTestRun;
-      yield ({
-        id: `${params.packageName}:${params.suiteName}:${testResult.id}`,
-        status: testResult.success ? 'valid' : 'invalid',
-        time: testResult.duration * 1000,
-      });
+    const testEvent = result.parsed
+    if (validate(testEvent)) {
+      yield {
+        id: `${params.packageName}:${params.suiteName}:${testEvent.id}`,
+        event: testEvent
+      };
     }
   }
 };

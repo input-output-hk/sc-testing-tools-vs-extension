@@ -21,10 +21,20 @@ export default class TestStore {
     await this.rpcClient.initialize(context);
 
     this.rpcClient.onTestResult((result: TestResult) => {
-      if (this.tests !== null && this.tests[result.id]) {
-        this.tests[result.id].status = result.status;
-        this.tests[result.id].time = result.time;
-        this.notifyTestUpdate(this.tests[result.id]);
+      switch (result.event.event) {
+        case 'test_progress':
+          if (this.tests !== null && this.tests[result.id]) {
+            this.tests[result.id].percentage = result.event.percent * 100;
+            this.notifyTestUpdate(this.tests[result.id]);
+          }
+          break;
+        case 'test_done':
+          if (this.tests !== null && this.tests[result.id]) {
+            this.tests[result.id].status = result.event.success ? 'valid' : 'invalid';
+            this.tests[result.id].time = result.event.duration * 1000;
+            this.notifyTestUpdate(this.tests[result.id]);
+          }
+          break;
       }
     });
 
