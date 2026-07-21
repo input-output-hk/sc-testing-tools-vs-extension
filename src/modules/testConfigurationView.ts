@@ -56,10 +56,7 @@ export default class TestConfigurationView {
 
   private sendDependencyStatus(): void {
     const hasError = this.context.store.dependencyStore.getHasError();
-    const hasDocker = this.context.store.dependencyStore.getHasDocker();
-    const hasNix = this.context.store.dependencyStore.getHasNix();
-
-    this.webview?.postMessage({ type: 'dependency-status', payload: { hasError, hasDocker, hasNix, message: DEPENDENCY_ERROR_MESSAGE } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'dependency-status', payload: { hasError, message: DEPENDENCY_ERROR_MESSAGE } } as ExtensionToWebviewMessage);
   }
 
   private onDependencyError(hasError: boolean): void {

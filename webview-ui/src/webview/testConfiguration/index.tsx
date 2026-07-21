@@ -14,8 +14,6 @@ interface Props {
 const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   const [executionMode, setExecutionMode] = useState<ExtensionMode | null>('docker');
   const [error, setError] = useState({ hasError: false, message: '' });
-  const [hasDocker, setHasDocker] = useState<boolean>(false);
-  const [hasNix, setHasNix] = useState<boolean>(false);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -27,8 +25,6 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
       }
       if (message.type === 'dependency-status') {
         setError({ hasError: message.payload.hasError, message: message.payload.message });
-        setHasDocker(message.payload.hasDocker);
-        setHasNix(message.payload.hasNix);
       }
     };
 
@@ -75,7 +71,6 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               <VscodeRadio
                 name="execution-mode"
                 checked={executionMode === 'nix'}
-                disabled={!hasNix}
                 onChange={() => onExecutionModeChange('nix')}
                 className="mr-4"
               >
@@ -84,7 +79,6 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               <VscodeRadio
                 name="execution-mode"
                 checked={executionMode === 'docker'}
-                disabled={!hasDocker}
                 onChange={() => onExecutionModeChange('docker')}
               >
                 Docker

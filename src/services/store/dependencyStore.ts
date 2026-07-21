@@ -13,8 +13,6 @@ async function commandExists(command: string): Promise<boolean> {
 }
 
 export default class DependencyStore {
-  private hasNix: boolean = false;
-  private hasDocker: boolean = false;
   private hasError: boolean = false;
 
   public async initialize(): Promise<void> {
@@ -23,31 +21,11 @@ export default class DependencyStore {
       commandExists('nix'),
     ]);
 
-    this.setHasDocker(hasDocker);
-    this.setHasNix(hasNix);
     this.setHasError(!hasDocker && !hasNix);
-  }
-
-  public getHasDocker(): boolean {
-    return this.hasDocker;
-  }
-
-  public getHasNix(): boolean {
-    return this.hasNix;
   }
 
   public getHasError(): boolean {
     return this.hasError;
-  }
-
-  private setHasDocker(hasDocker: boolean): void {
-    if (hasDocker === this.hasDocker) return;
-    this.hasDocker = hasDocker;
-  }
-
-  private setHasNix(hasNix: boolean): void {
-    if (hasNix === this.hasNix) return;
-    this.hasNix = hasNix;
   }
 
   private setHasError(hasError: boolean): void {

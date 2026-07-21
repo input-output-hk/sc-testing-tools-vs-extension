@@ -83,7 +83,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, hasDocker: boolean, hasNix: boolean, message: string } };
+  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }

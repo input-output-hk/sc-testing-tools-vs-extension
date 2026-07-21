@@ -158,25 +158,12 @@ export default class TestStore {
   }
 
   private validateExecutionMode(): ExtensionMode {
-    const mode = this.getExecutionMode();
-    if (mode === null) {
-      const errorMessage = 'Invalid execution mode: required dependencies are missing';
+    const mode = this.context?.store.settingStore.getSettings().mode;
+    if (!mode) {
+      const errorMessage = 'Execution mode is not set';
       this.context?.outputChannel.append(`> ERROR\n${errorMessage}`);
       throw new Error(errorMessage);
     }
     return mode;
-  }
-
-  private getExecutionMode(): ExtensionMode | null {
-    const mode = this.context?.store.settingStore.getSettings().mode;
-    const hasDocker = this.context?.store.dependencyStore.getHasDocker() ?? false;
-    const hasNix = this.context?.store.dependencyStore.getHasNix() ?? false;
-    if (mode === 'docker' && !hasDocker) {
-      return null;
-    }
-    if (mode === 'nix' && !hasNix) {
-      return null;
-    }
-    return mode ? mode : null;
   }
 }
