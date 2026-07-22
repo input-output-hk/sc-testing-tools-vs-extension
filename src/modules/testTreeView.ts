@@ -30,6 +30,9 @@ export default class TestTreeView {
           case 'webview-ready':
             this.fetchTestPackages();
             break;
+          case 'open-folder':
+            vscode.commands.executeCommand('vscode.openFolder');
+            break;
           case 'build-test-suite-tree':
             this.buildTestSuiteTree(message.payload.packageName, message.payload.suiteName);
             break;
@@ -47,6 +50,11 @@ export default class TestTreeView {
   }
 
   private fetchTestPackages(): void {
+    if (!vscode.workspace.workspaceFolders?.length) {
+      this.sendTestPackagesToWebview(null);
+      return;
+    }
+
     const data = this.context.store.testStore.getTestPackages();
     if (data !== null) {
       this.sendTestPackagesToWebview(data);

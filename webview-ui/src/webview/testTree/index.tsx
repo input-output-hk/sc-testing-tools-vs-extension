@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import LoadingView from './components/LoadingView';
+//import LoadingView from './components/LoadingView';
+import EmptyView from './components/EmptyView';
 import TreeView from './components/TreeView';
 
 import type { WebviewApi } from 'vscode-webview';
@@ -53,7 +54,7 @@ const updateSuite = (packages: TestPackageList, packageName: string, suiteName: 
 };
 
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
-  const [activeView, setActiveView] = useState<'building'|'tree'>('building');
+  const [activeView, setActiveView] = useState<'building'| 'empty' |'tree'>('building');
   const [tests, setTests] = useState<TestList|null>(null);
   const [packages, setPackages] = useState<TestPackageList|null>(null);
 
@@ -67,6 +68,8 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           setTests(message.payload.tests);
           setPackages(message.payload.packages);
           setActiveView('tree');
+        } else {
+          setActiveView('empty');
         }
       }
       if (message.type === 'test-suite-tree') {
@@ -133,7 +136,9 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
 
   return (
     <>
-      {activeView === 'building' && <LoadingView />}
+      {/* If I comment out the 'building' activeView then there are no changes to how the ui in the extension works. Basically vsCode already has a built-in loading state when loading webview like this. The same loading state appears for the testCustomizationView and I never created a custom loading state for it. */}
+      {/* {activeView === 'building' && <LoadingView />} */}
+      {activeView === 'empty' && <EmptyView vscode={vscode} />}
       {activeView === 'tree' && (
         <TreeView
           tests={tests!}

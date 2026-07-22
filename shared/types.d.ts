@@ -78,7 +78,7 @@ type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 // Webview message
 
 type ExtensionToWebviewMessage =
-  | { type: "test-package-list", payload: TestPackageData }
+  | { type: "test-package-list", payload: TestPackageData | null }
   | { type: "test-suite-tree", payload: TestSuiteData }
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
@@ -88,6 +88,7 @@ type ExtensionToWebviewMessage =
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
+  | { type: "open-folder" }
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
   | { type: "run-tests", payload: { testIds: Array<string> } }
