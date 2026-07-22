@@ -83,14 +83,16 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, hasDocker: boolean, hasNix: boolean, message: string } };
+  | { type: "dependency-status", payload: { error: DependencyError } }
+  | { type: "test-rounds-config", payload: { rounds: number } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
   | { type: "run-tests", payload: { testIds: Array<string> } }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };  
+  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "update-test-rounds", payload: { rounds: number } };
 
 // RPC message
 
@@ -142,8 +144,8 @@ type RunTestsErrorData = ScriptExecutionErrorData & {
 }
 
 // Errors
-
 type DependencyError = {
   hasError: boolean;
   message: string;
+  code: number | undefined;
 }

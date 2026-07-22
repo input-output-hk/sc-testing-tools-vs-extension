@@ -169,9 +169,9 @@ export default class TestStore {
 
   private getExecutionMode(): ExtensionMode | null {
     const mode = this.context?.store.settingStore.getSettings().mode;
-    const hasDocker = this.context?.store.dependencyStore.getHasDocker() ?? false;
+    const dockerRunning = this.context?.store.dependencyStore.getDockerRunning() ?? false;
     const hasNix = this.context?.store.dependencyStore.getHasNix() ?? false;
-    if (mode === 'docker' && !hasDocker) {
+    if (mode === 'docker' && !dockerRunning) {
       return null;
     }
     if (mode === 'nix' && !hasNix) {

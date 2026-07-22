@@ -44,10 +44,6 @@ export default class SettingStore {
     }
   }
 
-  public getSettings(): TestSettings {
-    return this.settings;
-  }
-
   public setMode(mode: ExtensionMode): void {
     this.settings.mode = mode;
     vscode.workspace
@@ -55,11 +51,15 @@ export default class SettingStore {
       .update('executionMode', mode, vscode.ConfigurationTarget.Global);
   }
 
-  public setRounds(rounds: number): void {
-    this.settings.rounds = rounds;
-  }
-
   public onModeChange(callback: (mode: ExtensionMode) => void): void {
     this.modeChangeCallbacks.push(callback);
   }
+
+  public getSettings(): TestSettings {
+    return this.settings;
+  }  
+
+  public setRounds(rounds: number): void {
+    this.settings.rounds = rounds;
+  } 
 }
