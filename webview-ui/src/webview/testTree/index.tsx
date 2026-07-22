@@ -63,14 +63,17 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
+      if (message.type === 'folders-detected') {
+        if (!message.payload.hasFolders) {
+          setActiveView('empty');
+        } 
+      }
       if (message.type === 'test-package-list') {
         if (message.payload !== null) {
           setTests(message.payload.tests);
           setPackages(message.payload.packages);
           setActiveView('tree');
-        } else {
-          setActiveView('empty');
-        }
+        } 
       }
       if (message.type === 'test-suite-tree') {
         setTests(tests => {

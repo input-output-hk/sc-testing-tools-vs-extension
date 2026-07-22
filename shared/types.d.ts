@@ -78,6 +78,7 @@ type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 // Webview message
 
 type ExtensionToWebviewMessage =
+  | { type: "folders-detected", payload: { hasFolders: boolean } }
   | { type: "test-package-list", payload: TestPackageData | null }
   | { type: "test-suite-tree", payload: TestSuiteData }
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }

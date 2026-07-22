@@ -28,7 +28,11 @@ export default class TestTreeView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-            this.fetchTestPackages();
+            if (vscode.workspace.workspaceFolders?.length) {
+              this.fetchTestPackages();
+            } else {
+              this.detectWorkspaceFolders();
+            }
             break;
           case 'open-folder':
             vscode.commands.executeCommand('vscode.openFolder');
@@ -49,12 +53,11 @@ export default class TestTreeView {
     );
   }
 
-  private fetchTestPackages(): void {
-    if (!vscode.workspace.workspaceFolders?.length) {
-      this.sendTestPackagesToWebview(null);
-      return;
-    }
+  private detectWorkspaceFolders(): void {
+    this.webview?.postMessage({ type: 'folders-detected', payload: { hasFolders: Boolean(vscode.workspace.workspaceFolders?.length) } } as ExtensionToWebviewMessage);
+  }
 
+  private fetchTestPackages(): void {
     const data = this.context.store.testStore.getTestPackages();
     if (data !== null) {
       this.sendTestPackagesToWebview(data);
