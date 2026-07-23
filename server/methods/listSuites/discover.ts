@@ -15,11 +15,12 @@ export interface DiscoveredSuite {
 
 export interface DiscoveredPackage {
   name: string;
+  packagePath: string;
   suites: Array<DiscoveredSuite>;
 }
 
 export async function discoverPackages(workspacePath: string): Promise<Array<DiscoveredPackage>> {
-  
+
   await ensureWorkspaceDirectory(workspacePath);
 
   const cabalFiles = await collectCabalFiles(workspacePath);
@@ -97,6 +98,7 @@ function parseCabalFile(content: string, cabalFilePath: string): DiscoveredPacka
   const suiteNames = parseSuiteNames(lines);
   return {
     name: packageName,
+    packagePath: path.dirname(cabalFilePath),
     suites: suiteNames.map((suiteName) => ({ name: suiteName })),
   };
 }

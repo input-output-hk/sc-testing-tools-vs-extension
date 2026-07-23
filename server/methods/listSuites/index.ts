@@ -12,7 +12,7 @@ export default class TestListMethod {
     const listSuitesRequest = new rpc.RequestType<ListSuitesParams, TestPackageList, void>('listSuites');
     this.connection.onRequest(listSuitesRequest, this.listSuites.bind(this));
   }
-  
+
   private async listSuites(params: ListSuitesParams): Promise<TestPackageList> {
     const packageList: TestPackageList = {};
 
@@ -33,7 +33,8 @@ export default class TestListMethod {
         if (!packageList[discoveredPackage.name]) {
           packageList[discoveredPackage.name] = {
             name: discoveredPackage.name,
-            path: workspacePath,
+            workspacePath: workspacePath,
+            packagePath: discoveredPackage.packagePath,
             isOpen: true,
             suites: {},
           };
@@ -44,7 +45,7 @@ export default class TestListMethod {
           if (suites[discoveredSuite.name]) {
             continue;
           }
-          
+
           suites[discoveredSuite.name] = {
             name: discoveredSuite.name,
             isOpen: true,
