@@ -11,15 +11,27 @@ interface TreeViewTestProps {
   onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
 
+const formatTestTime = (time: number): string => {
+  if (time < 1000) {
+    return `${time.toFixed(2)}ms`;
+  } else {
+    return `${(time / 1000).toFixed(2)}s`;
+  }
+}
+
 const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onUpdateSelection }) => {
   const test = tests[node.testId];
+
   const spinRef = useSyncedSpin();
+  const canRun = test?.isRunnable === true;
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
       onUpdateSelection([node.testId], selected);
     },
   });
+
+  if (!test) return null;
 
   return (
     <VscodeTreeItem ref={treeItemRef}>
@@ -29,7 +41,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
           {test.name}
           {(test.time !== undefined && test.time > 0) &&
             <span className="ml-1 opacity-60">
-              {test.time.toFixed(2)}ms
+              {formatTestTime(test.time)}
             </span>
            || (test.percentage !== undefined && test.percentage > 0) &&
             <span className="ml-1 opacity-60">
@@ -40,8 +52,15 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onU
         {test.status !== 'running' &&
           <button
             type="button"
-            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-            onClickCapture={() => onRunTest([test.id])}
+            className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
+              canRun ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
+            }`}
+            disabled={!canRun}
+            onClickCapture={() => {
+              if (canRun) {
+                onRunTest([test.id]);
+              }
+            }}
           >
             <i className="codicon codicon-play" />
           </button>

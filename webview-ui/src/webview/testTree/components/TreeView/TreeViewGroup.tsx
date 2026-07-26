@@ -4,7 +4,7 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import useTreeItemState from './useTreeItemState';
-import { getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import { getGroupRunnableTestIds, getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
   node: TestTreeGroupNode;
@@ -51,14 +51,19 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     [node.nodes, effectiveFilterText, statusFilter, tests],
   );
 
+  const runnableFilteredTestIds = useMemo(() => {
+    const visibleNodes = Object.fromEntries(
+      filteredNodes.map((key) => [key, node.nodes[key]]),
+    );
+    return getGroupRunnableTestIds({ ...node, nodes: visibleNodes }, tests);
+  }, [filteredNodes, node, tests]);
+
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    const visibleNodes = Object.fromEntries(
-      filteredNodes.map((key) => [key, node.nodes[key]]),
-    );
-    onRunTest(getGroupTestIds({ ...node, nodes: visibleNodes }));
+    if (runnableFilteredTestIds.length === 0) return;
+    onRunTest(runnableFilteredTestIds);
   };
 
   return (
@@ -71,7 +76,12 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
         </span>
         <button
           type="button"
-          className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
+            runnableFilteredTestIds.length > 0
+              ? 'opacity-60 hover:opacity-100 cursor-pointer'
+              : 'opacity-30 cursor-not-allowed'
+          }`}
+          disabled={runnableFilteredTestIds.length === 0}
           onClickCapture={handleRunGroup}
         >
           <i className="codicon codicon-run-all" />

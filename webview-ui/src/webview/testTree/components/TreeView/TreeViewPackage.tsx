@@ -12,7 +12,7 @@ interface TreeViewPackageProps {
   filterText: string;
   statusFilter: TestStatus | null;
   onRunTest: (testIds: Array<string>) => void;
-  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
+  onRunTestSuite: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
   onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
@@ -23,7 +23,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   filterText,
   statusFilter,
   onRunTest,
-  onBuildTestSuiteTree,
+  onRunTestSuite,
   onToggleTreeGroup,
   onUpdateSelection,
 }) => {
@@ -63,7 +63,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
           onRunTest={onRunTest}
-          onBuildTestSuiteTree={onBuildTestSuiteTree}
+          onRunTestSuite={onRunTestSuite}
           onToggleTreeGroup={onToggleTreeGroup}
           onUpdateSelection={onUpdateSelection}
         />

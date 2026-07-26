@@ -10,11 +10,11 @@ interface TreeViewProps {
   tests: TestList;
   packages: TestPackageList;
   onRunTest: (testIds: Array<string>) => void;
-  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
+  onRunTestSuite: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuildTestSuiteTree, onToggleTreeGroup }) => {
+const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onRunTestSuite, onToggleTreeGroup }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<TestStatus | null>(null);
@@ -79,16 +79,24 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuild
   };
 
   const handleRunTest = (testIds: Array<string>) => {
+    const runnableIdsFromRequest = testIds.filter((testId) => tests[testId]?.isRunnable);
+
     if (selected.has(testIds.join(','))) {
       const testRun: Set<string> = new Set();
       for (const selectedTestIds of selected) {
         for (const testId of selectedTestIds.split(',')) {
-          testRun.add(testId);
+          if (tests[testId]?.isRunnable) {
+            testRun.add(testId);
+          }
         }
       }
-      onRunTest(Array.from(testRun));
+      if (testRun.size > 0) {
+        onRunTest(Array.from(testRun));
+      }
     } else {
-      onRunTest(testIds);
+      if (runnableIdsFromRequest.length > 0) {
+        onRunTest(runnableIdsFromRequest);
+      }
     }
   };
 
@@ -120,7 +128,7 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onBuild
               filterText={filterText}
               statusFilter={statusFilter}
               onRunTest={handleRunTest}
-              onBuildTestSuiteTree={onBuildTestSuiteTree}
+              onRunTestSuite={onRunTestSuite}
               onToggleTreeGroup={onToggleTreeGroup}
               onUpdateSelection={onUpdateSelection}
             />

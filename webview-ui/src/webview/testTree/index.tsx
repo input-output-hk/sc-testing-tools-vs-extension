@@ -41,7 +41,7 @@ const updatePackages = (packages: TestPackageList, path: Array<string>, isOpen: 
   return packages;
 };
 
-const updateSuite = (packages: TestPackageList, packageName: string, suiteName: string, status: TestSuiteStatus): TestPackageList => {
+const updateSuite = (packages: TestPackageList, packageName: string, suiteName: string, status: TestStatus): TestPackageList => {
   const packageNode = packages[packageName];
   if (!packageNode) return packages;
 
@@ -69,38 +69,17 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           setActiveView('tree');
         }
       }
-      if (message.type === 'test-suite-tree') {
-        setTests(tests => {
-          const newTests = tests ? { ...tests } : {};
-          for (const test of message.payload.tests) {
-            newTests[test.id] = test;
-          }
-          return newTests;
-        });
-        setPackages(packages => {
-          const newPackages = packages ? { ...packages } : {};
-          if (newPackages[message.payload.packageName]) {
-            newPackages[message.payload.packageName] = {
-              ...newPackages[message.payload.packageName],
-              suites: {
-                ...newPackages[message.payload.packageName].suites,
-                [message.payload.suiteName]: {
-                  ...newPackages[message.payload.packageName].suites[message.payload.suiteName],
-                  status: 'ready',
-                  tree: message.payload.tree,
-                },
-              },
-            };
-          }
-          return newPackages;
-        });
-      }
       if (message.type === 'test-suite-update') {
         setPackages(
-          packages => updateSuite({ ...packages! },
-            message.payload.packageName,
-            message.payload.suiteName,
-            message.payload.status)
+          packages => {
+            if (!packages) return packages;
+            return updateSuite(
+              { ...packages },
+              message.payload.packageName,
+              message.payload.suiteName,
+              message.payload.status,
+            );
+          }
         );
       }
       if (message.type === 'test-update') {
@@ -117,8 +96,8 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const onBuildTestSuiteTree = (packageName: string, suiteName: string) => {
-    vscode.postMessage({ type: 'build-test-suite-tree', payload: { packageName, suiteName } } as WebviewToExtensionMessage);
+  const onRunTestSuite = (packageName: string, suiteName: string) => {
+    vscode.postMessage({ type: 'run-test-suite', payload: { packageName, suiteName } } as WebviewToExtensionMessage);
   };
 
   const onToggleTreeGroup = (path: Array<string>, isOpen: boolean) => {
@@ -139,7 +118,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           tests={tests!}
           packages={packages!}
           onRunTest={onRunTest}
-          onBuildTestSuiteTree={onBuildTestSuiteTree}
+          onRunTestSuite={onRunTestSuite}
           onToggleTreeGroup={onToggleTreeGroup}
         />
       )}

@@ -21,6 +21,7 @@ export default class TestTreeView {
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
+    this.context.store.testStore.onTestPackagesUpdate(this.sendTestPackagesToWebview.bind(this));
     this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     this.context.store.testStore.onRunTestsError(this.handleRunTestsError.bind(this));
 
@@ -30,8 +31,8 @@ export default class TestTreeView {
           case 'webview-ready':
             this.fetchTestPackages();
             break;
-          case 'build-test-suite-tree':
-            this.buildTestSuiteTree(message.payload.packageName, message.payload.suiteName);
+          case 'run-test-suite':
+            this.runTestSuite(message.payload.packageName, message.payload.suiteName);
             break;
           case 'update-test-packages-list':
             this.updateTestPackagesList(message.payload.packages);
@@ -63,23 +64,19 @@ export default class TestTreeView {
     }
   }
 
-  private buildTestSuiteTree(packageName: string, suiteName: string): void {
+  private runTestSuite(packageName: string, suiteName: string): void {
     this.clearError();
-    this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'building');
+    this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'running');
 
-    this.context.store.testStore.buildSuiteTestTree(packageName, suiteName)
-      .then((data: TestSuiteData | null) => {
-        if (this.webview !== null && data !== null) {
-          this.webview.postMessage({ type: 'test-suite-tree', payload: data } as ExtensionToWebviewMessage);
-        }
-      })
-      .catch((error: Error) => {
-        this.showError(`Test tree build failed for ${packageName}/${suiteName}`);
-        this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'failed');
-      });
+    try {
+      this.context.store.testStore.runSuiteTests(packageName, suiteName);
+    } catch (error) {
+      this.showError(`Test execution failed for ${packageName}/${suiteName}`);
+      this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'invalid');
+    }
   }
 
-  private sendTestSuiteUpdateToWebview(packageName: string, suiteName: string, status: TestSuiteStatus): void {
+  private sendTestSuiteUpdateToWebview(packageName: string, suiteName: string, status: TestStatus): void {
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-suite-update', payload: { packageName, suiteName, status } } as ExtensionToWebviewMessage);
     }
@@ -101,11 +98,15 @@ export default class TestTreeView {
     const groupedTests: Record<string, Array<number>> = {};
     for (const testId of testIds) {
       const [packageName, suiteName, id] = testId.split(':');
+      const numericId = Number(id);
+      if (!Number.isInteger(numericId)) {
+        continue;
+      }
       const groupName = `${packageName}:${suiteName}`;
       if (!groupedTests[groupName]) {
         groupedTests[groupName] = [];
       }
-      groupedTests[groupName].push(Number(id));
+      groupedTests[groupName].push(numericId);
     }
     try {
       for (const groupName in groupedTests) {

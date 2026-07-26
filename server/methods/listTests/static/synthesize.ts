@@ -1,0 +1,253 @@
+import * as A from './ast';
+import type { ParsedModule } from './parser';
+
+export type ExtractedNode = {
+  kind: 'group' | 'test' | 'placeholder';
+  label: string | null;
+  source: 'parsed' | 'synthesized' | 'dynamic';
+  testingInterface?: boolean;
+  role?: 'positive' | 'negative' | 'threat-models-group' | 'expected-vulnerabilities-group' | 'threat-model';
+  pendingExpansion?: boolean;
+  note?: string;
+  model?: string | null;
+  file?: string;
+  line?: number;
+  children?: Array<ExtractedNode>;
+};
+
+export const PROP_RUN_FNS = new Set(['propRunActions', 'propRunActionsWithOptions']);
+
+const ALL_THREAT_MODELS = [
+  'datumListBloatAttack',
+  'datumByteBloatAttack',
+  'doubleSatisfaction',
+  'duplicateListEntryAttack',
+  'inputDuplication',
+  'invalidDatumIndexAttack',
+  'largeDataAttack',
+  'largeValueAttack',
+  'missingOutputDatumAttack',
+  'mutualExclusionAttack',
+  'negativeIntegerAttack',
+  'outputDatumHashMissingAttack',
+  'redeemerAssetSubstitution',
+  'selfReferenceInjection',
+  'signatoryRemoval',
+  'timeBoundManipulation',
+  'tokenForgeryAttack simpleAlwaysSucceedsMintingPolicyV2 simpleTestAssetName',
+  'unprotectedScriptOutput',
+  'valueUnderpaymentAttack',
+];
+
+function findInstanceBind(instanceNode: A.NodeLike, bindingName: string): A.NodeLike | null {
+  const declarations = instanceNode.childForFieldName('declarations');
+  if (declarations === null) {
+    return null;
+  }
+
+  for (const declaration of declarations.namedChildren) {
+    if (declaration.type !== 'bind' && declaration.type !== 'function') {
+      continue;
+    }
+
+    const nameNode = declaration.childForFieldName('name');
+    if (nameNode !== null && nameNode.text === bindingName) {
+      return declaration;
+    }
+  }
+
+  return null;
+}
+
+function readInstanceListBind(instanceNode: A.NodeLike, bindingName: string): Array<string> {
+  const target = findInstanceBind(instanceNode, bindingName);
+  if (target === null) {
+    return [];
+  }
+
+  const expression = A.bindExpression(target);
+  if (expression === null || expression.type !== 'list') {
+    return [];
+  }
+
+  return A.listElements(expression).map(A.elementLabel);
+}
+
+function classifyThreatModelsBind(instanceNode: A.NodeLike): { kind: 'explicit'; list: Array<string> } | { kind: 'default' } {
+  const target = findInstanceBind(instanceNode, 'threatModels');
+  if (target === null) {
+    return { kind: 'default' };
+  }
+
+  const expression = A.bindExpression(target);
+  if (expression !== null && expression.type === 'list') {
+    return { kind: 'explicit', list: A.listElements(expression).map(A.elementLabel) };
+  }
+
+  const reference = expression !== null ? A.refTarget(expression) : null;
+  if (reference !== null && reference.name === 'allThreatModels') {
+    return { kind: 'default' };
+  }
+
+  return { kind: 'default' };
+}
+
+function findThreatModelsForInstance(
+  model: string | null,
+  contextModule: ParsedModule,
+  resolveModuleFile: (moduleName: string) => { file: string; module: ParsedModule } | null
+): { instance: A.NodeLike; module: ParsedModule } | null {
+  const matches = (instance: { name: string | null; patterns: string | null }): boolean =>
+    instance.name === 'ThreatModelsFor' && (model === null || instance.patterns === model);
+
+  const localMatch = contextModule.instances.find(matches);
+  if (localMatch !== undefined) {
+    return { instance: localMatch.node, module: contextModule };
+  }
+
+  if (model === null) {
+    return null;
+  }
+
+  for (const moduleName of contextModule.imports.modules) {
+    const resolved = resolveModuleFile(moduleName);
+    if (resolved === null) {
+      continue;
+    }
+
+    const match = resolved.module.instances.find(matches);
+    if (match !== undefined) {
+      return { instance: match.node, module: resolved.module };
+    }
+  }
+
+  return null;
+}
+
+function threatModelLeaf(label: string, note: string): ExtractedNode {
+  return {
+    kind: 'test',
+    label,
+    source: 'synthesized',
+    testingInterface: true,
+    role: 'threat-model',
+    pendingExpansion: false,
+    note,
+  };
+}
+
+export function synthesizePropRunActions(
+  applyNode: A.NodeLike,
+  args: Array<A.NodeLike>,
+  contextModule: ParsedModule,
+  options: {
+    rel: (filePath: string) => string;
+    resolveModuleFile: (moduleName: string) => { file: string; module: ParsedModule } | null;
+  },
+  functionName: string
+): ExtractedNode {
+  let model: string | null = null;
+  let label: string | null = null;
+
+  for (const arg of args) {
+    const modelName = A.typeAppName(arg);
+    if (modelName !== null && model === null) {
+      model = modelName;
+    }
+
+    const literal = A.stringLiteralText(arg);
+    if (literal !== null && label === null) {
+      label = literal;
+    }
+  }
+
+  const topLabel = label ?? 'property-based testing';
+
+  const node: ExtractedNode = {
+    kind: 'group',
+    label: topLabel,
+    source: 'synthesized',
+    testingInterface: true,
+    pendingExpansion: false,
+    note: `runtime-generated by ${functionName} (TestingInterface); shape/order known statically`,
+    model,
+    file: options.rel(contextModule.file),
+    line: A.lineOf(applyNode),
+    children: [],
+  };
+
+  node.children!.push({
+    kind: 'test',
+    label: 'Positive tests',
+    source: 'synthesized',
+    testingInterface: true,
+    role: 'positive',
+    pendingExpansion: false,
+    note: 'positive property run (testProperty)',
+  });
+
+  node.children!.push({
+    kind: 'test',
+    label: 'Negative tests',
+    source: 'synthesized',
+    testingInterface: true,
+    role: 'negative',
+    pendingExpansion: false,
+    note: 'negative property run (testProperty)',
+  });
+
+  const found = findThreatModelsForInstance(model, contextModule, options.resolveModuleFile);
+  const expectedVulnerabilities = found !== null
+    ? readInstanceListBind(found.instance, 'expectedVulnerabilities')
+    : [];
+
+  let threatModels: Array<string> = [];
+  let threatModelsFromDefault = false;
+  if (found !== null) {
+    const classification = classifyThreatModelsBind(found.instance);
+    if (classification.kind === 'explicit') {
+      threatModels = classification.list;
+    } else {
+      threatModelsFromDefault = true;
+      const removed = new Set(expectedVulnerabilities);
+      threatModels = ALL_THREAT_MODELS.filter((item) => !removed.has(item));
+    }
+  }
+
+  if (threatModels.length > 0) {
+    const threatModelGroup: ExtractedNode = {
+      kind: 'group',
+      label: 'Threat models',
+      source: 'synthesized',
+      testingInterface: true,
+      role: 'threat-models-group',
+      pendingExpansion: false,
+      children: threatModels.map((threatModelLabel, index) => {
+        const note = threatModelsFromDefault
+          ? `from default allThreatModels set; real rendered name comes from getThreatModelName (fallback \"Threat model ${index + 1}\")`
+          : `best-guess label from source; real rendered name comes from getThreatModelName (fallback \"Threat model ${index + 1}\")`;
+        return threatModelLeaf(threatModelLabel, note);
+      }),
+    };
+    node.children!.push(threatModelGroup);
+  }
+
+  if (expectedVulnerabilities.length > 0) {
+    node.children!.push({
+      kind: 'group',
+      label: 'Expected vulnerabilities',
+      source: 'synthesized',
+      testingInterface: true,
+      role: 'expected-vulnerabilities-group',
+      pendingExpansion: false,
+      children: expectedVulnerabilities.map((vulnerabilityLabel, index) =>
+        threatModelLeaf(
+          vulnerabilityLabel,
+          `best-guess label from source; real rendered name comes from getThreatModelName (fallback \"Expected vulnerability ${index + 1}\")`
+        )
+      ),
+    });
+  }
+
+  return node;
+}

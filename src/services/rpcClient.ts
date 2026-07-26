@@ -50,22 +50,10 @@ export default class RpcClient {
     });
   }
 
-  public async listSuites(): Promise<TestPackageList> {
-    const request = new rpc.RequestType<ListSuitesParams, TestPackageList, void>('listSuites');
+  public async listTests(): Promise<TestPackageData> {
+    const request = new rpc.RequestType<ListTestsParams, ListTestsResult, void>('listTests');
     const workspacePaths = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
     return await this.connection.sendRequest(request, { workspacePaths });
-  }
-
-  public async listTests(params: ListTestsParams): Promise<Array<Test>> {
-    const request = new rpc.RequestType<ListTestsParams, Array<Test>, ScriptExecutionErrorData>('listTests');
-
-    try {
-      return await this.connection.sendRequest(request, params);
-    } catch (exception) {
-      const error = this.buildListTestsError(exception);
-      this.context?.outputChannel.append(`> ERROR\n${error.message}\n${error.stack}`);
-      throw error;
-    }
   }
 
   public runTests(params: RunTestsParams): void {
@@ -73,35 +61,12 @@ export default class RpcClient {
     this.connection.sendNotification(notification, params);
   }
 
-  private buildListTestsError(error: unknown): Error {
-    if (error instanceof rpc.ResponseError) {
-      const responseError = error as rpc.ResponseError<ScriptExecutionErrorData>;
-      const data = responseError.data;
-
-      if (data?.kind === 'script-execution-error') {
-        const exitCode = data.exitCode === null ? 'unknown' : String(data.exitCode);
-        const output = data.stderr.trim() || data.stdout.trim();
-        const message = output.length > 0
-          ? `listTests failed (${data.scriptPath}, exit code ${exitCode}): ${output}`
-          : `listTests failed (${data.scriptPath}, exit code ${exitCode})`;
-        return new Error(message, { cause: error });
-      }
-
-      return new Error(responseError.message, { cause: error });
-    }
-
-    if (error instanceof Error) {
-      return error;
-    }
-
-    return new Error(String(error));
-  }
-
   private buildRunTestsErrorLog(error: RunTestsErrorData): string {
     const { packageName, suiteName, testIds } = error.runContext;
     const exitCode = error.exitCode === null ? 'unknown' : String(error.exitCode);
     const commandOutput = error.stderr.trim() || error.stdout.trim();
     const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
-    return `runTests failed for ${packageName}/${suiteName} [${testIds.join(',')}] (exit code ${exitCode})${details}`;
+    const testIdLabel = testIds.length > 0 ? `[${testIds.join(',')}]` : '[all tests]';
+    return `runTests failed for ${packageName}/${suiteName} ${testIdLabel} (exit code ${exitCode})${details}`;
   }
 }

@@ -2,7 +2,8 @@
 export const nodeMatchesFilter = (node: TestTreeNode, filter: string, tests: TestList): boolean => {
   const lowerFilter = filter.toLowerCase();
   if (node.type === 'test') {
-    return tests[(node as TestTreeTestNode).testId].name.toLowerCase().includes(lowerFilter);
+    const test = tests[(node as TestTreeTestNode).testId];
+    return test !== undefined && test.name.toLowerCase().includes(lowerFilter);
   }
   const group = node as TestTreeGroupNode;
   return (
@@ -14,7 +15,9 @@ export const nodeMatchesFilter = (node: TestTreeNode, filter: string, tests: Tes
 /** Returns true if the node or any of its descendants match the status filter. */
 export const nodeMatchesStatus = (node: TestTreeNode, statusFilter: TestStatus | null, tests: TestList): boolean => {
   if (node.type === 'test') {
-    const status = tests[(node as TestTreeTestNode).testId].status;
+    const test = tests[(node as TestTreeTestNode).testId];
+    if (test === undefined) return false;
+    const status = test.status;
     return statusFilter === null || status === statusFilter;
   }
   const group = node as TestTreeGroupNode;
@@ -34,27 +37,39 @@ export const getGroupTestIds = (group: TestTreeGroupNode): Array<string> => {
   return testIds;
 };
 
+/** Collects only runnable test IDs nested within a group, recursively. */
+export const getGroupRunnableTestIds = (group: TestTreeGroupNode, tests: TestList): Array<string> => {
+  const runnableIds: Array<string> = [];
+  for (const node of Object.values(group.nodes)) {
+    if (node.type === 'test') {
+      const testId = (node as TestTreeTestNode).testId;
+      const test = tests[testId];
+      if (test?.isRunnable) {
+        runnableIds.push(testId);
+      }
+    } else if (node.type === 'group') {
+      runnableIds.push(...getGroupRunnableTestIds(node as TestTreeGroupNode, tests));
+    }
+  }
+  return runnableIds;
+};
+
 /**
  * Returns true if the suite name or any of its descendants match the filter string.
- * A suite that hasn't been built yet has no tree to search, so it matches on name alone.
  */
 export const suiteMatchesFilter = (suite: TestSuite, filter: string, tests: TestList): boolean => {
   const lowerFilter = filter.toLowerCase();
   if (suite.name.toLowerCase().includes(lowerFilter)) {
     return true;
   }
-  if (suite.status !== 'ready') {
-    return false;
-  }
   return Object.values(suite.tree).some((node) => nodeMatchesFilter(node, filter, tests));
 };
 
 /**
- * Returns true if the suite matches the status filter. A suite that hasn't been
- * built yet has no test statuses, so the status filter never hides it.
+ * Returns true if the suite matches the status filter.
  */
 export const suiteMatchesStatus = (suite: TestSuite, statusFilter: TestStatus | null, tests: TestList): boolean => {
-  if (statusFilter === null || suite.status !== 'ready') {
+  if (statusFilter === null) {
     return true;
   }
   return Object.values(suite.tree).some((node) => nodeMatchesStatus(node, statusFilter, tests));

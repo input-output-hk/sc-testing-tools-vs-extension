@@ -17,10 +17,6 @@ export class ScriptExecutionError extends Error {
   }
 }
 
-function getListScriptPath(mode: string): string {
-  return path.join(getScriptBasePath(), `${mode}-list-tests-json.sh`);
-}
-
 function getRunScriptPath(mode: string): string {
   return path.join(getScriptBasePath(), `${mode}-run-tests-json.sh`);
 }
@@ -29,12 +25,12 @@ function getScriptBasePath(): string {
   return path.join(__dirname, '..', '..', '..', 'scripts');
 }
 
-function getListScriptParams(workspacePath: string, packageName: string, suiteName: string): Array<string> {
-  return [workspacePath, packageName, suiteName];
-}
-
 function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): Array<string> {
-  return [workspacePath, packageName, suiteName, testIds.join(',')];
+  const params = [workspacePath, packageName, suiteName];
+  if (testIds.length > 0) {
+    params.push(testIds.join(','));
+  }
+  return params;
 }
 
 function locateBash(): string {
@@ -118,12 +114,18 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
     };
     throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
   }
-}
 
-export async function* runListScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptResult> {
-  const scriptPath = getListScriptPath(mode);
-  const params = getListScriptParams(workspacePath, packageName, suiteName);
-  for await (const result of runScript(scriptPath, params)) yield result;
+  if (processState.exitCode !== 0) {
+    const data: ScriptExecutionErrorData = {
+      kind: 'script-execution-error',
+      scriptPath,
+      params: scriptParams,
+      exitCode: processState.exitCode,
+      stderr,
+      stdout,
+    };
+    throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
+  }
 }
 
 export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): AsyncGenerator<ScriptResult> {

@@ -14,7 +14,7 @@ interface TreeViewSuiteProps {
   filterText: string;
   statusFilter: TestStatus | null;
   onRunTest: (testIds: Array<string>) => void;
-  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
+  onRunTestSuite: (packageName: string, suiteName: string) => void;
   onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
   onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
 }
@@ -26,7 +26,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   filterText,
   statusFilter,
   onRunTest,
-  onBuildTestSuiteTree,
+  onRunTestSuite,
   onToggleTreeGroup,
   onUpdateSelection,
 }) => {
@@ -58,7 +58,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {suite.name}
         </span>
-        {suite.status !== 'building' &&
+        {suite.status !== 'running' &&
           <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
@@ -66,13 +66,13 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
               event.preventDefault();
               event.stopPropagation();
               event.nativeEvent.stopImmediatePropagation();
-              onBuildTestSuiteTree(path[0], path[1]);
+              onRunTestSuite(path[0], path[1]);
             }}
           >
-            <i className="codicon codicon-symbol-property" />
+            <i className="codicon codicon-run-all" />
           </button>
         }
-        {suite.status === 'building' &&
+        {suite.status === 'running' &&
           <i ref={spinRef} className="codicon codicon-loading origin-[50%_40%] h-5 w-5" />
         }
       </span>
