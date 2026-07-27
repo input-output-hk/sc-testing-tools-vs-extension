@@ -136,6 +136,11 @@ export default class TestConfigurationView {
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.tooltip = message;
       this.context.statusBarItem.show();
+    } else if (hasError && code === 3) {
+      this.context.statusBarItem.text = '$(error) Nix not detected';
+      this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      this.context.statusBarItem.tooltip = message;
+      this.context.statusBarItem.show();
     } else {
       this.context.statusBarItem.hide();
     }

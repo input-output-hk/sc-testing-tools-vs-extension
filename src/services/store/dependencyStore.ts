@@ -103,8 +103,10 @@ export default class DependencyStore {
       this.dependencyError = { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 1 };
       return;
     } else if (this.context?.store.settingStore.getSettings().mode === 'docker' && !this.dockerRunning) {
-      this.dependencyError = { hasError: true, message: 'Problem connecting to Docker. Check that Docker is running properly and restart the extension or switch to a different execution mode.', code: 2 };
+      this.dependencyError = { hasError: true, message: 'Problem connecting to Docker.', code: 2 };
       return;
+    } else if (this.context?.store.settingStore.getSettings().mode === "nix" && !this.hasNix) {
+      this.dependencyError = { hasError: true, message: "Nix not detected.", code: 3};
     } else {
       this.dependencyError = { hasError: false, message: '', code: undefined };
     }

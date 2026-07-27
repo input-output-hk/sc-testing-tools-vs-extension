@@ -109,7 +109,7 @@ export default class TestTreeView {
 
     const { hasError, message } = this.context.store.dependencyStore.getDependencyError();
     if (hasError) {
-      this.showError('Problem with Docker connection');
+      this.showError(message);
       return false;
     }
     return true;
