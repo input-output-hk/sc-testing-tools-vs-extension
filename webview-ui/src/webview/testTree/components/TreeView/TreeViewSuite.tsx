@@ -3,9 +3,9 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
-import useSyncedSpin from './useSyncedSpin';
+import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from './useTreeItemState';
-import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import { nodeMatchesFilter, nodeMatchesStatus, getSuiteStatus } from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {
   tests: TestList;
@@ -30,13 +30,13 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onToggleTreeGroup,
   onUpdateSelection,
 }) => {
+  const [packageName, suiteName] = path;
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onToggleTreeGroup(path, !isCollapsed);
     },
   });
-
-  const spinRef = useSyncedSpin();
 
   const effectiveFilterText =
     !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
@@ -53,28 +53,23 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
-      <i className="codicon codicon-project" />
+      <TestStatusIcon status={getSuiteStatus(packageName, suiteName, tests)} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {suite.name}
         </span>
-        {suite.status !== 'running' &&
-          <button
-            type="button"
-            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-            onClickCapture={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              event.nativeEvent.stopImmediatePropagation();
-              onRunTestSuite(path[0], path[1]);
-            }}
-          >
-            <i className="codicon codicon-run-all" />
-          </button>
-        }
-        {suite.status === 'running' &&
-          <i ref={spinRef} className="codicon codicon-loading origin-[50%_40%] h-5 w-5" />
-        }
+        <button
+          type="button"
+          className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+          onClickCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.nativeEvent.stopImmediatePropagation();
+            onRunTestSuite(packageName, suiteName);
+          }}
+        >
+          <i className="codicon codicon-run-all" />
+        </button>
       </span>
       {filteredNodeKeys.map((key) => (
         <TreeViewNode

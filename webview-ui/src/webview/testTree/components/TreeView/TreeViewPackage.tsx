@@ -3,8 +3,9 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewSuite from './TreeViewSuite';
+import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from './useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus } from '../../utils/treeUtils';
+import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus } from '../../utils/treeUtils';
 
 interface TreeViewPackageProps {
   tests: TestList;
@@ -48,7 +49,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={pkg.isOpen}>
-      <i className="codicon codicon-package" />
+      <TestStatusIcon status={getPackageStatus(pkg.name, tests)} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {pkg.name}

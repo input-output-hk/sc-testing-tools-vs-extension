@@ -36,6 +36,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   ) : (
     <TreeViewTest
       node={node as TestTreeTestNode}
+      path={path}
       tests={tests}
       onRunTest={onRunTest}
       onUpdateSelection={onUpdateSelection}

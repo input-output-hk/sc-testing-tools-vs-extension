@@ -1,3 +1,5 @@
+import { useCallback, useRef } from 'react';
+
 const SPIN_DURATION_MS = 1000;
 
 const registry = new Set<HTMLElement>();
@@ -29,3 +31,14 @@ export const registerSpinner = (el: HTMLElement): (() => void) => {
     }
   };
 };
+
+const useSyncedSpin = (): ((el: HTMLElement | null) => void) => {
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  return useCallback((el: HTMLElement | null) => {
+    cleanupRef.current?.();
+    cleanupRef.current = el ? registerSpinner(el) : null;
+  }, []);
+};
+
+export default useSyncedSpin;

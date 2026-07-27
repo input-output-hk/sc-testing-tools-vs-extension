@@ -4,7 +4,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import useTreeItemState from './useTreeItemState';
-import { getGroupRunnableTestIds, getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import { getGroupRunnableTestIds, getGroupTestIds, nodeMatchesFilter, nodeMatchesStatus, getGroupStatus } from '../../utils/treeUtils';
+import TestStatusIcon from '../../../../components/TestStatusIcon';
 
 interface TreeViewGroupProps {
   node: TestTreeGroupNode;
@@ -27,6 +28,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onToggleTreeGroup,
   onUpdateSelection,
 }) => {
+  const isThreatModel = node.name.toLowerCase() === 'threat models';
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onToggleTreeGroup(path, !isCollapsed);
@@ -68,11 +71,15 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
-      <i className="codicon codicon-folder translate-y-1" slot="icon-branch" />
-      <i className="codicon codicon-folder-opened translate-y-1" slot="icon-branch-opened" />
+      <TestStatusIcon status={getGroupStatus(node, tests)} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
+          {isThreatModel &&
+            <span className="ml-1 opacity-60">
+              ({Object.keys(node.nodes).length})
+            </span>
+          }
         </span>
         <button
           type="button"
