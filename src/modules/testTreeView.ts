@@ -99,7 +99,28 @@ export default class TestTreeView {
     }
   }
 
-  private buildTestSuiteTree(packageName: string, suiteName: string): void {
+  // Pre-flight check run right before a docker-mode action hits the RPC server: Docker
+  // can stop running any time after the extension's initial checks, so re-verify it's
+  // still reachable now rather than letting the RPC call fail.
+  private async ensureDependenciesReady(): Promise<boolean> {
+    if (this.context.store.settingStore.getSettings().mode === 'docker') {
+      await this.context.store.dependencyStore.checkDockerRunning();
+    }
+
+    const { hasError, message } = this.context.store.dependencyStore.getDependencyError();
+    if (hasError) {
+      this.showError('Problem with Docker connection');
+      return false;
+    }
+    return true;
+  }
+
+  private async buildTestSuiteTree(packageName: string, suiteName: string): Promise<void> {
+    if (!await this.ensureDependenciesReady()) {
+      this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'failed');
+      return;
+    }
+
     this.clearError();
     this.sendTestSuiteUpdateToWebview(packageName, suiteName, 'building');
 
@@ -131,7 +152,9 @@ export default class TestTreeView {
     }
   }
 
-  private runTests(testIds: string[]): void {
+  private async runTests(testIds: string[]): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+
     this.clearError();
 
     const groupedTests: Record<string, Array<number>> = {};

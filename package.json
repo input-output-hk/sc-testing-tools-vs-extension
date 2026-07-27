@@ -28,8 +28,22 @@
       {
         "command": "pbt-extension.buildTestTree",
         "title": "PBT: Build Test Tree"
+      },
+      {
+        "command": "pbt-extension.refreshTestConfiguration",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "pbt-extension.refreshTestConfiguration",
+          "when": "view == pbt-test-run-configuration",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "PBT Configuration",
       "type": "object",

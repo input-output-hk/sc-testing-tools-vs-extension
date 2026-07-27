@@ -21,6 +21,20 @@ export default class TestConfigurationView {
     context.extension.subscriptions.push(TestConfigurationPanel);
     // listen for dependency errors and update the status bar and error notification accordingly
     this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
+
+    // title-bar refresh button (view/title menu) so a user can re-check dependencies
+    // without reloading the whole extension after fixing a Docker/Nix problem
+    const refreshCommand = vscode.commands.registerCommand('pbt-extension.refreshTestConfiguration', () => this.refresh());
+    context.extension.subscriptions.push(refreshCommand);
+  }
+
+  // fully re-checks dependency install/running state (same as the error notification's
+  // "Retry" action) and pushes the result to the status bar and webview
+  private refresh(): void {
+    this.context.store.dependencyStore.initialize(this.context).then(() => {
+      this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
+      this.sendDependencyStatus();
+    });
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -105,10 +119,7 @@ export default class TestConfigurationView {
       ).then((selection) => {
         switch (selection) {
           case 'Retry':
-            this.context.store.dependencyStore.initialize(this.context).then(() => {
-              this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
-              this.sendDependencyStatus();
-            });
+            this.refresh();
             break;
           case 'Install Nix':
             vscode.env.openExternal(vscode.Uri.parse('https://nixos.org/download/'));

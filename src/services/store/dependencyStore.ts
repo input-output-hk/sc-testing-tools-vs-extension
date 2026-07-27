@@ -74,6 +74,15 @@ export default class DependencyStore {
     this.setDependencyError();
   }
 
+  // re-check whether Docker is still reachable right now (e.g. right before listing/running
+  // tests in docker mode), since it can stop running any time after the initial checks
+  public async checkDockerRunning(): Promise<boolean> {
+    const dockerRunning = this.hasDocker ? await isDockerRunning() : false;
+    this.setDockerRunning(dockerRunning);
+    this.setDependencyError();
+    return dockerRunning;
+  }
+
   private setHasNix(hasNix: boolean): void {
     if (hasNix === this.hasNix) return;
     this.hasNix = hasNix;
