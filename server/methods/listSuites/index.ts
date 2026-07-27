@@ -40,7 +40,8 @@ export default class TestListMethod {
         if (!packageList[discoveredPackage.name]) {
           packageList[discoveredPackage.name] = {
             name: discoveredPackage.name,
-            path: workspacePath,
+            workspacePath: workspacePath,
+            packagePath: discoveredPackage.packagePath,
             isOpen: true,
             suites: {},
           };

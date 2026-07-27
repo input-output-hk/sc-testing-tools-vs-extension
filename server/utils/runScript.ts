@@ -118,19 +118,6 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
     };
     throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
   }
-
-  if (processState.exitCode !== 0) {
-    console.error('Process stderr:\n', stderr);
-    const data: ScriptExecutionErrorData = {
-      kind: 'script-execution-error',
-      scriptPath,
-      params: scriptParams,
-      exitCode: processState.exitCode,
-      stderr,
-      stdout,
-    };
-    throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
-  }
 }
 
 export async function* runListScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptResult> {

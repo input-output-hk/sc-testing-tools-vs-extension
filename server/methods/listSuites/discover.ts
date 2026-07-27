@@ -15,6 +15,7 @@ export interface DiscoveredSuite {
 
 export interface DiscoveredPackage {
   name: string;
+  packagePath: string;
   suites: Array<DiscoveredSuite>;
 }
 
@@ -103,6 +104,7 @@ function parseCabalFile(content: string, cabalFilePath: string): DiscoveredPacka
   const suiteNames = parseSuiteNames(lines);
   return {
     name: packageName,
+    packagePath: path.dirname(cabalFilePath),
     suites: suiteNames.map((suiteName) => ({ name: suiteName })),
   };
 }
