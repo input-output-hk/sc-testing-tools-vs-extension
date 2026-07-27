@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import LoadingView from './components/LoadingView';
 import TreeView from './components/TreeView';
 
 import type { WebviewApi } from 'vscode-webview';
@@ -53,9 +52,8 @@ const updateSuite = (packages: TestPackageList, packageName: string, suiteName: 
 };
 
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
-  const [activeView, setActiveView] = useState<'building'|'tree'>('building');
-  const [tests, setTests] = useState<TestList|null>(null);
-  const [packages, setPackages] = useState<TestPackageList|null>(null);
+  const [tests, setTests] = useState<TestList>({});
+  const [packages, setPackages] = useState<TestPackageList>({});
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -66,7 +64,6 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         if (message.payload !== null) {
           setTests(message.payload.tests);
           setPackages(message.payload.packages);
-          setActiveView('tree');
         }
       }
       if (message.type === 'test-suite-update') {
@@ -111,18 +108,13 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
   };
 
   return (
-    <>
-      {activeView === 'building' && <LoadingView />}
-      {activeView === 'tree' && (
-        <TreeView
-          tests={tests!}
-          packages={packages!}
-          onRunTest={onRunTest}
-          onRunTestSuite={onRunTestSuite}
-          onToggleTreeGroup={onToggleTreeGroup}
-        />
-      )}
-    </>
+    <TreeView
+      tests={tests!}
+      packages={packages!}
+      onRunTest={onRunTest}
+      onRunTestSuite={onRunTestSuite}
+      onToggleTreeGroup={onToggleTreeGroup}
+    />
   )
 };
 
