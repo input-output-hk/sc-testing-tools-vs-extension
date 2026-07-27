@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -18,16 +16,22 @@ async function commandExists(command: string): Promise<boolean> {
 }
 
 // if docker is installed, check if it is running
-async function isDockerRunning(): Promise<boolean> {
-  try {
-    await execAsync('docker info');
-    return true;
-  } catch {
-    return false;
-  }
-}
+// resolves false on timeout so a hung `docker info` call can't block extension load
+async function isDockerRunning(timeoutMs = 5000): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
 
-//TODO: validate if we can us a fn call to detect if Nix is running properly
+    execAsync('docker info')
+      .then(() => {
+        clearTimeout(timer);
+        resolve(true);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(false);
+      });
+  });
+}
 
 export default class DependencyStore {
   private context: PbtContext | null = null;
@@ -35,7 +39,7 @@ export default class DependencyStore {
   private hasNix: boolean = false;
   private hasDocker: boolean = false;
   private dockerRunning: boolean = false;
-  private dependencyError: DependencyError = { hasError: false, message: '', code: undefined };
+  private dependencyError: ErrorObj = { hasError: false, message: '', code: undefined };
 
 
   public async initialize(context: PbtContext): Promise<void> {
@@ -60,7 +64,7 @@ export default class DependencyStore {
     return this.dockerRunning;
   }
 
-  public getDependencyError(): DependencyError {
+  public getDependencyError(): ErrorObj {
     return this.dependencyError;
   }
 
@@ -86,7 +90,6 @@ export default class DependencyStore {
   }
 
   private setDependencyError(): void {
-    console.log(`DependencyStore: hasNix=${this.hasNix}, hasDocker=${this.hasDocker}, dockerRunning=${this.dockerRunning}`);
     if (!this.hasNix && !this.hasDocker) {
       this.dependencyError = { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 1 };
       return;

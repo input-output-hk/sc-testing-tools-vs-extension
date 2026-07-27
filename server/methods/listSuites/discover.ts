@@ -18,8 +18,13 @@ export interface DiscoveredPackage {
   suites: Array<DiscoveredSuite>;
 }
 
+// Finds every .cabal file under workspacePath (skipping build/vcs/dependency
+// directories) and parses each into a package name + list of test-suite names.
+// This is the last step in the chain: fetchTestPackages -> buildTestPackages ->
+// rpcClient.listSuites -> server listSuites handler -> discoverPackages, and its
+// output is what gets assembled into the TestPackageList shown in the tree view.
 export async function discoverPackages(workspacePath: string): Promise<Array<DiscoveredPackage>> {
-  
+
   await ensureWorkspaceDirectory(workspacePath);
 
   const cabalFiles = await collectCabalFiles(workspacePath);
@@ -39,6 +44,7 @@ export async function discoverPackages(workspacePath: string): Promise<Array<Dis
 }
 
 async function ensureWorkspaceDirectory(workspacePath: string): Promise<void> {
+
   let stat;
   try {
     stat = await fs.stat(workspacePath);

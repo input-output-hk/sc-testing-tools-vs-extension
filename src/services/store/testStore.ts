@@ -73,6 +73,10 @@ export default class TestStore {
     return newNode;
   }
 
+  // Asks the RPC server (via rpcClient.listSuites) to discover every test package/suite
+  // across the open workspace folders, caches the result on this.packages so subsequent
+  // getTestPackages() calls are served from memory, and hands back the combined
+  // packages + tests snapshot for the caller to forward to the webview.
   public async buildTestPackages(): Promise<TestPackageData> {
     this.packages = await this.rpcClient.listSuites();
     return {
@@ -108,7 +112,9 @@ export default class TestStore {
     }
   }
 
+  // return model of test tree if it already exists in the store state, otherwise return null
   public getTestPackages(): TestPackageData | null {
+    console.log('function called when there is a folder.');
     if (this.packages === null) {
       return null;
     }

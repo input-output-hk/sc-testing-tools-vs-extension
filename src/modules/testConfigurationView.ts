@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { GenericWebviewViewProvider } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
-import { error } from 'console';
 
 export default class TestConfigurationView {
   private context: PbtContext;
@@ -87,12 +86,12 @@ export default class TestConfigurationView {
 
   // send the current dependency status to the webview
   private sendDependencyStatus(): void {
-    const { hasError, message, code } = this.context.store.dependencyStore.getDependencyError();
+    const error = this.context.store.dependencyStore.getDependencyError();
 
-    this.webview?.postMessage({ type: 'dependency-status', payload: { error: { hasError, message, code } } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'dependency-status', payload: { error } } as ExtensionToWebviewMessage);
   }
 
-  private onDependencyError({ hasError, message, code }: DependencyError): void {
+  private onDependencyError({ hasError, message, code }: ErrorObj): void {
     // Update the status bar and show error notification if no dependencies are installed
     if (hasError && code === 1) {
       this.context.statusBarItem.text = '$(error) No dependencies detected.';

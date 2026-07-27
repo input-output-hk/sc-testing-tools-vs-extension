@@ -1,3 +1,10 @@
+// Errors
+type ErrorObj = {
+  hasError: boolean;
+  message: string;
+  code: number | undefined;
+}
+
 // Test
 
 type Test = {
@@ -78,19 +85,21 @@ type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 // Webview message
 
 type ExtensionToWebviewMessage =
-  | { type: "folders-detected", payload: { hasFolders: boolean } }
+  | { type: "no-folders-detected", payload: { noFolders: boolean } }
   | { type: "test-package-list", payload: TestPackageData | null }
+  | { type: "test-package-list-error"}
   | { type: "test-suite-tree", payload: TestSuiteData }
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { error: DependencyError } }
+  | { type: "dependency-status", payload: { error: ErrorObj } }
   | { type: "test-rounds-config", payload: { rounds: number } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "open-folder" }
   | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
+  | { type: "refresh-test-packages" }
   | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
   | { type: "run-tests", payload: { testIds: Array<string> } }
   | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
@@ -143,11 +152,4 @@ type ScriptExecutionErrorData = {
 
 type RunTestsErrorData = ScriptExecutionErrorData & {
   runContext: RunTestsContext;
-}
-
-// Errors
-type DependencyError = {
-  hasError: boolean;
-  message: string;
-  code: number | undefined;
 }

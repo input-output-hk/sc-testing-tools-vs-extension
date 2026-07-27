@@ -28,14 +28,13 @@ export default class TestTreeView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-            if (vscode.workspace.workspaceFolders?.length) {
-              this.fetchTestPackages();
-            } else {
-              this.detectWorkspaceFolders();
-            }
+            this.checkWorkspaceAndFetchTestPackages();
             break;
           case 'open-folder':
             vscode.commands.executeCommand('vscode.openFolder');
+            break;
+          case 'refresh-test-packages':
+            this.checkWorkspaceAndFetchTestPackages();
             break;
           case 'build-test-suite-tree':
             this.buildTestSuiteTree(message.payload.packageName, message.payload.suiteName);
@@ -53,24 +52,50 @@ export default class TestTreeView {
     );
   }
 
-  private detectWorkspaceFolders(): void {
-    this.webview?.postMessage({ type: 'folders-detected', payload: { hasFolders: Boolean(vscode.workspace.workspaceFolders?.length) } } as ExtensionToWebviewMessage);
+  // Shared guard used both on initial load and on a manual refresh (e.g. from
+  // ErrorView's retry button): only attempt to fetch test packages if a workspace
+  // folder is actually open.
+  private checkWorkspaceAndFetchTestPackages(): void {
+    if (vscode.workspace.workspaceFolders?.length) {
+      this.fetchTestPackages();
+    } else {
+      this.noFoldersDetected();
+    }
   }
 
+  private noFoldersDetected(): void {
+    this.webview?.postMessage({ type: 'no-folders-detected', payload: { noFolders: true } } as ExtensionToWebviewMessage);
+  }
+
+  // Entry point for populating the tree: called once the webview signals it's ready
+  // and a workspace folder is open. Serves cached package data from the store if it's
+  // already been built (e.g. webview reloaded), otherwise triggers a fresh build via
+  // the RPC server and forwards the result once it resolves.
   private fetchTestPackages(): void {
     const data = this.context.store.testStore.getTestPackages();
     if (data !== null) {
       this.sendTestPackagesToWebview(data);
     } else {
-      this.context.store.testStore.buildTestPackages().then((data: TestPackageData) => {
-        this.sendTestPackagesToWebview(data);
-      });
+      this.context.store.testStore.buildTestPackages()
+        .then((data: TestPackageData) => {
+          this.sendTestPackagesToWebview(data);
+        })
+        .catch((error: unknown) => {
+          this.showError('Unable to build test tree');
+          this.sendTestPackagesErrorToWebview();
+        });
     }
   }
 
   private sendTestPackagesToWebview(data: TestPackageData | null): void {
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-package-list', payload: data } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private sendTestPackagesErrorToWebview(): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-package-list-error' } as ExtensionToWebviewMessage);
     }
   }
 

@@ -14,12 +14,23 @@ export default class SettingStore {
   };
 
   private modeChangeCallbacks: ((mode: ExtensionMode) => void)[] = [];
+  // Set right before we write our own mode change to config, so the resulting
+  // onDidChangeConfiguration event (our own echo) doesn't get mistaken for an
+  // external change and bounce the in-memory mode back to whatever the config
+  // happens to resolve to (e.g. a workspace-level override taking precedence
+  // over our Global write).
+  private suppressNextConfigChange = false;
 
   public initialize(context: PbtContext): void {
     this.settings.mode = this.readModeFromConfig();
 
     const disposable = vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration('pbt-extension.executionMode')) return;
+
+      if (this.suppressNextConfigChange) {
+        this.suppressNextConfigChange = false;
+        return;
+      }
 
       const mode = this.readModeFromConfig();
       if (mode === this.settings.mode) return;
@@ -46,6 +57,7 @@ export default class SettingStore {
 
   public setMode(mode: ExtensionMode): void {
     this.settings.mode = mode;
+    this.suppressNextConfigChange = true;
     vscode.workspace
       .getConfiguration('pbt-extension')
       .update('executionMode', mode, vscode.ConfigurationTarget.Global);

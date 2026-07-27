@@ -50,10 +50,18 @@ export default class RpcClient {
     });
   }
 
+  // Sends a 'listSuites' request over the JSON-RPC connection to the child server
+  // process (server/methods/listSuites), passing the fs paths of every open workspace
+  // folder. Awaits the response and resolves with the discovered TestPackageList once
+  // the server finishes scanning those folders for packages/suites.
   public async listSuites(): Promise<TestPackageList> {
     const request = new rpc.RequestType<ListSuitesParams, TestPackageList, void>('listSuites');
     const workspacePaths = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
-    return await this.connection.sendRequest(request, { workspacePaths });
+    try {
+      return await this.connection.sendRequest(request, { workspacePaths });
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
   }
 
   public async listTests(params: ListTestsParams): Promise<Array<Test>> {

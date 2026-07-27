@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import EmptyView from './components/EmptyView';
+import ErrorView from './components/ErrorView';
 import TreeView from './components/TreeView';
 
 import type { WebviewApi } from 'vscode-webview';
@@ -53,7 +54,7 @@ const updateSuite = (packages: TestPackageList, packageName: string, suiteName: 
 };
 
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
-  const [activeView, setActiveView] = useState<'building'| 'empty' |'tree'>('building');
+  const [activeView, setActiveView] = useState<'loading'| 'empty' | 'noSuites' | 'tree' | 'error'>('loading');
   const [tests, setTests] = useState<TestList|null>(null);
   const [packages, setPackages] = useState<TestPackageList|null>(null);
 
@@ -62,8 +63,8 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'folders-detected') {
-        if (!message.payload.hasFolders) {
+      if (message.type === 'no-folders-detected') {
+        if (message.payload.noFolders) {
           setActiveView('empty');
         } 
       }
@@ -71,8 +72,11 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         if (message.payload !== null) {
           setTests(message.payload.tests);
           setPackages(message.payload.packages);
-          setActiveView('tree');
-        } 
+          setActiveView(Object.keys(message.payload.packages).length === 0 ? 'noSuites' : 'tree');
+        }
+      }
+      if (message.type === 'test-package-list-error') {
+        setActiveView('error');
       }
       if (message.type === 'test-suite-tree') {
         setTests(tests => {
@@ -139,6 +143,13 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
   return (
     <>
       {activeView === 'empty' && <EmptyView vscode={vscode} />}
+      {activeView === 'noSuites' && (
+        <EmptyView
+          vscode={vscode}
+          message="No test suites found in this workspace. Open a different folder, or add a test-suite file to the open folder."
+        />
+      )}
+      {activeView === 'error' && <ErrorView vscode={vscode} />}
       {activeView === 'tree' && (
         <TreeView
           tests={tests!}
