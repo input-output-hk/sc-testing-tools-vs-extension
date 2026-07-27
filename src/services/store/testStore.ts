@@ -4,7 +4,7 @@ import RpcClient from '../rpcClient';
 import { PbtContext } from '../../extension';
 import { SrcLocRanges } from '../../../shared/streaming-events';
 
-const GLOBAL_KEY = "#all_tests#";
+export const ALL_TESTS_KEY = "#all_tests#";
 export type StatementCoverage = {
   executed: number;
   range: vscode.Range;
@@ -20,7 +20,8 @@ export default class TestStore {
   private runTestsErrorCallbacks: ((error: RunTestsErrorData) => void)[] = [];
   private baseCoverageIndex: {[uri: string]: FileCoverage} = {};
   private coverageRanges: {[uri: string]: {[testId : string]: FileCoverage}} = {};
-  private compareCovagerageTo: {[testId: string]: string} = {};
+  private showingCoverageForTestId: string = ALL_TESTS_KEY;
+  private coverageUpdateCallbacks: (() => void)[] = [];
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -46,6 +47,7 @@ export default class TestStore {
             [ vscode.Uri.file(packagePath + '/' + f.file).toString()
             , toFileCoverage(f, 0)
             ]));
+          this.coverageRanges = {};
           break;
         case 'test_started':
           break;
@@ -53,7 +55,7 @@ export default class TestStore {
           this.addCovered(packagePath, evt.covered, result.id);
           evt.trace.threatModels.map(tm => {
             let tmId = `${packageName}:${suiteName}:${tm.testId}`;
-            this.compareCovagerageTo[tmId] = result.id;
+            this.tests[tmId].compareCoverageTo = result.id;
             this.addCovered(packagePath, tm.covered, tmId);
           });
           break;
@@ -74,6 +76,7 @@ export default class TestStore {
           break;
         case 'suite_done':
           this.context?.outputChannel.appendLine(`Finished ${suiteName} in ${evt.duration.toFixed(1)}s, ${evt.passed}/${evt.passed+evt.failed} tests passed.`);
+          this.notifyCoverageUpdate();
           break;
       }
     });
@@ -184,6 +187,10 @@ export default class TestStore {
     this.runTestsErrorCallbacks.push(callback);
   }
 
+  public onCoverageUpdate(callback: () => void): void {
+    this.coverageUpdateCallbacks.push(callback);
+  }
+
   private notifyTestUpdate(test: Test): void {
     for (const callback of this.testUpdateCallbacks) {
       callback(test);
@@ -193,6 +200,12 @@ export default class TestStore {
   private notifyRunTestsError(error: RunTestsErrorData): void {
     for (const callback of this.runTestsErrorCallbacks) {
       callback(error);
+    }
+  }
+
+  private notifyCoverageUpdate(): void {
+    for (const callback of this.coverageUpdateCallbacks) {
+      callback();
     }
   }
 
@@ -221,9 +234,26 @@ export default class TestStore {
     return mode;
   }
 
+  public getTestsWithCoverage(): Test[] {
+    let res = {};
+    for (let cov of Object.values(this.coverageRanges))
+      Object.assign(res, cov);
+    let testIds = Object.keys(res).filter(key => key != ALL_TESTS_KEY);
+    return testIds.map(testId => this.tests[testId]);
+  }
+
+  public showCoverageForTestId(testId: string) {
+    this.showingCoverageForTestId = testId;
+    this.notifyCoverageUpdate();
+  }
+
+  public getShowingCoverageForTestId(): string {
+    return this.showingCoverageForTestId;
+  }
+
   // Get the coverage for a specific file and test item. If no test item is provided, return the global coverage for all tests.
-  public getCoverage(fileUri: vscode.Uri, testItemId?: string): StatementCoverage[] {
-    let testKey = testItemId || GLOBAL_KEY;
+  public getCoverage(fileUri: vscode.Uri): StatementCoverage[] {
+    let testKey = this.showingCoverageForTestId;
     let allDetails = this.coverageRanges[fileUri.toString()];
     if (!allDetails) {
       this.context?.outputChannel.appendLine(`No coverage found for ${fileUri}, only for ${Object.keys(this.coverageRanges)}`);
@@ -231,11 +261,11 @@ export default class TestStore {
     }
     let details = allDetails[testKey];
     if (!details) {
-      this.context?.outputChannel.appendLine(`No coverage found for ${testItemId}, only for ${Object.keys(allDetails)}`);
+      this.context?.outputChannel.appendLine(`No coverage found for ${testKey}, only for ${Object.keys(allDetails)}`);
       return [];
     }
-    if (this.compareCovagerageTo[testKey]) {
-      let compare = allDetails[this.compareCovagerageTo[testKey]];
+    if (this.tests[testKey]?.compareCoverageTo) {
+      let compare = allDetails[this.tests[testKey].compareCoverageTo];
       let result = [];
       for (let key in details)
         if (!compare[key]) result.push(details[key]);
@@ -260,14 +290,14 @@ export default class TestStore {
       let covData = toFileCoverage(cov, 1);
       let uri = vscode.Uri.file(packagePath + '/' + cov.file).toString();
       this.coverageRanges[uri] ||= {};
-      this.coverageRanges[uri][GLOBAL_KEY] ||= {};
+      this.coverageRanges[uri][ALL_TESTS_KEY] ||= {};
       this.coverageRanges[uri][testItemId] ||= {};
       for (let key in covData) {
         let cov = covData[key];
-        if (!this.coverageRanges[uri][GLOBAL_KEY][key]?.executed)
-          this.coverageRanges[uri][GLOBAL_KEY][key] = cov;
+        if (!this.coverageRanges[uri][ALL_TESTS_KEY][key]?.executed)
+          this.coverageRanges[uri][ALL_TESTS_KEY][key] = cov;
         else
-          this.coverageRanges[uri][GLOBAL_KEY][key].executed++;
+          this.coverageRanges[uri][ALL_TESTS_KEY][key].executed++;
 
         if (!this.coverageRanges[uri][testItemId][key]?.executed)
           this.coverageRanges[uri][testItemId][key] = cov;

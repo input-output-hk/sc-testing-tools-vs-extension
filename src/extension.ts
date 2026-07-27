@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import Store from './services/store';
 import TestTreeView from './modules/testTreeView';
 import TestConfigurationView from './modules/testConfigurationView';
-import { renderCoverageForEditor } from './utils/coverage';
+import { renderCoverageForEditor, selectCoverageFilter } from './utils/coverage';
 
 export type PbtContext = {
   extension: vscode.ExtensionContext;
@@ -47,6 +47,13 @@ export function activate(context: vscode.ExtensionContext) {
     testConfigurationView.activate(pbtContext);
   });
 
+  store.testStore.onCoverageUpdate(() => {
+    let editor = vscode.window.activeTextEditor;
+    if (editor) {
+      renderCoverageForEditor(editor, store.testStore.getCoverage(editor.document.uri))
+    }
+  })
+
   // Render coverage for active document
   vscode.window.onDidChangeActiveTextEditor(editor => {
     if (editor) {
@@ -61,6 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
       renderCoverageForEditor(activeEditor, []);
     }
   }, null, context.subscriptions);
+
+  vscode.commands.registerCommand('pbt-extension.filterCoverage', selectCoverageFilter(store.testStore));
 
   // Add subscriptions to context
   context.subscriptions.push(outputChannel, statusBarItem);

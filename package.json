@@ -26,8 +26,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "pbt-extension.buildTestTree",
-        "title": "PBT: Build Test Tree"
+        "command": "pbt-extension.filterCoverage",
+        "title": "PBT: Filter coverage by test"
       }
     ],
     "configuration": {

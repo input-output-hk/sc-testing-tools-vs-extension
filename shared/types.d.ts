@@ -8,6 +8,7 @@ type Test = {
   status: TestStatus;
   time?: number;
   percentage?: number;
+  compareCoverageTo?: string;
 };
 
 type TestStatus = "undetermined" | "running" | "valid" | "invalid";
