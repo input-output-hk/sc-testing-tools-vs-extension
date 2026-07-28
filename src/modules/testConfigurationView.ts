@@ -3,6 +3,10 @@ import { GenericWebviewViewProvider } from '../utils/webview';
 
 import type { PbtContext } from '../extension';
 
+const NO_DEPENDENCIES_ERROR = 1;  
+const DOCKER_DEPENDENCY_ERROR = 2;  
+const NIX_DEPENDENCY_ERROR = 3; 
+
 export default class TestConfigurationView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
@@ -107,7 +111,7 @@ export default class TestConfigurationView {
 
   private onDependencyError({ hasError, message, code }: ErrorObj): void {
     // Update the status bar and show error notification if no dependencies are installed
-    if (hasError && code === 1) {
+    if (hasError && code === NO_DEPENDENCIES_ERROR) {
       this.context.statusBarItem.text = '$(error) No dependencies detected.';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.show();
@@ -131,12 +135,12 @@ export default class TestConfigurationView {
       });
     } 
     // Update the status bar and show error notification if Docker is installed but not running
-    else if (hasError && code === 2) {
+    else if (hasError && code === DOCKER_DEPENDENCY_ERROR) {
       this.context.statusBarItem.text = '$(error) Problem with Docker connection';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.tooltip = message;
       this.context.statusBarItem.show();
-    } else if (hasError && code === 3) {
+    } else if (hasError && code === NIX_DEPENDENCY_ERROR) {
       this.context.statusBarItem.text = '$(error) Nix not detected';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.tooltip = message;
