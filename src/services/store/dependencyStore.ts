@@ -121,11 +121,11 @@ export default class DependencyStore {
 
   private computeDependencyError(): ErrorObj {
     if (!this.hasNix && !this.hasDocker) {
-      return { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 1 };
+      return { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 'no-dependencies' };
     } else if (this.context?.store.settingStore.getSettings().mode === 'docker' && !this.dockerRunning) {
-      return { hasError: true, message: 'Problem connecting to Docker.', code: 2 };
+      return { hasError: true, message: 'Problem connecting to Docker.', code: 'docker-connection' };
     } else if (this.context?.store.settingStore.getSettings().mode === "nix" && !this.hasNix) {
-      return { hasError: true, message: "Nix not detected.", code: 3 };
+      return { hasError: true, message: "Nix not detected.", code: 'nix-not-detected' };
     } else {
       return { hasError: false, message: '', code: undefined };
     }

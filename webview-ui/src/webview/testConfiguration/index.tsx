@@ -101,7 +101,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               />
               <Tooltip content={error.hasError ? error.message : "Select the mode for executing commands."} id="execution-mode" />
             </span>
-            {error.hasError && error.code === 1 ? (
+            {error.hasError && error.code === 'no-dependencies' ? (
               <p className="text-[12px] opacity-60">{error.message}</p>
             ) :
             <VscodeRadioGroup>

@@ -1,8 +1,10 @@
 // Errors
+type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+
 type ErrorObj = {
   hasError: boolean;
   message: string;
-  code: number | undefined;
+  code: DependencyErrorCode | undefined;
 }
 
 // Test
