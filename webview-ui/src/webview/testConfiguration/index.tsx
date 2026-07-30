@@ -61,7 +61,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
                 Rounds Per Test
               </VscodeLabel>
               <i id="test-rounds" className='codicon codicon-info opacity-60' />
-              <Tooltip content="Number of transaction rounds generated, same as QuickCheck tests." id="test-rounds" />
+              <Tooltip content="Number of transaction rounds generated, same as QuickCheck tests. Selecting default pulls the number of round from the source code." id="test-rounds" />
             </span>
             <VscodeRadioGroup>
               <VscodeRadio
@@ -99,7 +99,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
                 id="execution-mode"
                 className={error.hasError ? 'codicon codicon-error text-red-01' : 'codicon codicon-info opacity-60'}
               />
-              {!error.hasError && <Tooltip content="Select the mode for executing commands." id="execution-mode" />}
+              <Tooltip content={error.hasError ? error.message : "Select the mode for executing commands."} id="execution-mode" />
             </span>
             {error.hasError && error.code === 1 ? (
               <p className="text-[12px] opacity-60">{error.message}</p>

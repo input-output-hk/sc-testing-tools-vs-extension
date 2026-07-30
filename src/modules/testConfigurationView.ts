@@ -26,6 +26,14 @@ export default class TestConfigurationView {
     // listen for dependency errors and update the status bar and error notification accordingly
     this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
 
+    // any dependency recheck, no matter who triggers it (this view, a "Retry" click, or a
+    // pre-flight check from testTreeView before listing/running tests) flows back through
+    // here so the status bar and this webview always reflect the latest state
+    this.context.store.dependencyStore.onDependencyErrorChange((error) => {
+      this.onDependencyError(error);
+      this.sendDependencyStatus();
+    });
+
     // title-bar refresh button (view/title menu) so a user can re-check dependencies
     // without reloading the whole extension after fixing a Docker/Nix problem
     const refreshCommand = vscode.commands.registerCommand('pbt-extension.refreshTestConfiguration', () => this.refresh());
@@ -33,12 +41,9 @@ export default class TestConfigurationView {
   }
 
   // fully re-checks dependency install/running state (same as the error notification's
-  // "Retry" action) and pushes the result to the status bar and webview
+  // "Retry" action); onDependencyErrorChange pushes the result to the status bar/webview
   private refresh(): void {
-    this.context.store.dependencyStore.initialize(this.context).then(() => {
-      this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
-      this.sendDependencyStatus();
-    });
+    this.context.store.dependencyStore.initialize(this.context);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -90,11 +95,10 @@ export default class TestConfigurationView {
     this.checkDependencyStatus();
   }
 
-  // re-evaluate the dependency error against the current execution mode and notify the webview/status bar
+  // re-evaluate the dependency error against the current execution mode;
+  // onDependencyErrorChange pushes the result to the status bar/webview if it changed
   private checkDependencyStatus(): void {
     this.context.store.dependencyStore.refreshDependencyError();
-    this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
-    this.sendDependencyStatus();
   }
 
   // update the test rounds in the setting store when the user changes it in the webview
@@ -138,12 +142,10 @@ export default class TestConfigurationView {
     else if (hasError && code === DOCKER_DEPENDENCY_ERROR) {
       this.context.statusBarItem.text = '$(error) Problem with Docker connection';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-      this.context.statusBarItem.tooltip = message;
       this.context.statusBarItem.show();
     } else if (hasError && code === NIX_DEPENDENCY_ERROR) {
       this.context.statusBarItem.text = '$(error) Nix not detected';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-      this.context.statusBarItem.tooltip = message;
       this.context.statusBarItem.show();
     } else {
       this.context.statusBarItem.hide();

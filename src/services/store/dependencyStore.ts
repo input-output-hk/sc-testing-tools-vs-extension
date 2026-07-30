@@ -40,6 +40,7 @@ export default class DependencyStore {
   private hasDocker: boolean = false;
   private dockerRunning: boolean = false;
   private dependencyError: ErrorObj = { hasError: false, message: '', code: undefined };
+  private dependencyErrorCallbacks: ((error: ErrorObj) => void)[] = [];
 
 
   public async initialize(context: PbtContext): Promise<void> {
@@ -66,6 +67,12 @@ export default class DependencyStore {
 
   public getDependencyError(): ErrorObj {
     return this.dependencyError;
+  }
+
+  // notified whenever the computed dependency error actually changes, regardless of
+  // which caller (retry button, mode change, pre-flight check, ...) triggered the recheck
+  public onDependencyErrorChange(callback: (error: ErrorObj) => void): void {
+    this.dependencyErrorCallbacks.push(callback);
   }
 
   // re-evaluate the dependency error using the already-known install/running state
@@ -99,16 +106,28 @@ export default class DependencyStore {
   }
 
   private setDependencyError(): void {
+    const dependencyError = this.computeDependencyError();
+
+    const unchanged = dependencyError.hasError === this.dependencyError.hasError
+      && dependencyError.code === this.dependencyError.code
+      && dependencyError.message === this.dependencyError.message;
+    if (unchanged) return;
+
+    this.dependencyError = dependencyError;
+    for (const callback of this.dependencyErrorCallbacks) {
+      callback(dependencyError);
+    }
+  }
+
+  private computeDependencyError(): ErrorObj {
     if (!this.hasNix && !this.hasDocker) {
-      this.dependencyError = { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 1 };
-      return;
+      return { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 1 };
     } else if (this.context?.store.settingStore.getSettings().mode === 'docker' && !this.dockerRunning) {
-      this.dependencyError = { hasError: true, message: 'Problem connecting to Docker.', code: 2 };
-      return;
+      return { hasError: true, message: 'Problem connecting to Docker.', code: 2 };
     } else if (this.context?.store.settingStore.getSettings().mode === "nix" && !this.hasNix) {
-      this.dependencyError = { hasError: true, message: "Nix not detected.", code: 3};
+      return { hasError: true, message: "Nix not detected.", code: 3 };
     } else {
-      this.dependencyError = { hasError: false, message: '', code: undefined };
+      return { hasError: false, message: '', code: undefined };
     }
   }
 }
