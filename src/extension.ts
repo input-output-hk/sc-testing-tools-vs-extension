@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import Store from './services/store';
 import TestTreeView from './modules/testTreeView';
 import TestConfigurationView from './modules/testConfigurationView';
+import TestCoverageView from './modules/testCoverageView';
 import { renderCoverageForEditor } from './utils/coverage';
 
 export type PbtContext = {
@@ -11,6 +12,7 @@ export type PbtContext = {
   store: Store;
   testTreeView: TestTreeView;
   testConfigurationView: TestConfigurationView;
+  testCoverageView: TestCoverageView;
   outputChannel: vscode.OutputChannel;
   statusBarItem: vscode.StatusBarItem;
 };
@@ -24,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Init test tree view
   const testTreeView = new TestTreeView();
   const testConfigurationView = new TestConfigurationView();
+  const testCoverageView = new TestCoverageView();
   // Init output channel
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
 
@@ -36,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
     store,
     testTreeView,
     testConfigurationView,
+    testCoverageView,
     outputChannel,
     statusBarItem,
   };
@@ -45,6 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Activate modules
     testTreeView.activate(pbtContext);
     testConfigurationView.activate(pbtContext);
+    testCoverageView.activate(pbtContext);
   });
 
   // Render coverage for active document
