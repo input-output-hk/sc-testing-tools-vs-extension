@@ -77,6 +77,20 @@ type TestSuiteData = {
 
 type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 
+// Coverage
+
+type CoverageTestSummary = {
+  testId: string;
+  name: string;
+  percentage: number;
+};
+
+type CoverageFileSummary = {
+  uri: string;
+  percentage: number;
+  tests: Array<CoverageTestSummary>;
+};
+
 // Webview message
 
 type ExtensionToWebviewMessage =
@@ -85,7 +99,9 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
+  | { type: "dependency-status", payload: { hasError: boolean, message: string } }
+  | { type: "coverage-summary", payload: { files: Array<CoverageFileSummary> } }
+  | { type: "coverage-update", payload: { file: CoverageFileSummary } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }

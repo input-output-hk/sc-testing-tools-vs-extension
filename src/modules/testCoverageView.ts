@@ -4,21 +4,44 @@ import { GenericWebviewViewProvider } from '../utils/webview';
 
 export default class TestCoverageView {
     private context: PbtContext;
-    private vebview: vscode.Webview | null = null;
+    private webview: vscode.Webview | null = null;
 
     constructor() {
         this.context = {} as PbtContext;
-        
     }
+
     public activate(context: PbtContext) {
-        const TestConfigurationProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
-        const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestConfigurationProvider);
-        context.extension.subscriptions.push(TestConfigurationPanel);
-        
         this.context = context;
+
+        const TestCoverageProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
+        const TestCoveragePanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestCoverageProvider);
+        context.extension.subscriptions.push(TestCoveragePanel);
     }
 
     private onWebviewResolved(webview: vscode.Webview): void {
-        this.vebview = webview;
+        this.webview = webview;
+
+        this.context.store.testStore.onCoverageUpdate((file) => this.sendCoverageUpdate(file));
+
+        this.webview.onDidReceiveMessage(
+            (message: WebviewToExtensionMessage) => {
+                switch (message.type) {
+                    case 'webview-ready':
+                        this.sendCoverageSummary();
+                        break;
+                }
+            },
+            undefined,
+            this.context.extension.subscriptions
+        );
     }
-} 
+
+    private sendCoverageSummary(): void {
+        const files = this.context.store.testStore.getCoverageSummary();
+        this.webview?.postMessage({ type: 'coverage-summary', payload: { files } } as ExtensionToWebviewMessage);
+    }
+
+    private sendCoverageUpdate(file: CoverageFileSummary): void {
+        this.webview?.postMessage({ type: 'coverage-update', payload: { file } } as ExtensionToWebviewMessage);
+    }
+}

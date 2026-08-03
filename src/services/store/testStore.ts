@@ -18,6 +18,7 @@ export default class TestStore {
   private packages: TestPackageList | null = null;
   private testUpdateCallbacks: ((test: Test) => void)[] = [];
   private runTestsErrorCallbacks: ((error: RunTestsErrorData) => void)[] = [];
+  private coverageUpdateCallbacks: ((file: CoverageFileSummary) => void)[] = [];
   private baseCoverageIndex: {[uri: string]: FileCoverage} = {};
   private coverageRanges: {[uri: string]: {[testId : string]: FileCoverage}} = {};
   private compareCovagerageTo: {[testId: string]: string} = {};
@@ -253,6 +254,35 @@ export default class TestStore {
       }
       return Object.values(Object.assign({}, base, details));
     }
+  }
+
+  // Get a per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel.
+  public getCoverageSummary(): CoverageFileSummary[] {
+    // MOCK — see simple_testcoverage.md for the real implementation parked there.
+    // Swap this back in once TestStore's coverage refactor lands.
+    return [
+      {
+        uri: 'file:///mock/src/PingPong.hs',
+        percentage: 72,
+        tests: [
+          { testId: 'mock:1', name: 'accepts a valid ping', percentage: 100 },
+          { testId: 'mock:2', name: 'rejects wrong signer', percentage: 100 },
+          { testId: 'mock:3', name: 'handles wrap-around index', percentage: 0 },
+        ],
+      },
+      {
+        uri: 'file:///mock/src/Auction.hs',
+        percentage: 45,
+        tests: [
+          { testId: 'mock:4', name: 'accepts highest bid', percentage: 100 },
+          { testId: 'mock:5', name: 'rejects late bid', percentage: 0 },
+        ],
+      },
+    ];
+  }
+
+  public onCoverageUpdate(callback: (file: CoverageFileSummary) => void): void {
+    this.coverageUpdateCallbacks.push(callback);
   }
 
   private addCovered(packagePath: string, covered: SrcLocRanges[], testItemId: string) {
