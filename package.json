@@ -63,7 +63,12 @@
           "id": "pbt-test-run-configuration",
           "name": "Test Run Configuration",
           "type": "webview"
-        }
+        },
+        {
+          "id": "pbt-test-coverage",
+          "name": "Test Coverage",
+          "type": "webview"
+        }        
       ]
     }
   },
