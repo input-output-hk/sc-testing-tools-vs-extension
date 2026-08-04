@@ -12,7 +12,8 @@ export default class TestStore {
   private rpcClient: RpcClient;
 
   private workspaces: Map<string, string>;
-  private testTree: TestTree | null = null;
+  private staticTestTree: TestTree | null = null;
+  private openState: Record<string, boolean> = {};
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -85,16 +86,19 @@ export default class TestStore {
     }, null, this.context.extension.subscriptions);
   }
 
-  public async prefetchTestTree(): Promise<TestTree> {
-    this.testTree = await this.rpcClient.prefetchTestTree({
-      workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
-    });
-    await this.database!.handleTestTree(this.testTree);
-    return this.testTree;
-  }
-
-  public getTestTree(): TestTree | null {
-    return this.testTree;
+  public async getTestTree(): Promise<TestTree> {
+    if (this.staticTestTree === null) {
+      this.staticTestTree = await this.rpcClient.prefetchTestTree({
+        workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
+      });
+      for (const packageId of Object.keys(this.staticTestTree.packages)) {
+        this.openState[packageId] = true;
+      }
+      await this.database!.handleTestTree(this.staticTestTree);
+      return this.staticTestTree;
+    }
+    
+    return await this.database!.buildTestTree(this.staticTestTree, this.openState);
   }
 
   public updateOpenTestTreeNode(
@@ -104,39 +108,10 @@ export default class TestStore {
     suiteName?: string,
     path?: Array<string>
   ): void {
-    if (!this.testTree) return;
-
-    const packageId = `${workspaceId}:${packageName}`;
-    const testPackage = this.testTree.packages[packageId];
-    if (!testPackage) return;
-
-    if (!suiteName) {
-      testPackage.isOpen = isOpen;
-      return;
-    }
-
-    const suite = testPackage.suites[suiteName];
-    if (!suite) return;
-
-    if (!path) {
-      suite.isOpen = isOpen;
-      return;
-    }
-
-    let currentNode: TestTreeNode | null = null;
-    for (const nodeName of path) {
-      if (currentNode === null) {
-        currentNode = suite.tests[nodeName] || null;
-      } else if (currentNode.type === 'group') {
-        currentNode = (currentNode as TestTreeGroupNode).nodes[nodeName] || null;
-      }
-
-      if (currentNode === null) return;
-    }
-
-    if (currentNode!.type === 'group') {
-      (currentNode as TestTreeGroupNode).isOpen = isOpen;
-    }
+    const id = [workspaceId, packageName];
+    if (suiteName) id.push(suiteName);
+    if (suiteName && path) id.push(...path);
+    this.openState[id.join(':')] = isOpen;
   }
 
   public buildTestTree(suiteId: TestSuiteId): void {
@@ -180,7 +155,7 @@ export default class TestStore {
   }
 
   public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    this.database.onTestSuiteUpdate(callback);
+    this.database.onTestSuiteUpdate(this.openState, callback);
   }
 
   public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {

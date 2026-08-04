@@ -45,14 +45,9 @@ export default class TestTreeView {
   }
 
   private fetchTestTree(): void {
-    const testTree = this.context.store.testStore.getTestTree();
-    if (testTree !== null) {
+    this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
-    } else {
-      this.context.store.testStore.prefetchTestTree().then((testTree: TestTree) => {
-        this.sendTestTreeToWebview(testTree);
-      });
-    }
+    });
   }
 
   private sendTestTreeToWebview(testTree: TestTree): void {

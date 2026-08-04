@@ -247,6 +247,98 @@ export default class Database {
     await this.database!.suites.bulkUpsert(suites);
   }
 
+  public async buildTestTree(prefetchTree: TestTree, openState: Record<string, boolean>): Promise<TestTree> {
+    const testTree: TestTree = { packages: { ...prefetchTree.packages } };
+    for (const packageNode of Object.values(testTree.packages)) {
+      packageNode.isOpen = openState[[packageNode.workspace.id, packageNode.name].join(':')] ?? false;
+      for (const suiteNode of Object.values(packageNode.suites)) {
+        suiteNode.isOpen = openState[[packageNode.workspace.id, packageNode.name, suiteNode.name].join(':')] ?? false;
+      }
+    }
+
+    const packageDocuments: Array<PackageDocument> = await this.database!.packages.find().exec();
+    for (const packageDocument of packageDocuments) {
+      const packageId: TestPackageId = [packageDocument.workspaceId, packageDocument.packageName];
+      const packageNode: TestPackage = {
+        workspace: {
+          id: packageDocument.workspaceId,
+          path: packageDocument.workspacePath
+        },
+        name: packageDocument.packageName,
+        packagePath: packageDocument.packagePath,
+        isOpen: openState[packageId.join(':')] ?? false,
+        suites: {}
+      };
+
+      const suiteDocuments: Array<SuiteDocument> = await this.database!.suites.find({
+        selector: {
+          workspaceId: packageDocument.workspaceId,
+          packageName: packageDocument.packageName
+        }
+      }).exec();
+
+      for (const suiteDocument of suiteDocuments) {
+        const suiteId: TestSuiteId = [suiteDocument.workspaceId, suiteDocument.packageName, suiteDocument.suiteName];
+        const suiteNode: TestSuite = {
+          name: suiteDocument.suiteName,
+          status: suiteDocument.status as RunStatus,
+          isOpen: openState[suiteId.join(':')] ?? false,
+          tests: {}
+        };
+        packageNode.suites[suiteNode.name] = suiteNode;
+
+        const testDocuments: Array<TestDocument> = await this.database!.tests.find({
+          selector: {
+            workspaceId: suiteDocument.workspaceId,
+            packageName: suiteDocument.packageName,
+            suiteName: suiteDocument.suiteName
+          }
+        }).exec();
+
+        const tests: Array<Test> = testDocuments.map(testDocument => ({
+          id: [
+            testDocument.workspaceId,
+            testDocument.packageName,
+            testDocument.suiteName,
+            testDocument.testId
+          ],
+          name: testDocument.name,
+          group: testDocument.group,
+          status: testDocument.status as RunStatus,
+          location: testDocument.location ? {
+            uri: testDocument.location.uri,
+            range: new Range(
+              testDocument.location.range.start.line,
+              testDocument.location.range.start.character,
+              testDocument.location.range.end.line,
+              testDocument.location.range.end.character
+            )
+          } : undefined,
+          time: testDocument.time,
+          percentage: testDocument.percentage
+        }));
+
+        suiteNode.tests = createTestTree(suiteId, openState, tests);
+      }
+      
+      const packageKey = packageId.join(':');
+      if (!testTree.packages[packageKey]) {
+        testTree.packages[packageKey] = packageNode;
+      } else {
+        for (const [suiteName, suiteNode] of Object.entries(packageNode.suites)) {
+          if (
+            !testTree.packages[packageKey].suites[suiteName] ||
+            Object.keys(suiteNode.tests).length > 0
+          ) {
+            testTree.packages[packageKey].suites[suiteName] = suiteNode;
+          }
+        }
+      }
+    }
+
+    return testTree;
+  }
+
   public async handleRunTests(testIds: Array<RunTestId>): Promise<void> {
     const suites: Set<string> = new Set();
     for (const [workspaceId, packageName, suiteName] of testIds) {
@@ -343,7 +435,7 @@ export default class Database {
     });
   }
 
-  public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
+  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
     this.database!.suites.update$.subscribe(async changeEvent => {
       const document = changeEvent.documentData;
       const prevVersion = changeEvent.previousDocumentData?.treeVersion;
@@ -356,7 +448,7 @@ export default class Database {
           }
         }).exec();
 
-        const testTree = createTestTree(testDocuments.map(testDocument => ({
+        const tests: Array<Test> = testDocuments.map(testDocument => ({
           id: [
             testDocument.workspaceId,
             testDocument.packageName,
@@ -377,14 +469,16 @@ export default class Database {
           } : undefined,
           time: testDocument.time,
           percentage: testDocument.percentage
-        })));
+        }));
 
         const packageId: TestPackageId = [document.workspaceId, document.packageName];
+        const suiteId: TestSuiteId = [...packageId, document.suiteName];
+        const testTree = createTestTree(suiteId, openState, tests);
         const suite: TestSuite = {
           name: document.suiteName,
           status: document.status as RunStatus,
           tests: testTree,
-          isOpen: false,
+          isOpen: openState[suiteId.join(':')] ?? false,
         };
 
         callback({ packageId, suite });

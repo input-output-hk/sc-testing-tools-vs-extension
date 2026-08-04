@@ -1,47 +1,8 @@
-const updateTestTreeNode = (oldNode: TestTreeNode, newNode: TestTreeNode): void => {
-  if (oldNode.type !== newNode.type) return;
-  if (oldNode.type === 'test' && newNode.type === 'test') {
-    (oldNode as TestTreeTestNode).test = (newNode as TestTreeTestNode).test;
-  } else if (oldNode.type === 'group' && newNode.type === 'group') {
-    const oldGroupNode = oldNode as TestTreeGroupNode;
-    const newGroupNode = newNode as TestTreeGroupNode;
-    for (const [key, oldChildNode] of Object.entries(oldGroupNode.nodes)) {
-      const newChildNode = newGroupNode.nodes[key];
-      if (newChildNode) {
-        updateTestTreeNode(oldChildNode, newChildNode);
-      } else {
-        delete oldGroupNode.nodes[key];
-      }
-    }
-    for (const [key, newChildNode] of Object.entries(newGroupNode.nodes)) {
-      if (!oldGroupNode.nodes[key]) {
-        oldGroupNode.nodes[key] = newChildNode;
-      }
-    }
-  }
-}
-
 export const updateTestSuite = (testTree: TestTree, { packageId, suite }: TestSuiteUpdate): TestTree => {
   const packageNode = testTree.packages[packageId.join(':')];
   if (!packageNode) return testTree;
 
-  const suiteNode = packageNode.suites[suite.name];
-  if (!suiteNode) return testTree;
-
-  for (const [key, oldNode] of Object.entries(suiteNode.tests)) {
-    const newNode = suite.tests[key];
-    if (newNode) {
-      updateTestTreeNode(oldNode, newNode);
-    } else {
-      delete suiteNode.tests[key];
-    }
-  }
-
-  for (const [key, newNode] of Object.entries(suite.tests)) {
-    if (!suiteNode.tests[key]) {
-      suiteNode.tests[key] = newNode;
-    }
-  }
+  packageNode.suites[suite.name] = suite;
 
   return testTree;
 };
