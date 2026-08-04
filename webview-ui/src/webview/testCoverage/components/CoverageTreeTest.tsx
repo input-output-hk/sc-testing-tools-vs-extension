@@ -11,10 +11,6 @@ const CoverageTreeTest: React.FC<Props> = ({ test }) => {
 
   return (
     <VscodeTreeItem>
-      <i
-        className={`codicon translate-y-0.75 ${isCovered ? 'codicon-check text-green-01' : 'codicon-circle-outline opacity-60'}`}
-        slot="icon-leaf"
-      />
       <span className="flex flex-row w-full items-center justify-between gap-1.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {test.name}
