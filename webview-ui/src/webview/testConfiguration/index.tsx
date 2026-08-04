@@ -53,8 +53,8 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   };
 
   return (
-    <div className="h-full p-4">
-      <div className="flex flex-col gap-4">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-1.5 font-semibold">
               <VscodeLabel className="font-semibold">
