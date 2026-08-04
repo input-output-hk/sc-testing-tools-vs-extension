@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { VscodeProgressBar } from '@vscode-elements/react-elements';
+
 import type { WebviewApi } from 'vscode-webview';
 
-import LoadingView from '../testTree/components/LoadingView';
 import CoverageTreeView from './components/CoverageTreeView';
 
 interface TestCoverageProps {
@@ -40,7 +41,11 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
 
   return (
     <>
-      {files === null && <LoadingView />}
+      {files === null && (
+        <div className="h-full">
+          <VscodeProgressBar />
+        </div>
+      )}
       {files !== null && <CoverageTreeView files={files} />}
     </>
   );
