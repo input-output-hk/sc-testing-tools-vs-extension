@@ -47,7 +47,7 @@ const parseTestSuiteStartedEvent = (
   event: TestSuiteStartedEvent
 ): TestSuiteUpdateEvent => {
   let tests: Array<Test> | undefined = undefined;
-  let coverage: Array<FileCoverage> | undefined = undefined;
+  let coverage: Array<TestEventCoverage> | undefined = undefined;
 
   if (isFullRun) {
     tests = [];
