@@ -266,7 +266,7 @@ export default class TestStore {
         percentage: 72,
         tests: [
           { testId: 'mock:1', name: 'accepts a valid ping', percentage: 100 },
-          { testId: 'mock:2', name: 'rejects wrong signer', percentage: 100 },
+          { testId: 'mock:2', name: 'rejects wrong signer', percentage: 90 },
           { testId: 'mock:3', name: 'handles wrap-around index', percentage: 0 },
         ],
       },

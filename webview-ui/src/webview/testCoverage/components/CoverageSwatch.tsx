@@ -10,7 +10,12 @@ const getSwatchColorClass = (percentage: number): string => {
 };
 
 const CoverageSwatch: React.FC<Props> = ({ percentage }) => (
-  <span className={`h-[15px] w-[28px] rounded-sm shrink-0 ${getSwatchColorClass(percentage)}`} />
+  <span className="relative h-[15px] w-[28px] rounded-sm shrink-0 overflow-hidden border border-base-10">
+    <span
+      className={`absolute inset-y-0 left-0 ${getSwatchColorClass(percentage)}`}
+      style={{ width: percentage === 0 ? '100%' : `${percentage}%` }}
+    />
+  </span>
 );
 
 export default CoverageSwatch;
