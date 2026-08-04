@@ -108,8 +108,10 @@ type FileCoverageMap = Record<string, FileCoverage>;
 
 type FileCoverage = {
   fileUri: string;
-  statements: Record<string, Array<TestId>>;
+  statements: CoverageStatements;
 };
+
+type CoverageStatements = Record<string, Array<TestId>>;
 
 // Webview message
 

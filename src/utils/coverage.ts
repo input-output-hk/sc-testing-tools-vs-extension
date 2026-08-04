@@ -22,11 +22,11 @@ const keyToRange = (key: string): vscode.Range => {
 
 export function renderCoverageForEditor(
   editor: vscode.TextEditor,
-  coverage: FileCoverage,
+  statements: CoverageStatements,
 ) {
   const covered: Array<vscode.Range> = [];
   const uncovered: Array<vscode.Range> = [];
-  for (const [rangeKey, testIds] of Object.entries(coverage.statements)) {
+  for (const [rangeKey, testIds] of Object.entries(statements)) {
     if (testIds.length > 0) {
       covered.push(keyToRange(rangeKey));
     } else {
