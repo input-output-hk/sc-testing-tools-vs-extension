@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface ScriptResult {
+export interface ScriptOutput {
   rawOutput: string;
   parsed: unknown;
 }
@@ -17,24 +17,26 @@ export class ScriptExecutionError extends Error {
   }
 }
 
-function getListScriptPath(mode: string): string {
-  return path.join(getScriptBasePath(), `${mode}-list-tests-json.sh`);
+function getBuildScriptPath(mode: string): string {
+  return path.join(getScriptBasePath(), `${mode}-list.sh`);
 }
 
 function getRunScriptPath(mode: string): string {
-  return path.join(getScriptBasePath(), `${mode}-run-tests-json.sh`);
+  return path.join(getScriptBasePath(), `${mode}-run.sh`);
 }
 
 function getScriptBasePath(): string {
   return path.join(__dirname, '..', '..', '..', 'scripts');
 }
 
-function getListScriptParams(workspacePath: string, packageName: string, suiteName: string): Array<string> {
-  return [workspacePath, packageName, suiteName];
+function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, testIds?: Array<string>): Array<string> {
+  const params = [workspacePath, packageName, suiteName];
+  if (testIds !== undefined) params.push(testIds.join(','));
+  return params;
 }
 
-function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): Array<string> {
-  return [workspacePath, packageName, suiteName, testIds.join(',')];
+function getBuildScriptParams(workspacePath: string, packageName: string, suiteName: string): Array<string> {
+  return [workspacePath, packageName, suiteName];
 }
 
 function locateBash(): string {
@@ -58,7 +60,7 @@ function buildScriptExecutionMessage(data: ScriptExecutionErrorData): string {
   return `Script ${path.basename(data.scriptPath)} failed (exit code ${exitCode})`;
 }
 
-async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator<ScriptResult> {
+async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator<ScriptOutput> {
   const scriptParams = params ?? [];
   const child = spawn(locateBash(), [scriptPath, ...scriptParams], { env: process.env });
   const processStatePromise = new Promise<{ exitCode: number | null; spawnError: Error | null }>((resolve) => {
@@ -118,16 +120,28 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
     };
     throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
   }
+
+  if (processState.exitCode !== 0) {
+    const data: ScriptExecutionErrorData = {
+      kind: 'script-execution-error',
+      scriptPath,
+      params: scriptParams,
+      exitCode: processState.exitCode,
+      stderr,
+      stdout,
+    };
+    throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
+  }
 }
 
-export async function* runListScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptResult> {
-  const scriptPath = getListScriptPath(mode);
-  const params = getListScriptParams(workspacePath, packageName, suiteName);
-  for await (const result of runScript(scriptPath, params)) yield result;
+export async function* runBuildScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptOutput> {
+  const scriptPath = getBuildScriptPath(mode);
+  const params = getBuildScriptParams(workspacePath, packageName, suiteName);
+  for await (const output of runScript(scriptPath, params)) yield output;
 }
 
-export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): AsyncGenerator<ScriptResult> {
+export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, testIds?: Array<string>): AsyncGenerator<ScriptOutput> {
   const scriptPath = getRunScriptPath(mode);
   const params = getRunScriptParams(workspacePath, packageName, suiteName, testIds);
-  for await (const result of runScript(scriptPath, params)) yield result;
+  for await (const output of runScript(scriptPath, params)) yield output;
 }

@@ -1,9 +1,9 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
-import runScript from './runScript';
-import { ScriptExecutionError } from '../../utils/runScript';
+import { runRunScript, ScriptExecutionError } from '../../utils/runScript';
+import { parseTestEvent, TestEventValidationError } from '../../utils/parseTestEvent';
 
-export default class TestRunMethod {
+export default class RunTestsMethod {
 
   private connection: rpc.MessageConnection;
 
@@ -14,50 +14,83 @@ export default class TestRunMethod {
     this.connection.onNotification(runTestsNotification, this.runTests.bind(this));
   }
 
-  private runTests(params: RunTestsParams): void {
-    (async () => {
+  private getTestRuns(workspace: Workspace, testIds: Array<RunTestId>): Array<TestRun> {
+    const testRunsMap: Map<string, Array<string>> = new Map();
+    for (const id of testIds) {
+      const [_, packageName, suiteName, testId] = id;
+      const key = `${packageName}:${suiteName}`;
+      if (!testRunsMap.has(key)) testRunsMap.set(key, []);
+      if (testId !== undefined) testRunsMap.get(key)!.push(testId);
+    }
+    const testRuns: Array<TestRun> = [];
+    for (const [key, testIds] of testRunsMap) {
+      const [packageName, suiteName] = key.split(':');
+      testRuns.push({
+        packageName,
+        suiteName,
+        workspaceId: workspace.id,
+        testIds: testIds.length > 0 ? testIds : undefined
+      });
+    }
+    return testRuns;
+  }
+
+  private async runTests(params: RunTestsParams): Promise<void> {
+    for (const testRun of this.getTestRuns(params.workspace, params.testIds)) {
       try {
-        for await (const result of runScript(params)) {
-          this.sendTestResult(result);
+        for await (const output of runRunScript(params.mode, params.workspace.path, testRun.packageName, testRun.suiteName, testRun.testIds)) {
+          try {
+            const testEvent = parseTestEvent(
+              params.workspace.id,
+              testRun.packageName,
+              testRun.suiteName,
+              testRun.testIds !== undefined && testRun.testIds.length > 0,
+              output
+            );
+            if (testEvent !== null) {
+              this.sendTestEvent(testEvent);
+            }
+          } catch (error) {
+            this.handleParseError(error);
+          }
         }
       } catch (error) {
-        this.sendRunTestsError(this.buildRunTestsError(error, params));
+        this.sendRunTestsError(
+          this.buildScriptExecutionError(error, { ...params, testRun })
+        );
       }
-    })();
-  };
+    }
+  }
 
-  private buildRunTestsError(error: unknown, params: RunTestsParams): RunTestsErrorData {
-    const runContext = {
-      packageName: params.packageName,
-      suiteName: params.suiteName,
-      testIds: params.testIds,
-    };
+  private handleParseError(error: unknown): void {
+    if (error instanceof TestEventValidationError) {
+      console.error('Test event parsing failed:', error.data);
+    } else {
+      console.error('Test event parsing failed:', error instanceof Error ? error.message : String(error));
+    }
+  }
 
+  private buildScriptExecutionError(error: unknown, params: RunTestsParams & { testRun: TestRun }): RunTestsErrorData {
     if (error instanceof ScriptExecutionError) {
-      return {
-        ...error.data,
-        runContext,
-      };
+      return { ...error.data, runParams: params };
     }
 
-    const message = error instanceof Error ? error.message : String(error);
     return {
       kind: 'script-execution-error',
       scriptPath: '',
       params: [],
       exitCode: null,
-      stderr: message,
+      stderr: error instanceof Error ? error.message : String(error),
       stdout: '',
-      runContext,
+      runParams: params,
     };
   }
 
-  public sendTestResult(result: TestResult): void {
-    this.connection.sendNotification('testResult', result);
-  };
-
-  public sendRunTestsError(error: RunTestsErrorData): void {
-    this.connection.sendNotification('runTestsError', error);
+  private sendRunTestsError(data: RunTestsErrorData): void {
+    this.connection.sendNotification('runTestsError', data);
   }
 
+  private sendTestEvent(event: TestEvent): void {
+    this.connection.sendNotification('testEvent', event);
+  }
 }

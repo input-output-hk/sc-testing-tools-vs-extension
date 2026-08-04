@@ -36,7 +36,10 @@
       "properties": {
         "pbt-extension.executionMode": {
           "type": "string",
-          "enum": ["docker", "nix"],
+          "enum": [
+            "docker",
+            "nix"
+          ],
           "default": "docker",
           "description": "Select the mode for executing commands with PBT."
         }
@@ -86,6 +89,7 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
+    "rxdb": "^17.4.0",
     "vscode-jsonrpc": "^8.2.1"
   }
 }

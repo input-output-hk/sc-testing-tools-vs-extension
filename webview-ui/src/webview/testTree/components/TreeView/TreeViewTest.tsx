@@ -1,54 +1,67 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
-import useSyncedSpin from './useSyncedSpin';
+import { isRunnableTestId } from '../../utils/treeUtils';
 import useTreeItemState from './useTreeItemState';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;
-  tests: TestList;
-  onRunTest: (testIds: Array<string>) => void;
-  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
+  path: Array<string>;
+  onRunTests: (testIds: Array<RunTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
 }
 
-const TreeViewTest: React.FC<TreeViewTestProps> = ({ node, tests, onRunTest, onUpdateSelection }) => {
-  const test = tests[node.testId];
-  const spinRef = useSyncedSpin();
+const formatTestTime = (time: number): string => {
+  if (time < 1000) {
+    return `${time.toFixed(2)}ms`;
+  } else {
+    return `${(time / 1000).toFixed(2)}s`;
+  }
+};
+
+const TreeViewTest: React.FC<TreeViewTestProps> = ({
+  node,
+  path,
+  onRunTests,
+  onUpdateSelection,
+}) => {
+  const isRunnable = isRunnableTestId(node.test.id);
+  const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
-      onUpdateSelection([node.testId], selected);
+      onUpdateSelection([node.test.id], selected);
     },
   });
 
   return (
     <VscodeTreeItem ref={treeItemRef}>
-      <TestStatusIcon status={test.status} />
+      <TestStatusIcon status={node.test.status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
-          {test.name}
-          {(test.time !== undefined && test.time > 0) &&
+          {node.test.name}
+          {(node.test.time !== undefined && node.test.time > 0) &&
             <span className="ml-1 opacity-60">
-              {test.time.toFixed(2)}ms
+              {formatTestTime(node.test.time)}
             </span>
-           || (test.percentage !== undefined && test.percentage > 0) &&
+           || (node.test.percentage !== undefined && node.test.percentage > 0) &&
             <span className="ml-1 opacity-60">
-              {test.percentage.toFixed(0)}%
+              {node.test.percentage.toFixed(0)}%
             </span>
           }
         </span>
-        {test.status !== 'running' &&
-          <button
-            type="button"
-            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-            onClickCapture={() => onRunTest([test.id])}
-          >
-            <i className="codicon codicon-play" />
-          </button>
-        }
-        {test.status === 'running' &&
-          <i ref={spinRef} className="codicon codicon-loading origin-[50%_40%] h-5 w-5" />
-        }
+        <button
+          type="button"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
+            isRunnable ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
+          }`}
+          disabled={!isRunnable}
+          onClickCapture={() => {
+            if (isRunnable) onRunTests([node.test.id]);
+          }}
+        >
+          <i className="codicon codicon-play" />
+        </button>
       </span>
     </VscodeTreeItem>
   );
