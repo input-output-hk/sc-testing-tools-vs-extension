@@ -16,6 +16,7 @@ export default defineConfig({
       input: {
         testTree: resolve(__dirname, 'entrypoint/testTree.html'),
         testConfiguration: resolve(__dirname, 'entrypoint/testConfiguration.html'),
+        testSummary: resolve(__dirname, 'entrypoint/testSummary.html'),
       },
       output: {
         entryFileNames: `assets/[name].js`,

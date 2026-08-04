@@ -14,8 +14,8 @@ export default class TestTreeView {
   public activate(context: PbtContext) {
     this.context = context;
     const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testTree', this.onWebviewResolved.bind(this));
-    const disposable = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
-    context.extension.subscriptions.push(disposable);
+    const testTreeWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
+    context.extension.subscriptions.push(testTreeWebviewView);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {

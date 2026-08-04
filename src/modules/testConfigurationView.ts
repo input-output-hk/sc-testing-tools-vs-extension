@@ -16,8 +16,8 @@ export default class TestConfigurationView {
   public activate(context: PbtContext) {
     this.context = context;
     const TestConfigurationProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testConfiguration', this.onWebviewResolved.bind(this));
-    const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
-    context.extension.subscriptions.push(TestConfigurationPanel);
+    const TestConfigurationWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
+    context.extension.subscriptions.push(TestConfigurationWebviewView);
 
     this.onDependencyError(this.context.store.dependencyStore.getHasError());
   }

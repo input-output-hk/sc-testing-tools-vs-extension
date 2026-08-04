@@ -52,6 +52,13 @@
           "title": "PBT",
           "icon": "images/pbt-icon.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "pbt-test-summary",
+          "title": "Test Summary",
+          "icon": "images/pbt-icon.svg"
+        }
       ]
     },
     "views": {
@@ -65,6 +72,13 @@
         {
           "id": "pbt-test-run-configuration",
           "name": "Test Run Configuration",
+          "type": "webview"
+        }
+      ],
+      "pbt-test-summary": [
+        {
+          "id": "pbt-test-summary",
+          "name": "Test Summary",
           "type": "webview"
         }
       ]
