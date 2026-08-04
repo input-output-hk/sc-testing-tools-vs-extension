@@ -19,8 +19,6 @@ export default class TestConfigurationView {
     const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
     // add the webview view provider to the extension context subscriptions
     context.extension.subscriptions.push(TestConfigurationPanel);
-    // listen for dependency errors and update the status bar and error notification accordingly
-    this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
 
     // any dependency recheck, no matter who triggers it (this view, a "Retry" click, or a
     // pre-flight check from testTreeView before listing/running tests) flows back through
@@ -56,6 +54,8 @@ export default class TestConfigurationView {
           case 'webview-ready':
             this.sendExecutionModeConfig();
             this.sendTestRoundsConfig();
+            // only surface the status bar item/error notification once the user has opened this view
+            this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
             this.sendDependencyStatus();
             break;
           case 'update-execution-mode':
