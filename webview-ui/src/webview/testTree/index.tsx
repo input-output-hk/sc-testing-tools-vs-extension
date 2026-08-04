@@ -79,6 +79,10 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     } as WebviewToExtensionMessage);
   };
 
+  const onOpenTestResult = (testId: TestId) => {
+    vscode.postMessage({ type: 'open-test-results', payload: { testId } } as WebviewToExtensionMessage);
+  };
+
   if (testTree === null) return <></>;
 
   return (
@@ -86,6 +90,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       testTree={testTree}
       onRunTests={onRunTests}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
+      onOpenTestResult={onOpenTestResult}
     />
   )
 };

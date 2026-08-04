@@ -150,6 +150,13 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
+  public async getTestResult(testId: TestId): Promise<TestResult> {
+    return {
+      test: await this.database.getTest(testId),
+      rounds: await this.database.getTestRounds(testId),
+    };
+  }
+
   public onTestUpdate(callback: (test: Test) => void): void {
     this.database.onTestUpdate(callback);
   }

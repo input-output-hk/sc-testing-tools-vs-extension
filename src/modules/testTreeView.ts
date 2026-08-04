@@ -31,12 +31,15 @@ export default class TestTreeView {
           case 'webview-ready':
             this.fetchTestTree();
             break;
-            case 'run-tests':
-              this.runTests(message.payload.testIds);
-              break;
-            case 'update-test-tree':
-              this.updateTestTree(message.payload);
-              break;
+          case 'run-tests':
+            this.runTests(message.payload.testIds);
+            break;
+          case "open-test-results":
+            this.openTestResults(message.payload.testId);
+            break;
+          case 'update-test-tree':
+            this.updateTestTree(message.payload);
+            break;
         }
       },
       undefined,
@@ -58,6 +61,12 @@ export default class TestTreeView {
 
   private runTests(testIds: Array<RunTestId>): void {
     this.context.store.testStore.runTests(testIds);
+  }
+
+  private openTestResults(testId: TestId): void {
+    this.context.store.testStore.getTestResult(testId).then((testResult) => {
+      this.context.testResultView.open(testResult);
+    });
   }
 
   private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {

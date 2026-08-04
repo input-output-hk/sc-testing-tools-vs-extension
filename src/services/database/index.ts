@@ -30,11 +30,18 @@ import {
   type CoverageDocument
 } from './coverage';
 
+import {
+  roundSchema,
+  type RoundCollection,
+  type RoundDocument
+} from './round';
+
 type DatabaseCollections = {
   packages: PackageCollection,
   suites: SuiteCollection,
   tests: TestCollection,
   coverage: CoverageCollection,
+  rounds: RoundCollection,
 };
 
 addRxPlugin(RxDBUpdatePlugin);
@@ -60,6 +67,9 @@ export default class Database {
       },
       coverage: {
         schema: coverageSchema,
+      },
+      rounds: {
+        schema: roundSchema,
       },
     });
   }
@@ -192,8 +202,27 @@ export default class Database {
     }
   }
 
+  private async createRounds(id: TestId, round: TestRound): Promise<void> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+    await this.database!.rounds.upsert({
+      id: `${workspaceId}:${packageName}:${suiteName}:${testId}:${round.id}`,
+      workspaceId,
+      packageName,
+      suiteName,
+      testId,
+      roundId: round.id.toString(),
+      status: round.status,
+      transitions: round.transitions.map(transition => ({
+        action: transition.action,
+        result: transition.result,
+        stepIndex: transition.stepIndex,
+      }))
+    });
+  }
+
   public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
     await this.upsertCoverage(event.payload.coverage);
+    await this.createRounds(event.payload.id, event.payload.round);
   }
 
   public async handleTestRunFailed(testRun: TestRun): Promise<void> {
@@ -405,6 +434,51 @@ export default class Database {
       fileUri: coverageDocument.fileUri,
       statements
     };
+  }
+
+  public async getTest(testId: TestId): Promise<Test> {
+    const testDocument: TestDocument | null = await this.database!.tests.findOne({
+      selector: { id: testId.join(':') }
+    }).exec();
+
+    if (testDocument === null) throw new Error(`Test not found for id: ${testId.join(':')}`);
+    
+    return {
+      id: testId,
+      name: testDocument.name,
+      group: testDocument.group,
+      status: testDocument.status as RunStatus,
+      location: testDocument.location ? {
+        uri: testDocument.location.uri,
+        range: new Range(
+          testDocument.location.range.start.line,
+          testDocument.location.range.start.character,
+          testDocument.location.range.end.line,
+          testDocument.location.range.end.character
+        )
+      } : undefined,
+      time: testDocument.time,
+      percentage: testDocument.percentage
+    };
+  }
+
+  public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+    const roundDocuments: Array<RoundDocument> = await this.database!.rounds.find({
+      selector: {
+        workspaceId, packageName, suiteName, testId
+      }
+    }).exec();
+
+    return roundDocuments.map(roundDocument => ({
+      id: parseInt(roundDocument.roundId),
+      status: roundDocument.status as TestRoundStatus,
+      transitions: roundDocument.transitions.map(transition => ({
+        action: transition.action,
+        result: transition.result as TestTransitionResult,
+        stepIndex: transition.stepIndex
+      }))
+    }));
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

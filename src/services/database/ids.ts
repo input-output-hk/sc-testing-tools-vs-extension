@@ -7,3 +7,6 @@ export const SUITE_ID_MAX_LENGTH = PACKAGE_ID_MAX_LENGTH + 1 + SUITE_NAME_MAX_LE
 
 export const TEST_ID_MAX_LENGTH = 10;
 export const FULL_TEST_ID_MAX_LENGTH = SUITE_ID_MAX_LENGTH + 1 + TEST_ID_MAX_LENGTH; // workspaceId:packageName:suiteName:testId
+
+export const TEST_ROUND_MAX_LENGTH = 4;
+export const TEST_ROUND_ID_MAX_LENGTH = FULL_TEST_ID_MAX_LENGTH + 1 + TEST_ROUND_MAX_LENGTH; // workspaceId:packageName:suiteName:testId:round

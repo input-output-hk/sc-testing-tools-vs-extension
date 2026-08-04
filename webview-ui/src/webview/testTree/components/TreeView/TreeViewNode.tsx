@@ -18,6 +18,7 @@ interface TreeViewNodeProps {
     suiteName?: string,
     path?: Array<string>
   ) => void;
+  onOpenTestResult: (testId: TestId) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
@@ -31,6 +32,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   onRunTests,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
+  onOpenTestResult,
 }) =>
   node.type === 'group' ? (
     <TreeViewGroup
@@ -44,6 +46,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       onRunTests={onRunTests}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
+      onOpenTestResult={onOpenTestResult}
     />
   ) : (
     <TreeViewTest
@@ -51,6 +54,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       path={path}
       onRunTests={onRunTests}
       onUpdateSelection={onUpdateSelection}
+      onOpenTestResult={onOpenTestResult}
     />
   );
 
