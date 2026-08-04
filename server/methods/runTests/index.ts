@@ -1,146 +1,96 @@
-import Ajv, { ValidateFunction } from "ajv";
 import * as rpc from 'vscode-jsonrpc/node';
 
-import { runRunScript, ScriptExecutionError } from './runScript';
-import { SCToolsStreamingEvent } from '../../../shared/streaming-events';
-import streamingEventSchema from "./streaming-events.schema.json";
+import { runRunScript, ScriptExecutionError } from '../../utils/runScript';
+import { parseTestEvent, TestEventValidationError } from '../../utils/parseTestEvent';
 
-export default class TestRunMethod {
+export default class RunTestsMethod {
 
   private connection: rpc.MessageConnection;
-
-  private ajv: Ajv;
-  private validate: ValidateFunction<SCToolsStreamingEvent>;
 
   constructor(connection: rpc.MessageConnection) {
     this.connection = connection;
 
     const runTestsNotification = new rpc.NotificationType<RunTestsParams>('runTests');
     this.connection.onNotification(runTestsNotification, this.runTests.bind(this));
-
-    this.ajv = new Ajv();
-    this.ajv.addFormat("double", true);
-    this.validate = this.ajv.compile<SCToolsStreamingEvent>(streamingEventSchema);
   }
 
-  private toResultId(params: RunTestsParams, event: SCToolsStreamingEvent): string {
-    const maybeId = (event as { id?: unknown }).id;
-    if (typeof maybeId === 'number') {
-      return `${params.packageName}:${params.suiteName}:${maybeId}`;
+  private getTestRuns(workspace: Workspace, testIds: Array<RunTestId>): Array<TestRun> {
+    const testRunsMap: Map<string, Array<string>> = new Map();
+    for (const id of testIds) {
+      const [_, packageName, suiteName, testId] = id;
+      const key = `${packageName}:${suiteName}`;
+      if (!testRunsMap.has(key)) testRunsMap.set(key, []);
+      if (testId !== undefined) testRunsMap.get(key)!.push(testId);
     }
-    return `${params.packageName}:${params.suiteName}`;
-  }
-
-  private async *run(params: RunTestsParams): AsyncGenerator<TestResult> {
-    const testIds = params.testIds ?? [];
-    for await (const result of runRunScript(params.mode, params.workspacePath, params.packageName, params.suiteName, testIds)) {
-      const testEvent = result.parsed
-      if (this.validate(testEvent)) {
-        yield {
-          id: this.toResultId(params, testEvent),
-          event: testEvent,
-          error: undefined
-        };
-      } else {
-        yield {
-          rawEvent: testEvent,
-          error: this.ajv.errorsText(this.validate.errors)
-        }
-      }
+    const testRuns: Array<TestRun> = [];
+    for (const [key, testIds] of testRunsMap) {
+      const [packageName, suiteName] = key.split(':');
+      testRuns.push({
+        packageName,
+        suiteName,
+        workspaceId: workspace.id,
+        testIds: testIds.length > 0 ? testIds : undefined
+      });
     }
+    return testRuns;
   }
 
-  private runTests(params: RunTestsParams): void {
-    (async () => {
+  private async runTests(params: RunTestsParams): Promise<void> {
+    for (const testRun of this.getTestRuns(params.workspace, params.testIds)) {
       try {
-        let sawSuiteDone = false;
-        let sawSuiteStarted = false;
-        let sawEvent = false;
-
-        for await (const result of this.run(params)) {
-          if (result.error === undefined) {
-            sawEvent = true;
-            if (result.event.event === 'suite_started') {
-              sawSuiteStarted = true;
+        for await (const output of runRunScript(params.mode, params.workspace.path, testRun.packageName, testRun.suiteName, testRun.testIds)) {
+          try {
+            const testEvent = parseTestEvent(
+              params.workspace.id,
+              testRun.packageName,
+              testRun.suiteName,
+              testRun.testIds !== undefined && testRun.testIds.length > 0,
+              output
+            );
+            if (testEvent !== null) {
+              this.sendTestEvent(testEvent);
             }
-            if (result.event.event === 'suite_done') {
-              sawSuiteDone = true;
-            }
+          } catch (error) {
+            this.handleParseError(error);
           }
-
-          this.sendTestResult(result);
-        }
-
-        if (!sawSuiteDone) {
-          this.sendRunTestsError(this.buildIncompleteRunError(params, sawEvent, sawSuiteStarted));
         }
       } catch (error) {
-        this.sendRunTestsError(this.buildRunTestsError(error, params));
+        this.sendRunTestsError(
+          this.buildScriptExecutionError(error, { ...params, testRun })
+        );
       }
-    })();
-  };
-
-  private buildIncompleteRunError(
-    params: RunTestsParams,
-    sawEvent: boolean,
-    sawSuiteStarted: boolean
-  ): RunTestsErrorData {
-    const runContext = {
-      packageName: params.packageName,
-      suiteName: params.suiteName,
-      testIds: params.testIds ?? [],
-    };
-
-    let message = 'Run finished without any streaming events.';
-    if (sawSuiteStarted) {
-      message = 'Run ended after suite_started but before suite_done.';
-    } else if (sawEvent) {
-      message = 'Run ended without suite_done event.';
     }
-
-    return {
-      kind: 'script-execution-error',
-      scriptPath: '',
-      params: [],
-      exitCode: null,
-      stderr: message,
-      stdout: '',
-      runContext,
-    };
   }
 
-  private buildRunTestsError(error: unknown, params: RunTestsParams): RunTestsErrorData {
-    const runContext = {
-      packageName: params.packageName,
-      suiteName: params.suiteName,
-      testIds: params.testIds ?? [],
-    };
+  private handleParseError(error: unknown): void {
+    if (error instanceof TestEventValidationError) {
+      console.error('Test event parsing failed:', error.data);
+    } else {
+      console.error('Test event parsing failed:', error instanceof Error ? error.message : String(error));
+    }
+  }
 
+  private buildScriptExecutionError(error: unknown, params: RunTestsParams & { testRun: TestRun }): RunTestsErrorData {
     if (error instanceof ScriptExecutionError) {
-      return {
-        ...error.data,
-        runContext,
-      };
+      return { ...error.data, runParams: params };
     }
 
-    const message = error instanceof Error ? error.message : String(error);
     return {
       kind: 'script-execution-error',
       scriptPath: '',
       params: [],
       exitCode: null,
-      stderr: message,
+      stderr: error instanceof Error ? error.message : String(error),
       stdout: '',
-      runContext,
+      runParams: params,
     };
   }
 
-  public sendTestResult(result: TestResult): void {
-    this.connection.sendNotification('testResult', result);
-  };
-
-  public sendRunTestsError(error: RunTestsErrorData): void {
-    this.connection.sendNotification('runTestsError', error);
+  private sendRunTestsError(data: RunTestsErrorData): void {
+    this.connection.sendNotification('runTestsError', data);
   }
 
+  private sendTestEvent(event: TestEvent): void {
+    this.connection.sendNotification('testEvent', event);
+  }
 }

@@ -23,6 +23,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Init test tree view
   const testTreeView = new TestTreeView();
+
+  // Init test configuration view
   const testConfigurationView = new TestConfigurationView();
 
   // Init output channel

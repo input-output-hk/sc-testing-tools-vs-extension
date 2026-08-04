@@ -2,43 +2,54 @@ import TreeViewGroup from './TreeViewGroup';
 import TreeViewTest from './TreeViewTest';
 
 interface TreeViewNodeProps {
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
   node: TestTreeNode;
   path: Array<string>;
-  tests: TestList;
   filterText: string;
-  statusFilter: TestStatus | null;
-  onRunTest: (testIds: Array<string>) => void;
-  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
-  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
+  statusFilter: RunStatus | null;
+  onRunTests: (testIds: Array<RunTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onUpdateOpenTestTreeNode: (
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
+  workspaceId,
+  packageName,
+  suiteName,
   node,
   path,
-  tests,
   filterText,
   statusFilter,
-  onRunTest,
-  onToggleTreeGroup,
+  onRunTests,
   onUpdateSelection,
+  onUpdateOpenTestTreeNode,
 }) =>
   node.type === 'group' ? (
     <TreeViewGroup
       node={node as TestTreeGroupNode}
       path={path}
-      tests={tests}
+      workspaceId={workspaceId}
+      packageName={packageName}
+      suiteName={suiteName}
       filterText={filterText}
       statusFilter={statusFilter}
-      onRunTest={onRunTest}
-      onToggleTreeGroup={onToggleTreeGroup}
+      onRunTests={onRunTests}
+      onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
     />
   ) : (
     <TreeViewTest
       node={node as TestTreeTestNode}
       path={path}
-      tests={tests}
-      onRunTest={onRunTest}
+      onRunTests={onRunTests}
       onUpdateSelection={onUpdateSelection}
     />
   );

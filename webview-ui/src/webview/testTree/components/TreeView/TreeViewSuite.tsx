@@ -5,55 +5,60 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from './useTreeItemState';
-import { nodeMatchesFilter, nodeMatchesStatus, getSuiteStatus } from '../../utils/treeUtils';
+import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {
-  tests: TestList;
-  path: Array<string>;
+  workspaceId: string;
+  packageName: string;
   suite: TestSuite;
   filterText: string;
-  statusFilter: TestStatus | null;
-  onRunTest: (testIds: Array<string>) => void;
-  onRunTestSuite: (packageName: string, suiteName: string) => void;
-  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
-  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
+  statusFilter: RunStatus | null;
+  onRunTests: (testIds: Array<RunTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onUpdateOpenTestTreeNode: (
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ) => void;
 }
 
 const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
+  workspaceId,
+  packageName,
   suite,
-  path,
-  tests,
   filterText,
   statusFilter,
-  onRunTest,
-  onRunTestSuite,
-  onToggleTreeGroup,
+  onRunTests,
   onUpdateSelection,
+  onUpdateOpenTestTreeNode,
 }) => {
-  const [packageName, suiteName] = path;
-
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
-      onToggleTreeGroup(path, !isCollapsed);
+      onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suite.name);
+    },
+    onToggleSelection: (selected) => {
+      onUpdateSelection([[workspaceId, packageName, suite.name]], selected);
     },
   });
 
   const effectiveFilterText =
     !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
 
-  const filteredNodeKeys = useMemo(
+  const filteredNodes = useMemo(
     () =>
-      Object.keys(suite.tree).filter(
-        (key) =>
-          nodeMatchesStatus(suite.tree[key], statusFilter, tests) &&
-          (!effectiveFilterText || nodeMatchesFilter(suite.tree[key], effectiveFilterText, tests)),
+      Object.values(suite.tests).filter(
+        (node) =>
+          nodeMatchesStatus(node, statusFilter) &&
+          (!effectiveFilterText || nodeMatchesFilter(node, effectiveFilterText)),
       ),
-    [suite.tree, effectiveFilterText, statusFilter, tests],
+    [suite.tests, effectiveFilterText, statusFilter],
   );
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
-      <TestStatusIcon status={getSuiteStatus(packageName, suiteName, tests)} />
+      <TestStatusIcon status={suite.status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {suite.name}
@@ -65,23 +70,25 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
             event.preventDefault();
             event.stopPropagation();
             event.nativeEvent.stopImmediatePropagation();
-            onRunTestSuite(packageName, suiteName);
+            onRunTests([[workspaceId, packageName, suite.name]]);
           }}
         >
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {filteredNodeKeys.map((key) => (
+      {filteredNodes.map((node, index) => (
         <TreeViewNode
-          key={key}
-          node={suite.tree[key]}
-          path={[...path, key]}
-          tests={tests}
+          key={index}
+          workspaceId={workspaceId}
+          packageName={packageName}
+          suiteName={suite.name}
+          node={node}
+          path={[]}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
-          onRunTest={onRunTest}
-          onToggleTreeGroup={onToggleTreeGroup}
+          onRunTests={onRunTests}
           onUpdateSelection={onUpdateSelection}
+          onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
         />
       ))}
     </VscodeTreeItem>

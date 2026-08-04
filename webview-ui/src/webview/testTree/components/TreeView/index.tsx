@@ -4,20 +4,24 @@ import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TreeViewPackage from './TreeViewPackage';
 import FilterMenu from './FilterMenu';
-import { packageMatchesFilter, packageMatchesStatus } from '../../utils/treeUtils';
+import { packageMatchesFilter, packageMatchesStatus, isRunnableTestId } from '../../utils/treeUtils';
 
 interface TreeViewProps {
-  tests: TestList;
-  packages: TestPackageList;
-  onRunTest: (testIds: Array<string>) => void;
-  onRunTestSuite: (packageName: string, suiteName: string) => void;
-  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
+  testTree: TestTree;
+  onRunTests: (testIds: Array<RunTestId>) => void;
+  onUpdateOpenTestTreeNode: (
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onRunTestSuite, onToggleTreeGroup }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TestStatus | null>(null);
+  const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
 
@@ -29,7 +33,7 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onRunTe
     setIsFilterMenuOpen((open) => !open);
   };
 
-  const handleStatusFilterChange = (nextStatusFilter: TestStatus | null) => {
+  const handleStatusFilterChange = (nextStatusFilter: RunStatus | null) => {
     setStatusFilter(nextStatusFilter);
     setIsFilterMenuOpen(false);
   };
@@ -55,48 +59,55 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onRunTe
     };
   }, []);
 
-  const filteredPackageKeys = useMemo(
+  const filteredPackages = useMemo(
     () =>
-      Object.keys(packages).filter(
-        (key) =>
-          packageMatchesStatus(packages[key], statusFilter, tests) &&
-          (!filterText || packageMatchesFilter(packages[key], filterText, tests)),
+      Object.values(testTree.packages).filter(
+        testPackage =>
+          packageMatchesStatus(testPackage, statusFilter) &&
+          (!filterText || packageMatchesFilter(testPackage, filterText)),
       ),
-    [packages, filterText, statusFilter, tests],
+    [testTree.packages, filterText, statusFilter],
   );
 
-  const onUpdateSelection = (testIds: Array<string>, selected: boolean) => {
+  const handleUpdateSelection = (testIds: Array<RunTestId>, selected: boolean) => {
     setSelected((prevSelected) => {
-      const joinedTestIds = testIds.join(',');
       const newSelected = new Set(prevSelected);
-      if (selected) {
-        newSelected.add(joinedTestIds);
-      } else {
-        newSelected.delete(joinedTestIds);
+      for (const testId of testIds) {
+        if (isRunnableTestId(testId)) {
+          if (selected) {
+            newSelected.add(testId.join(':'));
+          } else {
+            newSelected.delete(testId.join(':'));
+          }
+        }
       }
       return newSelected;
     });
   };
 
-  const handleRunTest = (testIds: Array<string>) => {
-    const runnableIdsFromRequest = testIds.filter((testId) => tests[testId]?.isRunnable);
-
-    if (selected.has(testIds.join(','))) {
-      const testRun: Set<string> = new Set();
-      for (const selectedTestIds of selected) {
-        for (const testId of selectedTestIds.split(',')) {
-          if (tests[testId]?.isRunnable) {
-            testRun.add(testId);
-          }
+  const handleRunTests = (testIds: Array<RunTestId>) => {
+    const testRun: Set<string> = new Set();
+    const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
+    if (runnableIds.some(id => selected.has(id))) {
+      for (const selectedId of selected) {
+        testRun.add(selectedId);
+      }
+    } else if (runnableIds.length > 0) {
+      for (const runnableId of runnableIds) {
+        testRun.add(runnableId);
+      }
+    }
+    if (testRun.size > 0) {
+      const removeIds = new Set<string>(
+        Array.from(testRun).filter(id => !id.split(':')[3])
+      );
+      for (const testRunId of testRun) {
+        const [workspaceId, packageName, suiteName, testId] = testRunId.split(':');
+        if (testId && removeIds.has([workspaceId, packageName, suiteName].join(':'))) {
+          testRun.delete(testRunId);
         }
       }
-      if (testRun.size > 0) {
-        onRunTest(Array.from(testRun));
-      }
-    } else {
-      if (runnableIdsFromRequest.length > 0) {
-        onRunTest(runnableIdsFromRequest);
-      }
+      onRunTests(Array.from(testRun).map(id => id.split(':') as RunTestId));
     }
   };
 
@@ -120,17 +131,15 @@ const TreeView: React.FC<TreeViewProps> = ({ tests, packages, onRunTest, onRunTe
       </div>
       <div className="flex-1 overflow-y-auto">
         <VscodeTree multiSelect>
-          {filteredPackageKeys.map((key) => (
+          {filteredPackages.map((testPackage) => (
             <TreeViewPackage
-              key={key}
-              package={packages[key]}
-              tests={tests}
+              key={testPackage.name}
+              testPackage={testPackage}
               filterText={filterText}
               statusFilter={statusFilter}
-              onRunTest={handleRunTest}
-              onRunTestSuite={onRunTestSuite}
-              onToggleTreeGroup={onToggleTreeGroup}
-              onUpdateSelection={onUpdateSelection}
+              onRunTests={handleRunTests}
+              onUpdateSelection={handleUpdateSelection}
+              onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
             />
           ))}
         </VscodeTree>

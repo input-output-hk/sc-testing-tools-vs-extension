@@ -2,11 +2,11 @@ import useSyncedSpin from '../hooks/useSyncedSpin';
 
 interface Props {
   ref?: (el: HTMLElement | null) => void;
-  status: TestStatus;
+  status: RunStatus;
   isThreatModel?: boolean;
 }
 
-const mapTestStatusToIcon = (status: TestStatus, isThreatModel?: boolean): string => {
+const mapTestStatusToIcon = (status: RunStatus, isThreatModel?: boolean): string => {
   switch (status) {
     case 'undetermined':
       return isThreatModel === true ? 'codicon-debug-step-over opacity-60' : 'codicon-circle opacity-60';
@@ -14,6 +14,8 @@ const mapTestStatusToIcon = (status: TestStatus, isThreatModel?: boolean): strin
       return 'codicon-pass text-green-01';
     case 'invalid':
       return 'codicon-error text-red-01';
+    case 'waiting':
+      return 'codicon-question text-purple-02';
     case 'running':
       return 'codicon-loading';
   }

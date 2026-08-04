@@ -1,10 +1,10 @@
 interface FilterMenuProps {
   isOpen: boolean;
-  statusFilter: TestStatus | null;
-  onChange: (statusFilter: TestStatus | null) => void;
+  statusFilter: RunStatus | null;
+  onChange: (statusFilter: RunStatus | null) => void;
 }
 
-const selectStatus = (statusFilter: TestStatus | null, status: TestStatus): TestStatus | null =>
+const selectStatus = (statusFilter: RunStatus | null, status: RunStatus): RunStatus | null =>
   statusFilter === status ? null : status;
 
 const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, statusFilter, onChange }) => {

@@ -1,196 +1,189 @@
+import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
+import Database from '../database';
+import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
-import { TestInfo } from '../../../shared/streaming-events';
-import TestState from './testStore/testState';
-import TestStoreNotifier from './testStore/notifier';
-import CoverageStore, { type StatementCoverage } from './testStore/coverageStore';
-import SuiteRunIntentStore, { SuiteRunIntent } from './testStore/runIntentStore';
-import SuiteStateStore from './testStore/suiteState';
-import RunCoordinator from './testStore/runCoordinator';
-import RunExecutor from './testStore/runExecutor';
-import { hydrateSuiteTestsFromRun, type SuiteHydrationContext } from './testStore/suiteHydration';
-import { handleRunTestsError, handleTestResult, type RunLifecycleContext } from './testStore/runLifecycle';
-import { renderCoverageForEditor } from '../../utils/coverage';
-
-export type { StatementCoverage } from './testStore/coverageStore';
 
 export default class TestStore {
-  private context: PbtContext | null = null;
+  private context: PbtContext = {} as PbtContext;
+  private database: Database;
   private rpcClient: RpcClient;
-  private testState = new TestState();
-  private notifier = new TestStoreNotifier();
-  private coverageStore = new CoverageStore();
-  private runIntentStore = new SuiteRunIntentStore();
-  private suiteState: SuiteStateStore;
-  private runCoordinator: RunCoordinator;
-  private runExecutor: RunExecutor;
+
+  private workspaces: Map<string, string>;
+  private testTree: TestTree | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
+    this.database = new Database();
 
-    this.suiteState = new SuiteStateStore({
-      getPackages: this.testState.getPackages.bind(this.testState),
-      getTests: this.testState.getTests.bind(this.testState),
-      notifyTestPackagesUpdate: this.notifyTestPackagesUpdate.bind(this),
-      notifyTestUpdate: this.notifyTestUpdate.bind(this),
-    });
+    this.workspaces = new Map(
+      vscode.workspace.workspaceFolders?.map(folder => [
+        this.getWorkspaceId(folder.uri.fsPath),
+        folder.uri.fsPath
+      ]) || []
+    );
+  }
 
-    this.runCoordinator = new RunCoordinator({
-      getPackages: this.testState.getPackages.bind(this.testState),
-      getTests: this.testState.getTests.bind(this.testState),
-      setSuiteRunIntent: this.setSuiteRunIntent.bind(this),
-      notifyTestUpdate: this.notifyTestUpdate.bind(this),
-      suiteState: this.suiteState,
-    });
-
-    this.runExecutor = new RunExecutor({
-      getExecutionMode: () => this.context?.store.settingStore.getSettings().mode,
-      logError: (message: string) => this.context?.outputChannel.append(`> ERROR\n${message}`),
-      runTests: (runRequest, mode) => {
-        this.rpcClient.runTests({
-          mode,
-          workspacePath: runRequest.workspacePath,
-          packageName: runRequest.packageName,
-          suiteName: runRequest.suiteName,
-          testIds: runRequest.testIds,
-        });
-      },
-    });
+  private getWorkspaceId(workspacePath: string): string {
+    return createHash('sha256').update(workspacePath).digest('hex').slice(0, 8);
   }
 
   public async initialize(context: PbtContext): Promise<void> {
     this.context = context;
 
+    await this.database.initialize();
     await this.rpcClient.initialize(context);
 
-    const runLifecycleContext = this.createRunLifecycleContext();
+    this.setupRpcListeners();
+    this.setupCoverageListener();
+  }
+  
+  private setupRpcListeners(): void {
+    this.rpcClient.onTestEvent((event: TestEvent) => {
+      switch (event.eventType) {
+        case 'test-suite-update':
+          this.database.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
+          break;
+        case 'test-update':
+          this.database.handleTestUpdateEvent(event as TestUpdateEvent);
+          break;
+        case 'test-context':
+          this.database.handleTestContextEvent(event as TestContextEvent);
+          break;
+      }
+    });
 
-    this.rpcClient.onTestResult((result: TestResult) => {
-      handleTestResult(result, runLifecycleContext);
+    this.rpcClient.onBuildTestTreeError((error: BuildTestTreeErrorData) => {
+      //
     });
 
     this.rpcClient.onRunTestsError((error: RunTestsErrorData) => {
-      handleRunTestsError(error, runLifecycleContext);
+      this.database.handleTestRunFailed(error.runParams.testRun);
     });
+  }
 
+  private setupCoverageListener(): void {
     // Render coverage for active document
     vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor) {
-        renderCoverageForEditor(editor, this.getCoverage(editor.document.uri))
+      if (editor !== undefined) {
+        this.database.getCoverageForFile(editor.document.uri.toString()).then(coverage => {
+          if (coverage !== null) {
+            renderCoverageForEditor(editor, coverage);
+          }
+        });
       }
-    }, null, context.extension.subscriptions);
+    }, null, this.context.extension.subscriptions);
 
     // Remove coverage when user edits document
     vscode.workspace.onDidChangeTextDocument(event => {
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && event.document === activeEditor.document) {
-        renderCoverageForEditor(activeEditor, []);
+        clearCoverageForEditor(activeEditor);
       }
-    }, null, context.extension.subscriptions);
+    }, null, this.context.extension.subscriptions);
   }
 
-  private createRunLifecycleContext(): RunLifecycleContext {
-    return {
-      getTests: this.testState.getTests.bind(this.testState),
-      getPackagePath: this.testState.getPackagePath.bind(this.testState),
-      getSuiteRunIntent: this.getSuiteRunIntent.bind(this),
-      hydrateSuiteTestsFromRun: this.hydrateSuiteTestsFromRun.bind(this),
-      suiteState: this.suiteState,
-      clearSuiteRunIntent: this.clearSuiteRunIntent.bind(this),
-      notifyTestUpdate: this.notifyTestUpdate.bind(this),
-      notifyRunTestsError: this.notifyRunTestsError.bind(this),
-      coverageStore: this.coverageStore,
-      logLine: (message: string) => this.context?.outputChannel.appendLine(message),
-    };
+  public async prefetchTestTree(): Promise<TestTree> {
+    this.testTree = await this.rpcClient.prefetchTestTree({
+      workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
+    });
+    await this.database!.handleTestTree(this.testTree);
+    return this.testTree;
   }
 
-  public async buildTestPackages(): Promise<TestPackageData> {
-    const packageData = await this.rpcClient.listTests();
-    return this.testState.replaceAll(packageData);
+  public getTestTree(): TestTree | null {
+    return this.testTree;
   }
 
-  public getTestPackages(): TestPackageData | null {
-    return this.testState.getTestPackages();
-  };
+  public updateOpenTestTreeNode(
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ): void {
+    if (!this.testTree) return;
 
-  public updateTestPackages(packages: TestPackageList): void {
-    this.testState.updatePackages(packages);
+    const packageId = `${workspaceId}:${packageName}`;
+    const testPackage = this.testTree.packages[packageId];
+    if (!testPackage) return;
+
+    if (!suiteName) {
+      testPackage.isOpen = isOpen;
+      return;
+    }
+
+    const suite = testPackage.suites[suiteName];
+    if (!suite) return;
+
+    if (!path) {
+      suite.isOpen = isOpen;
+      return;
+    }
+
+    let currentNode: TestTreeNode | null = null;
+    for (const nodeName of path) {
+      if (currentNode === null) {
+        currentNode = suite.tests[nodeName] || null;
+      } else if (currentNode.type === 'group') {
+        currentNode = (currentNode as TestTreeGroupNode).nodes[nodeName] || null;
+      }
+
+      if (currentNode === null) return;
+    }
+
+    if (currentNode!.type === 'group') {
+      (currentNode as TestTreeGroupNode).isOpen = isOpen;
+    }
   }
 
-  public onTestPackagesUpdate(callback: (data: TestPackageData) => void): void {
-    this.notifier.onTestPackagesUpdate(callback);
+  public buildTestTree(suiteId: TestSuiteId): void {
+    const [workspaceId, packageName, suiteName] = suiteId;
+    this.rpcClient.buildTestTree({
+      mode: this.context!.store.settingStore.getSettings().mode,
+      workspace: {
+        path: this.workspaces.get(workspaceId)!,
+        id: workspaceId
+      },
+      packageName,
+      suiteName
+    });
+  }
+
+  public async runTests(testIds: Array<RunTestId>): Promise<void> {
+    const testRuns: Map<string, Array<RunTestId>> = new Map();
+    for (const [workspaceId, packageName, suiteName, testId] of testIds) {
+      if (!testRuns.has(workspaceId)) testRuns.set(workspaceId, []);
+      const testRunId: RunTestId = [workspaceId, packageName, suiteName];
+      if (testId) testRunId.push(testId);
+      testRuns.get(workspaceId)!.push(testRunId);
+    }
+
+    for (const [workspaceId, testIds] of testRuns.entries()) {
+      this.rpcClient.runTests({
+        mode: this.context!.store.settingStore.getSettings().mode,
+        workspace: {
+          id: workspaceId,
+          path: this.workspaces.get(workspaceId)!
+        },
+        testIds
+      });
+    }
+
+    await this.database!.handleRunTests(testIds);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
-    this.notifier.onTestUpdate(callback);
+    this.database.onTestUpdate(callback);
   }
 
-  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
-    this.notifier.onRunTestsError(callback);
+  public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
+    this.database.onTestSuiteUpdate(callback);
   }
 
-  private notifyTestUpdate(test: Test): void {
-    this.notifier.notifyTestUpdate(test);
-  }
-
-  private notifyTestPackagesUpdate(): void {
-    this.notifier.notifyTestPackagesUpdate(this.testState.getTestPackages());
-  }
-
-  private notifyRunTestsError(error: RunTestsErrorData): void {
-    this.notifier.notifyRunTestsError(error);
-  }
-
-  public runTests(
-    workspacePath: string,
-    packageName: string,
-    suiteName: string,
-    testIds: Array<number>,
-    runIntent: SuiteRunIntent = 'partial'
-  ): void {
-    const runRequest = this.runCoordinator.prepareRunTests(
-      workspacePath,
-      packageName,
-      suiteName,
-      testIds,
-      runIntent,
-    );
-
-    this.runExecutor.dispatch(runRequest);
-  }
-
-  public runSuiteTests(packageName: string, suiteName: string): void {
-    const runRequest = this.runCoordinator.prepareSuiteRun(packageName, suiteName);
-    this.runExecutor.dispatch(runRequest);
-  }
-
-  private getSuiteRunIntent(packageName: string, suiteName: string): SuiteRunIntent {
-    return this.runIntentStore.getIntent(packageName, suiteName);
-  }
-
-  private setSuiteRunIntent(packageName: string, suiteName: string, runIntent: SuiteRunIntent): void {
-    this.runIntentStore.setIntent(packageName, suiteName, runIntent);
-  }
-
-  private clearSuiteRunIntent(packageName: string, suiteName: string): void {
-    this.runIntentStore.clearIntent(packageName, suiteName);
-  }
-
-  private hydrateSuiteTestsFromRun(packageName: string, suiteName: string, testInfos: Array<TestInfo>): void {
-    const context: SuiteHydrationContext = {
-      tests: this.testState.getTests(),
-      packages: this.testState.getPackages(),
-      notifyTestPackagesUpdate: this.notifyTestPackagesUpdate.bind(this),
-      logLine: (message: string) => this.context?.outputChannel.appendLine(message),
-    };
-
-    hydrateSuiteTestsFromRun(packageName, suiteName, testInfos, context);
-  }
-
-  // Get the coverage for a specific file and test item. If no test item is provided, return the global coverage for all tests.
-  public getCoverage(fileUri: vscode.Uri, testItemId?: string): StatementCoverage[] {
-    return this.coverageStore.getCoverage(fileUri, testItemId, this.context?.outputChannel);
+  public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
+    this.database.onTestSuiteStatusUpdate(callback);
   }
 }

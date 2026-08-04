@@ -80,7 +80,7 @@ function dynamicPlaceholder(label: string, note: string): ExtractedNode {
 function resolveModuleFile(
   moduleReference: string,
   contextModule: ParsedModule,
-  context: ExtractContext
+  context: ExtractContext,
 ): { file: string; module: ParsedModule } | null {
   const resolved = contextModule.imports.resolveModule(moduleReference);
   const filePath = moduleNameToFile(resolved ?? moduleReference, context.baseDirs);
@@ -99,7 +99,7 @@ function buildTastyNode(
   functionName: string,
   args: Array<A.NodeLike>,
   contextModule: ParsedModule,
-  context: ExtractContext
+  context: ExtractContext,
 ): ExtractedNode {
   let label: string | null = null;
 
@@ -136,8 +136,8 @@ function buildTastyNode(
       node.children.push(
         dynamicPlaceholder(
           label ?? 'group children',
-          'group children are not a literal list; not statically enumerable'
-        )
+          'group children are not a literal list; not statically enumerable',
+        ),
       );
     }
   }
@@ -149,7 +149,7 @@ function resolveReference(
   node: A.NodeLike,
   contextModule: ParsedModule,
   context: ExtractContext,
-  options: { quiet?: boolean }
+  options: { quiet?: boolean },
 ): { resolved: boolean; nodes: Array<ExtractedNode> } {
   const target = A.refTarget(node);
   const label = node.text.trim();
@@ -172,7 +172,7 @@ function resolveReference(
         nodes: [
           dynamicPlaceholder(
             label,
-            `unresolved reference: module ${target.module} not found under base dirs`
+            `unresolved reference: module ${target.module} not found under base dirs`,
           ),
         ],
       };
@@ -209,7 +209,7 @@ function resolveReference(
           label,
           `unresolved reference: binding '${target.name}'${
             target.module !== null ? ` in module ${target.module}` : ' in current module or imports'
-          } not found`
+          } not found`,
         ),
       ],
     };
@@ -229,7 +229,7 @@ function resolveReference(
         nodes: [
           dynamicPlaceholder(
             label,
-            `reference not followed (cross-file follow limit ${context.follow.limit} reached)`
+            `reference not followed (cross-file follow limit ${context.follow.limit} reached)`,
           ),
         ],
       };
@@ -244,7 +244,7 @@ function resolveReference(
       nodes: [
         dynamicPlaceholder(
           label,
-          `binding '${target.name}' resolved but has no simple RHS expression`
+          `binding '${target.name}' resolved but has no simple RHS expression`,
         ),
       ],
     };
@@ -258,7 +258,7 @@ function resolveReference(
 export function extractExpr(
   expression: A.NodeLike | null,
   contextModule: ParsedModule,
-  context: ExtractContext
+  context: ExtractContext,
 ): Array<ExtractedNode> {
   if (expression === null) {
     return [];
@@ -302,7 +302,7 @@ export function extractExpr(
                 resolveModuleFile: (moduleName: string) =>
                   resolveModuleFile(moduleName, contextModule, context),
               },
-              functionName
+              functionName,
             ),
           ];
         }
@@ -351,7 +351,7 @@ export function extractExpr(
               resolveModuleFile: (moduleName: string) =>
                 resolveModuleFile(moduleName, contextModule, context),
             },
-            functionName
+            functionName,
           ),
         ];
       }
@@ -463,7 +463,7 @@ function findEntryExpression(module: ParsedModule): { expr: A.NodeLike; from: st
 
 export function extractTree(
   entryModule: ParsedModule,
-  context: ExtractContext
+  context: ExtractContext,
 ): { tree: ExtractedNode | Array<ExtractedNode> | null; entryBinding: string | null } {
   const entry = findEntryExpression(entryModule);
   if (entry === null) {

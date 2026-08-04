@@ -95,7 +95,7 @@ function classifyThreatModelsBind(instanceNode: A.NodeLike): { kind: 'explicit';
 function findThreatModelsForInstance(
   model: string | null,
   contextModule: ParsedModule,
-  resolveModuleFile: (moduleName: string) => { file: string; module: ParsedModule } | null
+  resolveModuleFile: (moduleName: string) => { file: string; module: ParsedModule } | null,
 ): { instance: A.NodeLike; module: ParsedModule } | null {
   const matches = (instance: { name: string | null; patterns: string | null }): boolean =>
     instance.name === 'ThreatModelsFor' && (model === null || instance.patterns === model);
@@ -144,7 +144,7 @@ export function synthesizePropRunActions(
     rel: (filePath: string) => string;
     resolveModuleFile: (moduleName: string) => { file: string; module: ParsedModule } | null;
   },
-  functionName: string
+  functionName: string,
 ): ExtractedNode {
   let model: string | null = null;
   let label: string | null = null;
@@ -224,8 +224,8 @@ export function synthesizePropRunActions(
       pendingExpansion: false,
       children: threatModels.map((threatModelLabel, index) => {
         const note = threatModelsFromDefault
-          ? `from default allThreatModels set; real rendered name comes from getThreatModelName (fallback \"Threat model ${index + 1}\")`
-          : `best-guess label from source; real rendered name comes from getThreatModelName (fallback \"Threat model ${index + 1}\")`;
+          ? `from default allThreatModels set; real rendered name comes from getThreatModelName (fallback "Threat model ${index + 1}")`
+          : `best-guess label from source; real rendered name comes from getThreatModelName (fallback "Threat model ${index + 1}")`;
         return threatModelLeaf(threatModelLabel, note);
       }),
     };
@@ -243,8 +243,8 @@ export function synthesizePropRunActions(
       children: expectedVulnerabilities.map((vulnerabilityLabel, index) =>
         threatModelLeaf(
           vulnerabilityLabel,
-          `best-guess label from source; real rendered name comes from getThreatModelName (fallback \"Expected vulnerability ${index + 1}\")`
-        )
+          `best-guess label from source; real rendered name comes from getThreatModelName (fallback "Expected vulnerability ${index + 1}")`,
+        ),
       ),
     });
   }

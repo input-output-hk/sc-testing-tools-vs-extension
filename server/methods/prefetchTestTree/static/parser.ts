@@ -34,7 +34,7 @@ function resolveGrammarWasm(): string {
   }
 
   throw new Error(
-    `tree-sitter-haskell grammar wasm not found. Looked in: ${candidates.join(', ')}`
+    `tree-sitter-haskell grammar wasm not found. Looked in: ${candidates.join(', ')}`,
   );
 }
 
@@ -59,7 +59,7 @@ export function getGrammarPath(): string | null {
 function indexDecls(
   declarationsContainer: NodeLike | null,
   binds: Map<string, NodeLike>,
-  instances: Array<{ name: string | null; patterns: string | null; node: NodeLike }>
+  instances: Array<{ name: string | null; patterns: string | null; node: NodeLike }>,
 ): void {
   if (declarationsContainer === null) {
     return;
