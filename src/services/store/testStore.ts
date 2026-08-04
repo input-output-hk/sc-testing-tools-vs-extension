@@ -1,293 +1,164 @@
+import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
+import Database from '../database';
+import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
-import { SrcLocRanges } from '../../../shared/streaming-events';
-
-const GLOBAL_KEY = "#all_tests#";
-export type StatementCoverage = {
-  executed: number;
-  range: vscode.Range;
-}
-type FileCoverage = {[key: string]: StatementCoverage};
 
 export default class TestStore {
-  private context: PbtContext | null = null;
+  private context: PbtContext = {} as PbtContext;
+  private database: Database;
   private rpcClient: RpcClient;
-  private tests: TestList = {};
-  private packages: TestPackageList | null = null;
-  private testUpdateCallbacks: ((test: Test) => void)[] = [];
-  private runTestsErrorCallbacks: ((error: RunTestsErrorData) => void)[] = [];
-  private baseCoverageIndex: {[uri: string]: FileCoverage} = {};
-  private coverageRanges: {[uri: string]: {[testId : string]: FileCoverage}} = {};
-  private compareCovagerageTo: {[testId: string]: string} = {};
+
+  private workspaces: Map<string, string>;
+  private staticTestTree: TestTree | null = null;
+  private openState: Record<string, boolean> = {};
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
+    this.database = new Database();
+
+    this.workspaces = new Map(
+      vscode.workspace.workspaceFolders?.map(folder => [
+        this.getWorkspaceId(folder.uri.fsPath),
+        folder.uri.fsPath
+      ]) || []
+    );
+  }
+
+  private getWorkspaceId(workspacePath: string): string {
+    return createHash('sha256').update(workspacePath).digest('hex').slice(0, 8);
   }
 
   public async initialize(context: PbtContext): Promise<void> {
     this.context = context;
 
+    await this.database.initialize();
     await this.rpcClient.initialize(context);
 
-    this.rpcClient.onTestResult((result: TestResult) => {
-      if (result.error !== undefined) {
-        this.context?.outputChannel.appendLine(`ERROR: ${result.error}\n${JSON.stringify(result.rawEvent)}`);
-        return;
-      }
-      const [packageName, suiteName] = result.id.split(':');
-      const packagePath = this.getPackagePath(packageName);
-      let evt = result.event;
-      switch (evt.event) {
-        case 'suite_started':
-          this.context?.outputChannel.appendLine(`${suiteName} started.`);
-          this.baseCoverageIndex = Object.fromEntries(evt.coverageIndex.map(f =>
-            [ vscode.Uri.file(packagePath + '/' + f.file).toString()
-            , toFileCoverage(f, 0)
-            ]));
+    this.setupRpcListeners();
+    this.setupCoverageListener();
+  }
+  
+  private setupRpcListeners(): void {
+    this.rpcClient.onTestEvent((event: TestEvent) => {
+      switch (event.eventType) {
+        case 'test-suite-update':
+          this.database.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
           break;
-        case 'test_started':
+        case 'test-update':
+          this.database.handleTestUpdateEvent(event as TestUpdateEvent);
           break;
-        case 'test_trace':
-          this.addCovered(packagePath, evt.covered, result.id);
-          evt.trace.threatModels.map(tm => {
-            let tmId = `${packageName}:${suiteName}:${tm.testId}`;
-            this.compareCovagerageTo[tmId] = result.id;
-            this.addCovered(packagePath, tm.covered, tmId);
-          });
-          break;
-        case 'test_progress':
-          if (!this.tests[result.id]) break;
-          this.tests[result.id].percentage = evt.percent * 100;
-          this.notifyTestUpdate(this.tests[result.id]);
-          break;
-        case 'test_done':
-          if (!this.tests[result.id]) break;
-          if (!evt.success) {
-            this.context?.outputChannel.appendLine(`${this.tests[result.id].name}: FAILED`);
-            this.context?.outputChannel.appendLine('  ' + evt.description.replace(/\n/g, '\n  '));
-          }
-          this.tests[result.id].status = evt.success ? 'valid' : 'invalid';
-          this.tests[result.id].time = evt.duration * 1000;
-          this.notifyTestUpdate(this.tests[result.id]);
-          break;
-        case 'suite_done':
-          this.context?.outputChannel.appendLine(`Finished ${suiteName} in ${evt.duration.toFixed(1)}s, ${evt.passed}/${evt.passed+evt.failed} tests passed.`);
+        case 'test-context':
+          this.database.handleTestContextEvent(event as TestContextEvent);
           break;
       }
+    });
+
+    this.rpcClient.onBuildTestTreeError((error: BuildTestTreeErrorData) => {
+      //
     });
 
     this.rpcClient.onRunTestsError((error: RunTestsErrorData) => {
-      const { packageName, suiteName, testIds } = error.runContext;
-      for (const id of testIds) {
-        const testId = `${packageName}:${suiteName}:${id}`;
-        if (this.tests[testId]) {
-          this.tests[testId]!.status = 'invalid';
-          this.notifyTestUpdate(this.tests[testId]!);
-        }
-      }
-
-      this.notifyRunTestsError(error);
+      this.database.handleTestRunFailed(error.runParams.testRun);
     });
   }
 
-  private getPackagePath(packageName: string): string {
-    return this.packages?.[packageName]?.packagePath || "";
-  }
-
-  private getTestTree(test: Test): TestTree | null {
-    const [packageName, suiteName] = test.id.split(':');
-    if (!this.packages || !this.packages[packageName]) return null;
-    const suite = this.packages[packageName].suites[suiteName];
-    if (!suite) return null;
-    return suite.tree;
-  }
-
-  private createTestTreeNode(test: Test): void {
-    let node: TestTreeGroupNode | null = null;
-    for (const group of test.group) {
-      if (node === null) {
-        const tree = this.getTestTree(test);
-        if (!tree) return;
-        node = this.getTestTreeGroupNode(tree, group);
-      } else {
-        node = this.getTestTreeGroupNode(node.nodes, group);
+  private setupCoverageListener(): void {
+    // Render coverage for active document
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor !== undefined) {
+        this.database.getCoverageForFile(editor.document.uri.toString()).then(coverage => {
+          if (coverage !== null) {
+            renderCoverageForEditor(editor, coverage);
+          }
+        });
       }
+    }, null, this.context.extension.subscriptions);
+
+    // Remove coverage when user edits document
+    vscode.workspace.onDidChangeTextDocument(event => {
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor && event.document === activeEditor.document) {
+        clearCoverageForEditor(activeEditor);
+      }
+    }, null, this.context.extension.subscriptions);
+  }
+
+  public async getTestTree(): Promise<TestTree> {
+    if (this.staticTestTree === null) {
+      this.staticTestTree = await this.rpcClient.prefetchTestTree({
+        workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
+      });
+      for (const packageId of Object.keys(this.staticTestTree.packages)) {
+        this.openState[packageId] = true;
+      }
+      await this.database!.handleTestTree(this.staticTestTree);
+      return this.staticTestTree;
     }
-    node!.nodes[test.id] = { type: 'test', testId: test.id } as TestTreeTestNode;
+    
+    return await this.database!.buildTestTree(this.staticTestTree, this.openState);
   }
 
-  private getTestTreeGroupNode(nodes: TestTree, group: string): TestTreeGroupNode {
-    if (nodes[group] !== undefined) {
-      return nodes[group] as TestTreeGroupNode;
-    }
-    const newNode = { type: 'group', isOpen: false, name: group, nodes: {} } as TestTreeGroupNode;
-    nodes[group] = newNode;
-    return newNode;
+  public updateOpenTestTreeNode(
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ): void {
+    const id = [workspaceId, packageName];
+    if (suiteName) id.push(suiteName);
+    if (suiteName && path) id.push(...path);
+    this.openState[id.join(':')] = isOpen;
   }
 
-  public async buildTestPackages(): Promise<TestPackageData> {
-    this.packages = await this.rpcClient.listSuites();
-    return {
-      packages: this.packages,
-      tests: this.tests,
-    };
-  }
-
-  public async buildSuiteTestTree(packageName: string, suiteName: string): Promise<TestSuiteData|null> {
-    const testPackage = this.packages?.[packageName];
-    if (!testPackage) return null;
-
-    const testSuite = testPackage.suites[suiteName];
-    if (!testSuite) return null;
-
-    const testList = await this.rpcClient.listTests({
-      mode: this.validateExecutionMode(),
-      workspacePath: testPackage.workspacePath,
+  public buildTestTree(suiteId: TestSuiteId): void {
+    const [workspaceId, packageName, suiteName] = suiteId;
+    this.rpcClient.buildTestTree({
+      mode: this.context!.store.settingStore.getSettings().mode,
+      workspace: {
+        path: this.workspaces.get(workspaceId)!,
+        id: workspaceId
+      },
       packageName,
-      suiteName,
+      suiteName
     });
-
-    for (const test of testList) {
-      this.tests[test.id] = test;
-      this.createTestTreeNode(test);
-    }
-
-    return {
-      packageName,
-      suiteName,
-      tree: testSuite.tree,
-      tests: testList,
-    }
   }
 
-  public getTestPackages(): TestPackageData | null {
-    if (this.packages === null) {
-      return null;
+  public async runTests(testIds: Array<RunTestId>): Promise<void> {
+    const testRuns: Map<string, Array<RunTestId>> = new Map();
+    for (const [workspaceId, packageName, suiteName, testId] of testIds) {
+      if (!testRuns.has(workspaceId)) testRuns.set(workspaceId, []);
+      const testRunId: RunTestId = [workspaceId, packageName, suiteName];
+      if (testId) testRunId.push(testId);
+      testRuns.get(workspaceId)!.push(testRunId);
     }
-    return {
-      packages: this.packages,
-      tests: this.tests
-    };
-  };
 
-  public updateTestPackages(packages: TestPackageList): void {
-    this.packages = packages;
+    for (const [workspaceId, testIds] of testRuns.entries()) {
+      this.rpcClient.runTests({
+        mode: this.context!.store.settingStore.getSettings().mode,
+        workspace: {
+          id: workspaceId,
+          path: this.workspaces.get(workspaceId)!
+        },
+        testIds
+      });
+    }
+
+    await this.database!.handleRunTests(testIds);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
-    this.testUpdateCallbacks.push(callback);
+    this.database.onTestUpdate(callback);
   }
 
-  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
-    this.runTestsErrorCallbacks.push(callback);
+  public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
+    this.database.onTestSuiteUpdate(this.openState, callback);
   }
 
-  private notifyTestUpdate(test: Test): void {
-    for (const callback of this.testUpdateCallbacks) {
-      callback(test);
-    }
+  public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
+    this.database.onTestSuiteStatusUpdate(callback);
   }
-
-  private notifyRunTestsError(error: RunTestsErrorData): void {
-    for (const callback of this.runTestsErrorCallbacks) {
-      callback(error);
-    }
-  }
-
-  public runTests(workspacePath: string, packageName: string, suiteName: string, testIds: Array<number>): void {
-    for (const id of testIds) {
-      const testId = `${packageName}:${suiteName}:${id}`;
-      if (this.tests[testId]) {
-        this.tests[testId]!.status = 'running';
-        this.tests[testId]!.time = 0;
-        this.notifyTestUpdate(this.tests[testId]!);
-      }
-    }
-    this.rpcClient.runTests({
-      mode: this.validateExecutionMode(),
-      workspacePath, packageName, suiteName, testIds
-    });
-  }
-
-  private validateExecutionMode(): ExtensionMode {
-    const mode = this.context?.store.settingStore.getSettings().mode;
-    if (!mode) {
-      const errorMessage = 'Execution mode is not set';
-      this.context?.outputChannel.append(`> ERROR\n${errorMessage}`);
-      throw new Error(errorMessage);
-    }
-    return mode;
-  }
-
-  // Get the coverage for a specific file and test item. If no test item is provided, return the global coverage for all tests.
-  public getCoverage(fileUri: vscode.Uri, testItemId?: string): StatementCoverage[] {
-    let testKey = testItemId || GLOBAL_KEY;
-    let allDetails = this.coverageRanges[fileUri.toString()];
-    if (!allDetails) {
-      this.context?.outputChannel.appendLine(`No coverage found for ${fileUri}, only for ${Object.keys(this.coverageRanges)}`);
-      return [];
-    }
-    let details = allDetails[testKey];
-    if (!details) {
-      this.context?.outputChannel.appendLine(`No coverage found for ${testItemId}, only for ${Object.keys(allDetails)}`);
-      return [];
-    }
-    if (this.compareCovagerageTo[testKey]) {
-      let compare = allDetails[this.compareCovagerageTo[testKey]];
-      let result = [];
-      for (let key in details)
-        if (!compare[key]) result.push(details[key]);
-      for (let key in compare) {
-        if (!details[key]) {
-          result.push({ executed: 0, range: compare[key].range});
-        }
-      }
-      return result;
-    } else {
-      let base = this.baseCoverageIndex[fileUri.toString()];
-      if (!base) {
-        this.context?.outputChannel.appendLine(`No coverage index found for ${fileUri}, only for ${Object.keys(this.baseCoverageIndex)}`);
-        return [];
-      }
-      return Object.values(Object.assign({}, base, details));
-    }
-  }
-
-  private addCovered(packagePath: string, covered: SrcLocRanges[], testItemId: string) {
-    for (const cov of covered) {
-      let covData = toFileCoverage(cov, 1);
-      let uri = vscode.Uri.file(packagePath + '/' + cov.file).toString();
-      this.coverageRanges[uri] ||= {};
-      this.coverageRanges[uri][GLOBAL_KEY] ||= {};
-      this.coverageRanges[uri][testItemId] ||= {};
-      for (let key in covData) {
-        let cov = covData[key];
-        if (!this.coverageRanges[uri][GLOBAL_KEY][key]?.executed)
-          this.coverageRanges[uri][GLOBAL_KEY][key] = cov;
-        else
-          this.coverageRanges[uri][GLOBAL_KEY][key].executed++;
-
-        if (!this.coverageRanges[uri][testItemId][key]?.executed)
-          this.coverageRanges[uri][testItemId][key] = cov;
-        else
-          this.coverageRanges[uri][testItemId][key].executed++;
-      }
-    }
-  }
-}
-
-// Convert SrcLocRanges to a FileCoverage object, which maps each statement range to its execution count and range.
-function toFileCoverage(covData: SrcLocRanges, executed: number): FileCoverage {
-  return Object.fromEntries(covData.startLines.map((startLine, i) => {
-    let startCol = covData.startCols[i];
-    let endLine = covData.endLines[i];
-    let endCol = covData.endCols[i];
-    let range = new vscode.Range(
-      new vscode.Position(startLine - 1, startCol - 1),
-      new vscode.Position(endLine - 1, endCol - 1)
-    );
-    return [`${startLine},${startCol}-${endLine},${endCol}`, {executed, range}];
-  }));
 }
