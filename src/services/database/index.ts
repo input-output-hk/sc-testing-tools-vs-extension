@@ -134,7 +134,7 @@ export default class Database {
     await this.database!.tests.bulkRemove(removeTests);
   }
 
-  private async upsertCoverage(packageId: TestPackageId, coverage: Array<FileCoverage>): Promise<void> {
+  private async upsertCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
     const [workspaceId, packageName] = packageId;
     const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
       selector: { workspaceId, packageName }
@@ -396,7 +396,7 @@ export default class Database {
 
     if (coverageDocument === null) return {};
 
-    const statements: Record<string, Array<TestId>> = {};
+    const statements: CoverageStatements = {};
     for (const statement of coverageDocument.statements) {
       const range = [
         statement.range.start.line,
@@ -416,6 +416,37 @@ export default class Database {
     }
 
     return statements;
+  }
+
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    const coverage: Array<FileCoverage> = [];
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find({}).exec();
+    for (const document of documents) {
+      const filePath = document.filePath;
+      const statements: CoverageStatements = {};
+
+      for (const statement of document.statements) {
+        const range = [
+          statement.range.start.line,
+          statement.range.start.character,
+          statement.range.end.line,
+          statement.range.end.character
+        ].join(':');
+
+        const testIds: Array<TestId> = statement.testIds.map(testId => [
+          testId.workspaceId,
+          testId.packageName,
+          testId.suiteName,
+          testId.testId
+        ]);
+
+        statements[range] = testIds;
+      }
+
+      coverage.push({ filePath, statements });
+    }
+
+    return coverage;
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

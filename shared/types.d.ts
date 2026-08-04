@@ -104,14 +104,19 @@ type TestTreeTestNode = TestTreeNode & {
 
 // Coverage
 
-type FileCoverageMap = Record<string, FileCoverage>;
+type CoverageStatements = Record<string, Array<TestId>>;
 
-type FileCoverage = {
+type TestEventCoverageMap = Record<string, TestEventCoverage>;
+
+type TestEventCoverage = {
   fileUri: string;
   statements: CoverageStatements;
 };
 
-type CoverageStatements = Record<string, Array<TestId>>;
+type FileCoverage = {
+  filePath: string;
+  statements: CoverageStatements;
+};
 
 // Webview message
 
@@ -183,7 +188,7 @@ type TestSuiteUpdateEvent = TestEvent & {
     suiteName: string;
     runStatus: "idle" | "running" | "done";
     tests?: Array<Test>;
-    coverage?: Array<FileCoverage>;
+    coverage?: Array<TestEventCoverage>;
   };
 };
 
@@ -201,7 +206,7 @@ type TestContextEvent = TestEvent & {
   eventType: "test-context";
   payload: {
     id: TestId;
-    coverage: Array<FileCoverage>;
+    coverage: Array<TestEventCoverage>;
   };
 };
 
