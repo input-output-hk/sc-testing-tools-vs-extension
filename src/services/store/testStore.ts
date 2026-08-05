@@ -148,6 +148,10 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverage();
+  }
+
   public onTestUpdate(callback: (test: Test) => void): void {
     this.database.onTestUpdate(callback);
   }
