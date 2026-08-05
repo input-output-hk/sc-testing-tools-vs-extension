@@ -4,15 +4,15 @@ const toRangeKey = (startLine: number, startCol: number, endLine: number, endCol
   return `${startLine}:${startCol}:${endLine}:${endCol}`;
 };
 
-export const createCoverage = (items: CoverageRanges[], testId?: TestId): FileCoverageMap => {
-  const coverage: FileCoverageMap = {};
+export const createCoverage = (items: CoverageRanges[], testId?: TestId): TestEventCoverageMap => {
+  const coverage: TestEventCoverageMap = {};
   updateCoverage(coverage, items, testId);
   return coverage;
 };
 
-export const updateCoverage = (coverage: FileCoverageMap, items: CoverageRanges[], testId?: TestId): void => {
+export const updateCoverage = (coverage: TestEventCoverageMap, items: CoverageRanges[], testId?: TestId): void => {
   for (const item of items) {
-    const fileCoverage: FileCoverage =
+    const fileCoverage: TestEventCoverage =
       coverage[item.file] ??
       { fileUri: item.file, statements: {} };
     

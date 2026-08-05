@@ -69,10 +69,8 @@ export default class TestStore {
     // Render coverage for active document
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor !== undefined) {
-        this.database.getCoverageForFile(editor.document.uri.toString()).then(coverage => {
-          if (coverage !== null) {
-            renderCoverageForEditor(editor, coverage);
-          }
+        this.database.getCoverageForFile(editor.document.uri.toString()).then(statements => {
+          renderCoverageForEditor(editor, statements);
         });
       }
     }, null, this.context.extension.subscriptions);
@@ -148,6 +146,14 @@ export default class TestStore {
     }
 
     await this.database!.handleRunTests(testIds);
+  }
+
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverage();
+  }
+
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverageForTest(testId);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

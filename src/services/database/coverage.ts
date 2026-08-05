@@ -17,7 +17,7 @@ const coverageSchemaLiteral = {
       maxLength: 64,
       final: true,
     },
-    fileUri: {
+    filePath: {
       type: 'string',
       final: true,
     },
@@ -68,7 +68,7 @@ const coverageSchemaLiteral = {
   },
   required: [
     'fileHash',
-    'fileUri',
+    'filePath',
     'statements',
   ],
 } as const;
