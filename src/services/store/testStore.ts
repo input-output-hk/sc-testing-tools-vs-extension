@@ -154,6 +154,10 @@ export default class TestStore {
       rounds: await this.database.getTestRounds(testId),
     };
   }
+  
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverage();
+  }
 
   public onTestUpdate(callback: (test: Test) => void): void {
     this.database.onTestUpdate(callback);

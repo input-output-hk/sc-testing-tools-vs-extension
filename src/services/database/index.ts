@@ -86,6 +86,15 @@ export default class Database {
     return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
   }
 
+  private rangeToKey(range: TestRange): string {
+    return [
+      range.start.line,
+      range.start.character,
+      range.end.line,
+      range.end.character
+    ].join(':');
+  }
+
   private async computeSuiteStatus(suite: SuiteDocument): Promise<RunStatus> {
     const tests: Array<TestDocument> = await this.database!.tests.find({
       selector: {
@@ -152,19 +161,51 @@ export default class Database {
 
     if (packageDocument !== null) {
       const packagePath = packageDocument.packagePath;
-      await this.database!.coverage.bulkUpsert(coverage.map(fileCoverage => ({
-        fileHash: this.makeFileHash(`${packagePath}/${fileCoverage.fileUri}`),
-        filePath: `${packagePath}/${fileCoverage.fileUri}`,
-        statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-          range: this.keyToRange(rangeKey),
-          testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
-            workspaceId,
-            packageName,
-            suiteName,
-            testId,
-          }))
-        }))
-      })));
+      for (const fileCoverage of coverage) {
+        const filePath = `${packagePath}/${fileCoverage.fileUri}`;
+        const fileHash = this.makeFileHash(filePath);
+        
+        const coverageDocument: CoverageDocument | null = await this.database!.coverage.findOne({
+          selector: { fileHash }
+        }).exec();
+
+        if (coverageDocument === null) {
+          await this.database!.coverage.insert({
+            fileHash,
+            filePath,
+            statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
+              range: this.keyToRange(rangeKey),
+              testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
+                workspaceId, packageName, suiteName, testId
+              }))
+            }))
+          });
+        } else {
+          const statements = coverageDocument.statements;
+          for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
+            const existingStatement = statements.find(statement => this.rangeToKey(statement.range) === rangeKey);
+            if (existingStatement) {
+              const existingTestIds = new Set(existingStatement.testIds.map(id => [id.workspaceId, id.packageName, id.suiteName, id.testId].join(':')));
+              for (const [workspaceId, packageName, suiteName, testId] of testIds) {
+                const idKey = [workspaceId, packageName, suiteName, testId].join(':');
+                existingTestIds.add(idKey);
+              }
+              existingStatement.testIds = Array.from(existingTestIds).map(idKey => {
+                const [workspaceId, packageName, suiteName, testId] = idKey.split(':');
+                return { workspaceId, packageName, suiteName, testId };
+              });
+            } else {
+              statements.push({
+                range: this.keyToRange(rangeKey),
+                testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
+                  workspaceId, packageName, suiteName, testId
+                }))
+              });
+            }
+          }
+          await coverageDocument.update({ $set: { statements } });
+        }
+      }
     }
   }
 
