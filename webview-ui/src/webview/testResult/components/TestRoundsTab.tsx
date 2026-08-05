@@ -33,7 +33,7 @@ const TestRoundsTab: React.FC<Props> = ({ testResult }) => {
               </tr>
             </thead>
             <tbody>
-              {testResult.rounds.map((round, index) => (
+              {testResult.rounds.sort((a, b) => a.id - b.id).map((round, index) => (
                 <tr
                   key={index}
                   className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}
