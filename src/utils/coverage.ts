@@ -43,7 +43,7 @@ export const clearCoverageForEditor = (editor: vscode.TextEditor) => {
   editor.setDecorations(uncoveredStyle, []);
 }
 
-export const getFilesCoverageStats = async (fileCoverage: FileCoverage): Promise<FileCoverageWithStats> => {
+export const getFileCoverageStats = async (fileCoverage: FileCoverage): Promise<FileCoverageWithStats> => {
   const fileBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(fileCoverage.filePath));
   const fileContent = Buffer.from(fileBuffer).toString('utf-8');
   const fileLines = fileContent.split('\n');

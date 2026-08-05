@@ -588,4 +588,27 @@ export default class Database {
       }
     });
   }
+
+  public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {
+    this.database!.coverage.$.subscribe(changeEvent => {
+      if (changeEvent.operation === 'INSERT' || changeEvent.operation === 'UPDATE') {
+        const document = changeEvent.documentData;
+        const statements: CoverageStatements = {};
+        for (const statement of document.statements) {
+          statements[[
+            statement.range.start.line,
+            statement.range.start.character,
+            statement.range.end.line,
+            statement.range.end.character
+          ].join(':')] = statement.testIds;
+        }
+        callback({
+          fileHash: document.fileHash,
+          filePath: document.filePath,
+          context: document.context,
+          statements
+        });
+      }
+    });
+  }
 }

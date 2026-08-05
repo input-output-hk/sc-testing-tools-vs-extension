@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor, getFilesCoverageStats } from '../../utils/coverage';
+import { renderCoverageForEditor, clearCoverageForEditor, getFileCoverageStats } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -152,7 +152,7 @@ export default class TestStore {
     const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
     const coverageItems = await this.database.getCoverage();
     for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFilesCoverageStats(coverageItem);
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
       coverageItemsWithStats.push(coverageWithStats);
     }
     return coverageItemsWithStats;
@@ -162,7 +162,7 @@ export default class TestStore {
     const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
     const coverageItems = await this.database.getCoverageForTest(testId);
     for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFilesCoverageStats(coverageItem);
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
       coverageItemsWithStats.push(coverageWithStats);
     }
     return coverageItemsWithStats;
@@ -178,5 +178,11 @@ export default class TestStore {
 
   public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
     this.database.onTestSuiteStatusUpdate(callback);
+  }
+
+  public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
+    this.database.onCoverageUpdate(async fileCoverage => {
+      callback(await getFileCoverageStats(fileCoverage));
+    });
   }
 }
