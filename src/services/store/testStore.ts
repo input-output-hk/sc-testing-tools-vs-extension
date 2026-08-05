@@ -148,6 +148,13 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
+  public async getTestResult(testId: TestId): Promise<TestResult> {
+    return {
+      test: await this.database.getTest(testId),
+      rounds: await this.database.getTestRounds(testId),
+    };
+  }
+  
   public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
     const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
     const coverageItems = await this.database.getCoverage();

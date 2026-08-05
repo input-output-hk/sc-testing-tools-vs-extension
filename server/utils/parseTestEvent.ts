@@ -170,6 +170,21 @@ const parseTestTraceEvent = (
   event: TestTraceEvent
 ): TestContextEvent => {
   const testId: TestId = [workspaceId, packageName, suiteName, event.id.toString()];
+  
+  const round: TestRound = {
+    id: event.trace.index,
+    status: event.trace.status,
+    transitions: [],
+  };
+
+  for (const transition of event.trace.transitions) {
+    round.transitions.push({
+      action: transition.action,
+      result: transition.result,
+      stepIndex: transition.stepIndex,
+    });
+  }
+
   const coverage = createCoverage(
     event.covered,
     workspaceId,
@@ -193,6 +208,7 @@ const parseTestTraceEvent = (
     eventType: 'test-context',
     payload: {
       id: testId,
+      round,
       coverage: Object.values(coverage),
     },
   };

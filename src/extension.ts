@@ -3,12 +3,14 @@
 import * as vscode from 'vscode';
 import Store from './services/store';
 import TestTreeView from './modules/testTreeView';
+import TestResultView from './modules/testResultView';
 import TestConfigurationView from './modules/testConfigurationView';
 
 export type PbtContext = {
   extension: vscode.ExtensionContext;
   store: Store;
   testTreeView: TestTreeView;
+  testResultView: TestResultView;
   testConfigurationView: TestConfigurationView;
   outputChannel: vscode.OutputChannel;
   statusBarItem: vscode.StatusBarItem;
@@ -24,6 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Init test tree view
   const testTreeView = new TestTreeView();
 
+  // Init test result view
+  const testResultView = new TestResultView();
+
   // Init test configuration view
   const testConfigurationView = new TestConfigurationView();
 
@@ -38,6 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
     extension: context,
     store,
     testTreeView,
+    testResultView,
     testConfigurationView,
     outputChannel,
     statusBarItem,
@@ -47,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
   store.initialize(pbtContext).then(() => {
     // Activate modules
     testTreeView.activate(pbtContext);
+    testResultView.activate(pbtContext);
     testConfigurationView.activate(pbtContext);
   });
 

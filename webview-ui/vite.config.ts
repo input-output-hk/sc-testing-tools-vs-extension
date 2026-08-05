@@ -15,6 +15,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         testTree: resolve(__dirname, 'entrypoint/testTree.html'),
+        testResult: resolve(__dirname, 'entrypoint/testResult.html'),
         testConfiguration: resolve(__dirname, 'entrypoint/testConfiguration.html'),
       },
       output: {
