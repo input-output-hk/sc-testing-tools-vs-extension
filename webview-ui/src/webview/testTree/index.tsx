@@ -3,6 +3,12 @@ import { useEffect, useState } from 'react';
 import EmptyView from './components/EmptyView';
 import ErrorView from './components/ErrorView';
 import TreeView from './components/TreeView';
+import {
+  updateTest,
+  updateTestSuite,
+  updateTestSuiteStatus,
+  updateOpenTestTreeNode
+} from './utils/treeUpdateUtils';
 
 import type { WebviewApi } from 'vscode-webview';
 
@@ -10,53 +16,9 @@ interface Props {
   vscode: WebviewApi<unknown>;
 }
 
-const updatePackages = (packages: TestPackageList, path: Array<string>, isOpen: boolean): TestPackageList => {
-  const [packageName, suiteName, ...groupPath] = path;
-
-  const packageNode = packages[packageName];
-  if (!packageNode) return packages;
-
-  if (suiteName === undefined) {
-    packageNode.isOpen = isOpen;
-    return packages;
-  }
-
-  const suiteNode = packageNode.suites[suiteName];
-  if (!suiteNode) return packages;
-
-  if (groupPath.length === 0) {
-    suiteNode.isOpen = isOpen;
-    return packages;
-  }
-
-  let node: TestTreeGroupNode = { type: 'group', name: '', isOpen: false, nodes: suiteNode.tree };
-  for (const group of groupPath) {
-    if (node.nodes[group] && node.nodes[group].type === 'group') {
-      node = node.nodes[group] as TestTreeGroupNode;
-    } else {
-      return packages;
-    }
-  }
-
-  node.isOpen = isOpen;
-  return packages;
-};
-
-const updateSuite = (packages: TestPackageList, packageName: string, suiteName: string, status: TestSuiteStatus): TestPackageList => {
-  const packageNode = packages[packageName];
-  if (!packageNode) return packages;
-
-  const suiteNode = packageNode.suites[suiteName];
-  if (!suiteNode) return packages;
-
-  suiteNode.status = status;
-  return packages;
-};
-
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
-  const [activeView, setActiveView] = useState<'loading'| 'empty' | 'noSuites' | 'tree' | 'error'>('loading');
-  const [tests, setTests] = useState<TestList|null>(null);
-  const [packages, setPackages] = useState<TestPackageList|null>(null);
+  const [activeView, setActiveView] = useState<'loading'| 'empty' | 'noTree' | 'tree' | 'error'>('loading');
+  const [testTree, setTestTree] = useState<TestTree | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -68,55 +30,40 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           setActiveView('empty');
         } 
       }
-      if (message.type === 'test-package-list') {
-        if (message.payload !== null) {
-          setTests(message.payload.tests);
-          setPackages(message.payload.packages);
-          setActiveView(Object.keys(message.payload.packages).length === 0 ? 'noSuites' : 'tree');
+      if (message.type === 'test-tree') {
+        const payload = message.payload;
+
+        if (
+          payload !== null &&
+          payload !== undefined &&
+          payload.testTree.packages !== null &&
+          Object.keys(payload.testTree.packages).length > 0
+        ) {
+          setTestTree(payload.testTree);
+          setActiveView('tree');
+        } else {
+          setActiveView('noTree');
         }
       }
-      if (message.type === 'test-package-list-error') {
-        setActiveView('error');
-      }
-      if (message.type === 'test-suite-tree') {
-        setTests(tests => {
-          const newTests = tests ? { ...tests } : {};
-          for (const test of message.payload.tests) {
-            newTests[test.id] = test;
-          }
-          return newTests;
-        });
-        setPackages(packages => {
-          const newPackages = packages ? { ...packages } : {};
-          if (newPackages[message.payload.packageName]) {
-            newPackages[message.payload.packageName] = {
-              ...newPackages[message.payload.packageName],
-              suites: {
-                ...newPackages[message.payload.packageName].suites,
-                [message.payload.suiteName]: {
-                  ...newPackages[message.payload.packageName].suites[message.payload.suiteName],
-                  status: 'ready',
-                  tree: message.payload.tree,
-                },
-              },
-            };
-          }
-          return newPackages;
-        });
-      }
+      // if (message.type === 'test-tree-error') {
+      //   setActiveView('error');
+      // }
       if (message.type === 'test-suite-update') {
-        setPackages(
-          packages => updateSuite({ ...packages! },
-            message.payload.packageName,
-            message.payload.suiteName,
-            message.payload.status)
-        );
+        setTestTree(testTree => {
+          if (!testTree) return testTree;
+          return updateTestSuite({ ...testTree }, message.payload);
+        });
       }
       if (message.type === 'test-update') {
-        setTests(tests => {
-          const newTests = tests ? { ...tests } : {};
-          newTests[message.payload.test.id] = message.payload.test;
-          return newTests;
+        setTestTree(testTree => {
+          if (!testTree) return testTree;
+          return updateTest(testTree, message.payload);
+        });
+      }
+      if (message.type === 'test-suite-status-update') {
+        setTestTree(testTree => {
+          if (!testTree) return testTree;
+          return updateTestSuiteStatus(testTree, message.payload);
         });
       }
     };
@@ -126,37 +73,50 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const onBuildTestSuiteTree = (packageName: string, suiteName: string) => {
-    vscode.postMessage({ type: 'build-test-suite-tree', payload: { packageName, suiteName } } as WebviewToExtensionMessage);
-  };
-
-  const onToggleTreeGroup = (path: Array<string>, isOpen: boolean) => {
-    const newPackages = updatePackages({ ...packages }, path, isOpen);
-    vscode.postMessage({ type: 'update-test-packages-list', payload: { packages: newPackages } } as WebviewToExtensionMessage);
-    setPackages(newPackages);
-  };
-
-  const onRunTest = (testIds: Array<string>) => {
+  const onRunTests = (testIds: Array<RunTestId>) => {
     vscode.postMessage({ type: 'run-tests', payload: { testIds } } as WebviewToExtensionMessage);
+  };
+
+  const onUpdateOpenTestTreeNode = (
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ) => {
+    setTestTree(testTree => {
+      if (!testTree) return testTree;
+      return updateOpenTestTreeNode(
+        { ...testTree },
+        isOpen,
+        workspaceId,
+        packageName,
+        suiteName,
+        path
+      );
+    });
+
+    vscode.postMessage({
+      type: 'update-test-tree',
+      payload: { isOpen, workspaceId, packageName, suiteName, path }
+    } as WebviewToExtensionMessage);
   };
 
   return (
     <>
       {activeView === 'empty' && <EmptyView vscode={vscode} />}
-      {activeView === 'noSuites' && (
+      {activeView === 'noTree' && (
         <EmptyView
           vscode={vscode}
           message="No test suites found in this workspace. Open a different folder, or add a test-suite file to the open folder."
         />
       )}
       {activeView === 'error' && <ErrorView vscode={vscode} />}
-      {activeView === 'tree' && (
+      {activeView === 'tree' && testTree && (
         <TreeView
-          tests={tests!}
-          packages={packages!}
-          onRunTest={onRunTest}
-          onBuildTestSuiteTree={onBuildTestSuiteTree}
-          onToggleTreeGroup={onToggleTreeGroup}
+          testTree={testTree} 
+          onRunTests={onRunTests}
+          onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
         />
       )}
     </>

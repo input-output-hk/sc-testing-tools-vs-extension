@@ -3,69 +3,71 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewSuite from './TreeViewSuite';
+import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from './useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus } from '../../utils/treeUtils';
+import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus } from '../../utils/treeUtils';
 
 interface TreeViewPackageProps {
-  tests: TestList;
-  package: TestPackage;
+  testPackage: TestPackage;
   filterText: string;
-  statusFilter: TestStatus | null;
-  onRunTest: (testIds: Array<string>) => void;
-  onBuildTestSuiteTree: (packageName: string, suiteName: string) => void;
-  onToggleTreeGroup: (path: Array<string>, isOpen: boolean) => void;
-  onUpdateSelection: (testIds: Array<string>, selected: boolean) => void;
+  statusFilter: RunStatus | null;
+  onRunTests: (testIds: Array<RunTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onUpdateOpenTestTreeNode: (
+    isOpen: boolean,
+    workspaceId: string,
+    packageName: string,
+    suiteName?: string,
+    path?: Array<string>
+  ) => void;
 }
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
-  package: pkg,
-  tests,
+  testPackage,
   filterText,
   statusFilter,
-  onRunTest,
-  onBuildTestSuiteTree,
-  onToggleTreeGroup,
+  onRunTests,
   onUpdateSelection,
+  onUpdateOpenTestTreeNode,
 }) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
-      onToggleTreeGroup([pkg.name], !isCollapsed);
+      onUpdateOpenTestTreeNode(!isCollapsed, testPackage.workspace.id, testPackage.name);
     },
   });
 
   const effectiveFilterText =
-    !filterText || pkg.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
+    !filterText || testPackage.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
 
-  const filteredSuiteKeys = useMemo(
+  const filteredSuites = useMemo(
     () =>
-      Object.keys(pkg.suites).filter(
-        (key) =>
-          suiteMatchesStatus(pkg.suites[key], statusFilter, tests) &&
-          (!effectiveFilterText || suiteMatchesFilter(pkg.suites[key], effectiveFilterText, tests)),
+      Object.values(testPackage.suites).filter(
+        (suite) =>
+          suiteMatchesStatus(suite, statusFilter) &&
+          (!effectiveFilterText || suiteMatchesFilter(suite, effectiveFilterText)),
       ),
-    [pkg.suites, effectiveFilterText, statusFilter, tests],
+    [testPackage.suites, effectiveFilterText, statusFilter],
   );
 
   return (
-    <VscodeTreeItem ref={treeItemRef} open={pkg.isOpen}>
-      <i className="codicon codicon-package" />
+    <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen}>
+      <TestStatusIcon status={getPackageStatus(testPackage)} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
-          {pkg.name}
+          {testPackage.name}
         </span>
       </span>
-      {filteredSuiteKeys.map((key) => (
+      {filteredSuites.map((suite) => (
         <TreeViewSuite
-          key={key}
-          suite={pkg.suites[key]}
-          path={[pkg.name, key]}
-          tests={tests}
+          key={suite.name}
+          workspaceId={testPackage.workspace.id}
+          packageName={testPackage.name}
+          suite={suite}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
-          onRunTest={onRunTest}
-          onBuildTestSuiteTree={onBuildTestSuiteTree}
-          onToggleTreeGroup={onToggleTreeGroup}
+          onRunTests={onRunTests}
           onUpdateSelection={onUpdateSelection}
+          onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
         />
       ))}
     </VscodeTreeItem>

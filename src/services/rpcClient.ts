@@ -35,81 +35,73 @@ export default class RpcClient {
     this.connection.listen();
   }
 
-  public onTestResult(callback: (test: TestResult) => void): void {
-    this.connection.onNotification('testResult', (test: TestResult) => {
-      callback(test);
-    });
+  public async prefetchTestTree(params: PrefetchTestTreeParams): Promise<TestTree> {
+    const request = new rpc.RequestType<PrefetchTestTreeParams, TestTree, void>('prefetchTestTree');
+    return await this.connection.sendRequest(request, params);
   }
 
-  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
-    const notification = new rpc.NotificationType<RunTestsErrorData>('runTestsError');
-    this.connection.onNotification(notification, (error: RunTestsErrorData) => {
-      this.context?.outputChannel.appendLine('> ERROR');
-      this.context?.outputChannel.appendLine(this.buildRunTestsErrorLog(error));
-      callback(error);
-    });
-  }
-
-  // Sends a 'listSuites' request over the JSON-RPC connection to the child server
-  // process (server/methods/listSuites), passing the fs paths of every open workspace
-  // folder. Awaits the response and resolves with the discovered TestPackageList once
-  // the server finishes scanning those folders for packages/suites.
-  public async listSuites(): Promise<TestPackageList> {
-    const request = new rpc.RequestType<ListSuitesParams, TestPackageList, void>('listSuites');
-    const workspacePaths = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
-    try {
-      return await this.connection.sendRequest(request, { workspacePaths });
-    } catch (error) {
-      throw error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  public async listTests(params: ListTestsParams): Promise<Array<Test>> {
-    const request = new rpc.RequestType<ListTestsParams, Array<Test>, ScriptExecutionErrorData>('listTests');
-
-    try {
-      return await this.connection.sendRequest(request, params);
-    } catch (exception) {
-      const error = this.buildListTestsError(exception);
-      this.context?.outputChannel.append(`> ERROR\n${error.message}\n${error.stack}`);
-      throw error;
-    }
+  public buildTestTree(params: BuildTestTreeParams): void {
+    const notification = new rpc.NotificationType<BuildTestTreeParams>('buildTestTree');
+    this.connection.sendNotification(notification, params);
+    this.clearError();
   }
 
   public runTests(params: RunTestsParams): void {
     const notification = new rpc.NotificationType<RunTestsParams>('runTests');
     this.connection.sendNotification(notification, params);
+    this.clearError();
   }
 
-  private buildListTestsError(error: unknown): Error {
-    if (error instanceof rpc.ResponseError) {
-      const responseError = error as rpc.ResponseError<ScriptExecutionErrorData>;
-      const data = responseError.data;
-
-      if (data?.kind === 'script-execution-error') {
-        const exitCode = data.exitCode === null ? 'unknown' : String(data.exitCode);
-        const output = data.stderr.trim() || data.stdout.trim();
-        const message = output.length > 0
-          ? `listTests failed (${data.scriptPath}, exit code ${exitCode}): ${output}`
-          : `listTests failed (${data.scriptPath}, exit code ${exitCode})`;
-        return new Error(message, { cause: error });
-      }
-
-      return new Error(responseError.message, { cause: error });
-    }
-
-    if (error instanceof Error) {
-      return error;
-    }
-
-    return new Error(String(error));
+  public onTestEvent(callback: (event: TestEvent) => void): void {
+    this.connection.onNotification('testEvent', (event: TestEvent) => {
+      callback(event);
+    });
   }
 
-  private buildRunTestsErrorLog(error: RunTestsErrorData): string {
-    const { packageName, suiteName, testIds } = error.runContext;
+  public onBuildTestTreeError(callback: (error: BuildTestTreeErrorData) => void): void {
+    const notification = new rpc.NotificationType<BuildTestTreeErrorData>('buildTestTreeError');
+    this.connection.onNotification(notification, (error: BuildTestTreeErrorData) => {
+      this.showError('Test suite build failed', this.buildBuildTestTreeErrorLog(error));
+      callback(error);
+    });
+  }
+
+  private buildBuildTestTreeErrorLog(error: BuildTestTreeErrorData): string {
+    const { packageName, suiteName } = error.runParams;
     const exitCode = error.exitCode === null ? 'unknown' : String(error.exitCode);
     const commandOutput = error.stderr.trim() || error.stdout.trim();
     const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
-    return `runTests failed for ${packageName}/${suiteName} [${testIds.join(',')}] (exit code ${exitCode})${details}`;
+    return `Build test tree failed for ${packageName}/${suiteName} (exit code ${exitCode})${details}`;
+  }
+
+  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
+    const notification = new rpc.NotificationType<RunTestsErrorData>('runTestsError');
+    this.connection.onNotification(notification, (error: RunTestsErrorData) => {
+      this.showError('Test execution failed', this.buildRunTestsErrorLog(error));
+      callback(error);
+    });
+  }
+
+  private buildRunTestsErrorLog(error: RunTestsErrorData): string {
+    const { testRun: { packageName, suiteName, testIds } } = error.runParams;
+    const exitCode = error.exitCode === null ? 'unknown' : String(error.exitCode);
+    const commandOutput = error.stderr.trim() || error.stdout.trim();
+    const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
+    const testIdLabel = testIds && testIds.length > 0 ? `[${testIds.join(',')}]` : '[all tests]';
+    return `Run tests failed for ${packageName}/${suiteName} ${testIdLabel} (exit code ${exitCode})${details}`;
+  }
+
+  private showError(title: string, message: string): void {
+    this.context!.outputChannel.appendLine(`> ERROR: ${title}`);
+    this.context!.outputChannel.appendLine(message);
+    this.context!.outputChannel.show(true);
+
+    this.context!.statusBarItem.text = `$(error) ${title}`;
+    this.context!.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    this.context!.statusBarItem.show();
+  }
+
+  private clearError(): void {
+    this.context!.statusBarItem.hide();
   }
 }

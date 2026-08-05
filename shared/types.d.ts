@@ -1,5 +1,5 @@
 // Errors
-type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
 
 type ErrorObj = {
   hasError: boolean;
@@ -9,92 +9,150 @@ type ErrorObj = {
 
 // Test
 
+type RunStatus = "undetermined" | "waiting" | "running" | "valid" | "invalid";
+
+type TestPackageId = [
+  workspaceId: string,
+  packageName: string
+];
+
+type TestSuiteId = [
+  workspaceId: string,
+  packageName: string,
+  suiteName: string
+];
+
+type TestId = [
+  workspaceId: string,
+  packageName: string,
+  suiteName: string,
+  testId: string
+];
+
+type RunTestId = TestSuiteId | TestId;
+
 type Test = {
-  id: string;
+  id: TestId;
   name: string;
   group: Array<string>;
-  location: Location;
-  status: TestStatus;
+  status: RunStatus;
+  location?: TestLocation;
   time?: number;
   percentage?: number;
 };
 
-type TestStatus = "undetermined" | "running" | "valid" | "invalid";
+type TestRangePosition = {
+  line: number;
+  character: number;
+};
 
-type Location = {
+type TestRange = {
+  start: TestRangePosition;
+  end: TestRangePosition;
+};
+
+type TestLocation = {
   uri: string;
-  startLine: number;
-  startCharacter: number;
-  endLine: number;
-  endCharacter: number;
-}
+  range: TestRange;
+};
 
-type TestList = Record<string, Test>;
+type TestRun = {
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
+  testIds?: Array<string>;
+};
+
+type Workspace = {
+  id: string;
+  path: string;
+};
 
 // Test Tree
 
-type TestTree = Record<string, TestTreeNode>;
+type TestTree = {
+  packages: TestPackageMap;
+};
+
+type TestPackageMap = Record<string, TestPackage>;
+
+type TestPackage = {
+  name: string;
+  packagePath: string;
+  workspace: Workspace;
+  suites: TestSuiteMap;
+  isOpen: boolean;
+};
+
+type TestSuiteMap = Record<string, TestSuite>;
+
+type TestSuite = {
+  name: string;
+  status: RunStatus;
+  tests: TestTreeNodeMap;
+  isOpen: boolean;
+};
 
 type TestTreeNode = {
   type: "group" | "test";
 };
 
+type TestTreeNodeMap = Record<string, TestTreeNode>;
+
 type TestTreeGroupNode = TestTreeNode & {
   type: "group";
   name: string;
+  nodes: TestTreeNodeMap;
   isOpen: boolean;
-  nodes: TestTree;
 };
 
 type TestTreeTestNode = TestTreeNode & {
   type: "test";
-  testId: string;
+  test: Test;
 };
 
-// Test Suite
+// Coverage
 
-type TestPackageList = Record<string, TestPackage>;
+type CoverageStatements = Record<string, Array<TestId>>;
 
-type TestSuiteList = Record<string, TestSuite>;
+type TestEventCoverageMap = Record<string, TestEventCoverage>;
 
-type TestPackage = {
-  name: string;
-  workspacePath: string;
-  packagePath: string;
-  isOpen: boolean;
-  suites: TestSuiteList;
+type TestEventCoverage = {
+  fileUri: string;
+  statements: CoverageStatements;
 };
 
-type TestPackageData = {
-  packages: TestPackageList;
-  tests: TestList;
-}
-
-type TestSuite = {
-  name: string;
-  isOpen: boolean;
-  status: TestSuiteStatus;
-  tree: TestTree;
+type FileCoverage = {
+  filePath: string;
+  statements: CoverageStatements;
 };
-
-type TestSuiteData = {
-  packageName: string;
-  suiteName: string;
-  tree: TestTree;
-  tests: Array<Test>;
-}
-
-type TestSuiteStatus = "pending" | "building" | "failed" | "ready";
 
 // Webview message
 
+type TestSuiteUpdate = {
+  packageId: TestPackageId;
+  suite: TestSuite;
+};
+
+type TestSuiteStatusUpdate = {
+  suiteId: TestSuiteId;
+  status: RunStatus;
+};
+
+type TestTreeUpdate = {
+  isOpen: boolean;
+  workspaceId: string;
+  packageName: string;
+  suiteName?: string;
+  path?: Array<string>;
+};
+
 type ExtensionToWebviewMessage =
   | { type: "no-folders-detected", payload: { noFolders: boolean } }
-  | { type: "test-package-list", payload: TestPackageData | null }
-  | { type: "test-package-list-error"}
-  | { type: "test-suite-tree", payload: TestSuiteData }
-  | { type: "test-suite-update", payload: { packageName: string, suiteName: string, status: TestSuiteStatus } }
+  | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-update", payload: { test: Test } }
+  | { type: "test-suite-update", payload: TestSuiteUpdate }
+  | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
   | { type: "dependency-status", payload: { error: ErrorObj } }
   | { type: "test-rounds-config", payload: { rounds: number } };
@@ -102,10 +160,9 @@ type ExtensionToWebviewMessage =
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "open-folder" }
-  | { type: "build-test-suite-tree", payload: { packageName: string, suiteName: string } }
   | { type: "refresh-test-packages" }
-  | { type: "update-test-packages-list", payload: { packages: TestPackageList } }
-  | { type: "run-tests", payload: { testIds: Array<string> } }
+  | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "update-test-tree", payload: TestTreeUpdate }
   | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "update-test-rounds", payload: { rounds: number } };
 
@@ -113,39 +170,61 @@ type WebviewToExtensionMessage =
 
 type ExtensionMode = "docker" | "nix";
 
-type ListSuitesParams = {
-  workspacePaths: Array<string>;
-}
+type PrefetchTestTreeParams = {
+  workspaces: Array<Workspace>;
+};
 
-type ListTestsParams = {
+type BuildTestTreeParams = {
   mode: ExtensionMode;
-  workspacePath: string;
+  workspace: Workspace;
   packageName: string;
   suiteName: string;
-}
+};
 
 type RunTestsParams = {
   mode: ExtensionMode;
-  workspacePath: string;
-	packageName: string;
-  suiteName: string;
-  testIds: Array<number>;
-}
+  workspace: Workspace;
+  testIds: Array<RunTestId>;
+};
 
-type RunTestsContext = {
-  packageName: string;
-  suiteName: string;
-  testIds: Array<number>;
-}
+type TestEventType = "test-suite-update" | "test-update" | "test-context";
 
-type TestResult = {
-  id: string;
-  event: import("./streaming-events").SCToolsStreamingEvent;
-  error: undefined;
-} | {
-  rawEvent: unknown;
-  error: string;
-}
+type TestEvent = {
+  eventType: TestEventType;
+  payload: unknown;
+};
+
+type TestSuiteUpdateEvent = TestEvent & {
+  eventType: "test-suite-update";
+  payload: {
+    workspaceId: string;
+    packageName: string;
+    suiteName: string;
+    runStatus: "idle" | "running" | "done";
+    tests?: Array<Test>;
+    coverage?: Array<TestEventCoverage>;
+  };
+};
+
+type TestUpdateEvent = TestEvent & {
+  eventType: "test-update";
+  payload: {
+    id: TestId;
+    status?: RunStatus;
+    time?: number;
+    percentage?: number;
+  };
+};
+
+type TestContextEvent = TestEvent & {
+  eventType: "test-context";
+  payload: {
+    id: TestId;
+    coverage: Array<TestEventCoverage>;
+  };
+};
+
+// Errors
 
 type ScriptExecutionErrorData = {
   kind: 'script-execution-error';
@@ -154,9 +233,12 @@ type ScriptExecutionErrorData = {
   exitCode: number | null;
   stderr: string;
   stdout: string;
-  runContext?: RunTestsContext;
-}
+};
+
+type BuildTestTreeErrorData = ScriptExecutionErrorData & {
+  runParams: BuildTestTreeParams;
+};
 
 type RunTestsErrorData = ScriptExecutionErrorData & {
-  runContext: RunTestsContext;
-}
+  runParams: RunTestsParams & { testRun: TestRun };
+};

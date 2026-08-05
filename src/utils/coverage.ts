@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { StatementCoverage } from '../services/store/testStore';
 
 const coveredStyle = vscode.window.createTextEditorDecorationType({
   backgroundColor: 'rgba(80, 200, 80, 0.15)',
@@ -13,10 +12,33 @@ const uncoveredStyle = vscode.window.createTextEditorDecorationType({
   overviewRulerLane: vscode.OverviewRulerLane.Left,
 });
 
+const keyToRange = (key: string): vscode.Range => {
+  const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
+  return new vscode.Range(
+    new vscode.Position(startLine, startChar),
+    new vscode.Position(endLine, endChar)
+  );
+};
+
 export function renderCoverageForEditor(
   editor: vscode.TextEditor,
-  coverage: StatementCoverage[],
+  statements: CoverageStatements,
 ) {
-  editor.setDecorations(coveredStyle, coverage.filter(cov => cov.executed > 0));
-  editor.setDecorations(uncoveredStyle, coverage.filter(cov => cov.executed == 0));
+  const covered: Array<vscode.Range> = [];
+  const uncovered: Array<vscode.Range> = [];
+  for (const [rangeKey, testIds] of Object.entries(statements)) {
+    if (testIds.length > 0) {
+      covered.push(keyToRange(rangeKey));
+    } else {
+      uncovered.push(keyToRange(rangeKey));
+    }
+  }
+
+  editor.setDecorations(coveredStyle, covered);
+  editor.setDecorations(uncoveredStyle, uncovered);
+}
+
+export function clearCoverageForEditor(editor: vscode.TextEditor) {
+  editor.setDecorations(coveredStyle, []);
+  editor.setDecorations(uncoveredStyle, []);
 }
