@@ -220,14 +220,19 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-result", payload: TestResult }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
+  | { type: "test-rounds-config", payload: { rounds: number } }
+  | { type: "dependency-status", payload: { error: DependencyError } }
+  | { type: "empty-workspaces" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
+  | { type: "fetch-test-tree" }
+  | { type: "open-folder" }
   | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
   | { type: "open-test-results", payload: { testId: TestId } }
   | { type: "update-test-tree", payload: TestTreeUpdate }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };
+  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "update-test-rounds", payload: { rounds: number } };
 
 // RPC message
 
@@ -307,7 +312,10 @@ type RunTestsErrorData = ScriptExecutionErrorData & {
   runParams: RunTestsParams & { testRun: TestRun };
 };
 
+type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+
 type DependencyError = {
   hasError: boolean;
   message: string;
+  code?: DependencyErrorCode;
 };

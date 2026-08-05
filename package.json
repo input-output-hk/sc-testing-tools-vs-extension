@@ -26,10 +26,20 @@
   "contributes": {
     "commands": [
       {
-        "command": "pbt-extension.buildTestTree",
-        "title": "PBT: Build Test Tree"
+        "command": "pbt-extension.refreshTestConfiguration",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "pbt-extension.refreshTestConfiguration",
+          "when": "view == pbt-test-configuration",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "PBT Configuration",
       "type": "object",
@@ -63,9 +73,10 @@
           "icon": "images/pbt-icon.svg"
         },
         {
-          "id": "pbt-test-run-configuration",
+          "id": "pbt-test-configuration",
           "name": "Test Run Configuration",
-          "type": "webview"
+          "type": "webview",
+          "icon": "images/pbt-icon.svg"
         }
       ]
     }
