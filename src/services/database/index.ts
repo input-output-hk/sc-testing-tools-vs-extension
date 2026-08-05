@@ -1,6 +1,4 @@
-// Fix find by id
-// Fix coverage
-
+import { readFile } from 'node:fs/promises';
 import { Range, Position } from 'vscode';
 import { createHash } from 'node:crypto';
 import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
@@ -154,9 +152,8 @@ export default class Database {
   }
 
   private async upsertCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
-    const [workspaceId, packageName] = packageId;
     const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
-      selector: { workspaceId, packageName }
+      selector: { id: packageId.join(':') }
     }).exec();
 
     if (packageDocument !== null) {
@@ -173,11 +170,14 @@ export default class Database {
           await this.database!.coverage.insert({
             fileHash,
             filePath,
+            context: {
+              basePath: packagePath,
+              workspaceId: fileCoverage.workspaceId,
+              packageName: fileCoverage.packageName,
+              suiteName: fileCoverage.suiteName
+            },
             statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-              range: this.keyToRange(rangeKey),
-              testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
-                workspaceId, packageName, suiteName, testId
-              }))
+              range: this.keyToRange(rangeKey), testIds
             }))
           });
         } else {
@@ -185,22 +185,9 @@ export default class Database {
           for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
             const existingStatement = statements.find(statement => this.rangeToKey(statement.range) === rangeKey);
             if (existingStatement) {
-              const existingTestIds = new Set(existingStatement.testIds.map(id => [id.workspaceId, id.packageName, id.suiteName, id.testId].join(':')));
-              for (const [workspaceId, packageName, suiteName, testId] of testIds) {
-                const idKey = [workspaceId, packageName, suiteName, testId].join(':');
-                existingTestIds.add(idKey);
-              }
-              existingStatement.testIds = Array.from(existingTestIds).map(idKey => {
-                const [workspaceId, packageName, suiteName, testId] = idKey.split(':');
-                return { workspaceId, packageName, suiteName, testId };
-              });
+              existingStatement.testIds = Array.from(new Set([...existingStatement.testIds, ...testIds]));
             } else {
-              statements.push({
-                range: this.keyToRange(rangeKey),
-                testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
-                  workspaceId, packageName, suiteName, testId
-                }))
-              });
+              statements.push({ range: this.keyToRange(rangeKey), testIds });
             }
           }
           await coverageDocument.update({ $set: { statements } });
@@ -221,7 +208,7 @@ export default class Database {
     }
 
     const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { workspaceId, packageName, suiteName }
+      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
     }).exec();
 
     if (suiteDocument !== null) {
@@ -238,10 +225,9 @@ export default class Database {
 
   public async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
     const { id, status, time, percentage } = event.payload;
-    const [workspaceId, packageName, suiteName, testId] = id;
 
     const testDocument: TestDocument | null = await this.database!.tests.findOne({
-      selector: { workspaceId, packageName, suiteName, testId }
+      selector: { id: id.join(':') }
     }).exec();
 
     if (testDocument !== null) {
@@ -282,7 +268,7 @@ export default class Database {
     const { workspaceId, packageName, suiteName, testIds } = testRun;
 
     const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { workspaceId, packageName, suiteName }
+      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
     }).exec();
     
     if (suiteDocument !== null) {
@@ -460,30 +446,22 @@ export default class Database {
     const coverage: Array<FileCoverage> = [];
     const documents: Array<CoverageDocument> = await this.database!.coverage.find().exec();
     for (const document of documents) {
-      const filePath = document.filePath;
       const statements: CoverageStatements = {};
-
       for (const statement of document.statements) {
-        const range = [
+        statements[[
           statement.range.start.line,
           statement.range.start.character,
           statement.range.end.line,
           statement.range.end.character
-        ].join(':');
-
-        const testIds: Array<TestId> = statement.testIds.map(testId => [
-          testId.workspaceId,
-          testId.packageName,
-          testId.suiteName,
-          testId.testId
-        ]);
-
-        statements[range] = testIds;
+        ].join(':')] = statement.testIds;
       }
-
-      coverage.push({ filePath, statements });
+      coverage.push({
+        fileHash: document.fileHash,
+        filePath: document.filePath,
+        context: document.context,
+        statements
+      });
     }
-
     return coverage;
   }
 
@@ -499,68 +477,46 @@ export default class Database {
 
     const statements: CoverageStatements = {};
     for (const statement of coverageDocument.statements) {
-      const range = [
+      statements[[
         statement.range.start.line,
         statement.range.start.character,
         statement.range.end.line,
         statement.range.end.character
-      ].join(':');
-
-      const testIds: Array<TestId> = statement.testIds.map(testId => [
-        testId.workspaceId,
-        testId.packageName,
-        testId.suiteName,
-        testId.testId
-      ]);
-
-      statements[range] = testIds;
+      ].join(':')] = statement.testIds;
     }
 
     return statements;
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
+  public async getCoverageForTest(id: TestId): Promise<Array<FileCoverage>> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+
     const coverage: Array<FileCoverage> = [];
     const documents: Array<CoverageDocument> = await this.database!.coverage.find({
       selector: {
-        statements: {
-          $elemMatch: {
-            testIds: {
-              $elemMatch: {
-                workspaceId: testId[0],
-                packageName: testId[1],
-                suiteName: testId[2],
-                testId: testId[3]
-              }
-            }
-          }
-        }
+        'context.workspaceId': workspaceId,
+        'context.packageName': packageName,
+        'context.suiteName': suiteName,
+        'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
       }
     }).exec();
     
     for (const document of documents) {
-      const filePath = document.filePath;
       const statements: CoverageStatements = {};
-
       for (const statement of document.statements) {
-        const range = [
+        statements[[
           statement.range.start.line,
           statement.range.start.character,
           statement.range.end.line,
           statement.range.end.character
-        ].join(':');
-
-        const testIds: Array<TestId> = statement.testIds.map(testId => [
-          testId.workspaceId,
-          testId.packageName,
-          testId.suiteName,
-          testId.testId
-        ]);
-
-        statements[range] = testIds;
+        ].join(':')] = statement.testIds;
       }
-
-      coverage.push({ filePath, statements });
+      coverage.push({
+        fileHash: document.fileHash,
+        filePath: document.filePath,
+        context: document.context,
+        statements
+      });
     }
 
     return coverage;

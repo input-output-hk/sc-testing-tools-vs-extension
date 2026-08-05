@@ -6,6 +6,12 @@ import {
   RxCollection,
 } from 'rxdb';
 
+import {
+  WORKSPACE_ID_MAX_LENGTH,
+  PACKAGE_NAME_MAX_LENGTH,
+  SUITE_NAME_MAX_LENGTH,
+} from './ids';
+
 const coverageSchemaLiteral = {
   title: 'coverage',
   version: 0,
@@ -19,6 +25,32 @@ const coverageSchemaLiteral = {
     },
     filePath: {
       type: 'string',
+      final: true,
+    },
+    context: {
+      type: 'object',
+      properties: {
+        basePath: {
+          type: 'string',
+          final: true,
+        },
+        workspaceId: {
+          type: 'string',
+          maxLength: WORKSPACE_ID_MAX_LENGTH,
+          final: true,
+        },
+        packageName: {
+          type: 'string',
+          maxLength: PACKAGE_NAME_MAX_LENGTH,
+          final: true,
+        },
+        suiteName: {
+          type: 'string',
+          maxLength: SUITE_NAME_MAX_LENGTH,
+          final: true,
+        },
+      },
+      required: ['basePath', 'workspaceId', 'packageName', 'suiteName'],
       final: true,
     },
     statements: {
@@ -51,14 +83,7 @@ const coverageSchemaLiteral = {
           testIds: {
             type: 'array',
             items: {
-              type: 'object',
-              properties: {
-                workspaceId: { type: 'string' },
-                packageName: { type: 'string' },
-                suiteName: { type: 'string' },
-                testId: { type: 'string' },
-              },
-              required: ['workspaceId', 'packageName', 'suiteName', 'testId'],
+              type: 'string',
             },
           },
         },
@@ -69,7 +94,11 @@ const coverageSchemaLiteral = {
   required: [
     'fileHash',
     'filePath',
+    'context',
     'statements',
+  ],
+  indexes: [
+    ['context.workspaceId', 'context.packageName', 'context.suiteName'],
   ],
 } as const;
 
