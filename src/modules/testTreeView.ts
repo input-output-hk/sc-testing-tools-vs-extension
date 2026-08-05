@@ -77,7 +77,10 @@ export default class TestTreeView {
     }
   }
 
-  private runTests(testIds: Array<RunTestId>): void {
+  private async runTests(testIds: Array<RunTestId>): Promise<void> {
+    const ready = await this.ensureDependenciesReady();
+    if (!ready) return;
+
     this.context.store.testStore.runTests(testIds);
   }
 
@@ -105,8 +108,7 @@ export default class TestTreeView {
     }
   }
 
-  //TODO: figure out how to wire this up to the webview so that the user can see it without opening the dev tools. Maybe a notification or a message in the webview itself.
-   // Pre-flight check run right before a docker-mode action hits the RPC server: Docker
+  // Pre-flight check run right before a docker-mode action hits the RPC server: Docker
   // can stop running any time after the extension's initial checks, so re-verify it's
   // still reachable now rather than letting the RPC call fail.
   private async ensureDependenciesReady(): Promise<boolean> {
@@ -116,9 +118,6 @@ export default class TestTreeView {
 
     const { hasError, message } = this.context.store.dependencyStore.getDependencyError();
     if (hasError) {
-      // this.showError(message);
-      //TODO: Show error in the webview instead of console.log, so the user can see it without opening the dev tools.
-      console.log(`Dependency error: ${message}`);
       return false;
     }
     return true;
