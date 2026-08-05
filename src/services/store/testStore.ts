@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
+import { renderCoverageForEditor, clearCoverageForEditor, getFilesCoverageStats } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -148,12 +148,24 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
-  public async getCoverage(): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverage();
+  public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverage();
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFilesCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverageForTest(testId);
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverageForTest(testId);
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFilesCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

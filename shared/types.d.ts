@@ -104,18 +104,37 @@ type TestTreeTestNode = TestTreeNode & {
 
 // Coverage
 
-type CoverageStatements = Record<string, Array<TestId>>;
+type CoverageStatements = Record<string, Array<string>>;
 
 type TestEventCoverageMap = Record<string, TestEventCoverage>;
 
 type TestEventCoverage = {
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
   fileUri: string;
   statements: CoverageStatements;
 };
 
 type FileCoverage = {
+  fileHash: string;
   filePath: string;
+  context: FileCoverageContext;
   statements: CoverageStatements;
+};
+
+type FileCoverageContext = {
+  basePath: string;
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
+};
+
+type FileCoverageWithStats = FileCoverage & {
+  stats: {
+    total: number;
+    covered: number;
+  };
 };
 
 // Webview message
