@@ -427,6 +427,37 @@ export default class Database {
       .update({ $set: { status: 'running' } });
   }
 
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    const coverage: Array<FileCoverage> = [];
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find().exec();
+    for (const document of documents) {
+      const filePath = document.filePath;
+      const statements: CoverageStatements = {};
+
+      for (const statement of document.statements) {
+        const range = [
+          statement.range.start.line,
+          statement.range.start.character,
+          statement.range.end.line,
+          statement.range.end.character
+        ].join(':');
+
+        const testIds: Array<TestId> = statement.testIds.map(testId => [
+          testId.workspaceId,
+          testId.packageName,
+          testId.suiteName,
+          testId.testId
+        ]);
+
+        statements[range] = testIds;
+      }
+
+      coverage.push({ filePath, statements });
+    }
+
+    return coverage;
+  }
+
   public async getCoverageForFile(fileUri: string): Promise<CoverageStatements> {
     const filePath = fileUri.replace('file://', '');
     const fileHash = this.makeFileHash(filePath);
@@ -459,9 +490,25 @@ export default class Database {
     return statements;
   }
 
-  public async getCoverage(): Promise<Array<FileCoverage>> {
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
     const coverage: Array<FileCoverage> = [];
-    const documents: Array<CoverageDocument> = await this.database!.coverage.find({}).exec();
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find({
+      selector: {
+        statements: {
+          $elemMatch: {
+            testIds: {
+              $elemMatch: {
+                workspaceId: testId[0],
+                packageName: testId[1],
+                suiteName: testId[2],
+                testId: testId[3]
+              }
+            }
+          }
+        }
+      }
+    }).exec();
+    
     for (const document of documents) {
       const filePath = document.filePath;
       const statements: CoverageStatements = {};
