@@ -305,7 +305,7 @@ export default class Database {
     });
   }
 
-  public async handleTestContextEvent(event: TestContextEvent): Promise<void> {6
+  public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
     const [workspaceId, packageName] = event.payload.id;
     await this.upsertCoverage([workspaceId, packageName], event.payload.coverage);
     await this.createRounds(event.payload.id, event.payload.round);
