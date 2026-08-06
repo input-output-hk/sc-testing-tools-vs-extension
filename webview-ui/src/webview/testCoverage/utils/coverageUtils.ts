@@ -16,5 +16,8 @@ export const groupFilesByPackageSuite = (files: Array<CoverageFileSummary>): Cov
   return tree;
 };
 
-export const getGroupPercentage = (files: Array<CoverageFileSummary>): number =>
-  files.length === 0 ? 0 : Math.round(files.reduce((sum, file) => sum + file.percentage, 0) / files.length);
+export const getGroupPercentage = (files: Array<CoverageFileSummary>): number => {
+  const total = files.reduce((sum, file) => sum + file.total, 0);
+  const covered = files.reduce((sum, file) => sum + file.covered, 0);
+  return total === 0 ? 0 : Math.round((covered / total) * 100);
+};
