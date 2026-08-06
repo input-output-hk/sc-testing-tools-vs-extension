@@ -21,6 +21,12 @@ const coverageSchemaLiteral = {
       type: 'string',
       final: true,
     },
+    packageName: {
+      type: 'string',
+    },
+    suiteName: {
+      type: 'string',
+    },
     statements: {
       type: 'array',
       items: {
@@ -69,6 +75,8 @@ const coverageSchemaLiteral = {
   required: [
     'fileHash',
     'fileUri',
+    'packageName',
+    'suiteName',
     'statements',
   ],
 } as const;

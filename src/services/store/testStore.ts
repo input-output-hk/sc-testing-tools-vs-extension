@@ -14,7 +14,6 @@ export default class TestStore {
   private workspaces: Map<string, string>;
   private staticTestTree: TestTree | null = null;
   private openState: Record<string, boolean> = {};
-  private coverageUpdateCallbacks: ((file: CoverageFileSummary) => void)[] = [];
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -164,31 +163,11 @@ export default class TestStore {
   }
 
   // Get a per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel.
-  public getCoverageSummary(): CoverageFileSummary[] {
-    // MOCK — see simple_testcoverage.md for the real implementation parked there.
-    // Swap this back in once TestStore's coverage refactor lands.
-    return [
-      {
-        uri: 'file:///mock/src/PingPong.hs',
-        percentage: 72,
-        tests: [
-          { testId: 'mock:1', name: 'accepts a valid ping', percentage: 100 },
-          { testId: 'mock:2', name: 'rejects wrong signer', percentage: 90 },
-          { testId: 'mock:3', name: 'handles wrap-around index', percentage: 0 },
-        ],
-      },
-      {
-        uri: 'file:///mock/src/Auction.hs',
-        percentage: 45,
-        tests: [
-          { testId: 'mock:4', name: 'accepts highest bid', percentage: 100 },
-          { testId: 'mock:5', name: 'rejects late bid', percentage: 0 },
-        ],
-      },
-    ];
+  public async getCoverageSummary(): Promise<CoverageFileSummary[]> {
+    return this.database.getCoverageSummary();
   }
 
   public onCoverageUpdate(callback: (file: CoverageFileSummary) => void): void {
-    this.coverageUpdateCallbacks.push(callback);
+    this.database.onCoverageUpdate(callback);
   }
 }

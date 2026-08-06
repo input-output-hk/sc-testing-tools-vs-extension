@@ -1,4 +1,4 @@
-import { Range, Position } from 'vscode';
+import { Range, Position, Uri } from 'vscode';
 import { createHash } from 'node:crypto';
 import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
@@ -37,6 +37,11 @@ type DatabaseCollections = {
   coverage: CoverageCollection,
 };
 
+type StoredStatement = {
+  range: { start: { line: number; character: number }; end: { line: number; character: number } };
+  testIds: Array<{ workspaceId: string; packageName: string; suiteName: string; testId: string }>;
+};
+
 addRxPlugin(RxDBUpdatePlugin);
 
 export default class Database {
@@ -71,6 +76,52 @@ export default class Database {
   private keyToRange(key: string): Range {
     const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
     return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
+  }
+
+  private statementsToMap(statements: ReadonlyArray<StoredStatement>): Record<string, Array<TestId>> {
+    const map: Record<string, Array<TestId>> = {};
+    for (const statement of statements) {
+      const rangeKey = [
+        statement.range.start.line,
+        statement.range.start.character,
+        statement.range.end.line,
+        statement.range.end.character
+      ].join(':');
+
+      map[rangeKey] = statement.testIds.map(testId => [
+        testId.workspaceId,
+        testId.packageName,
+        testId.suiteName,
+        testId.testId
+      ]);
+    }
+    return map;
+  }
+
+  private mapToStatements(map: Record<string, Array<TestId>>): Array<StoredStatement> {
+    return Object.entries(map).map(([rangeKey, testIds]) => ({
+      range: this.keyToRange(rangeKey),
+      testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
+        workspaceId,
+        packageName,
+        suiteName,
+        testId,
+      }))
+    }));
+  }
+
+  // Source locations reported by the test binary (test locations, coverage file paths) are
+  // relative to the package directory, not absolute — resolve them against the package's
+  // known packagePath into real, openable file URIs.
+  private async resolvePackagePath(workspaceId: string, packageName: string): Promise<string | null> {
+    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
+      selector: { workspaceId, packageName }
+    }).exec();
+    return packageDocument?.packagePath ?? null;
+  }
+
+  private toAbsoluteUri(packagePath: string | null, relativePath: string): string {
+    return packagePath === null ? relativePath : Uri.file(`${packagePath}/${relativePath}`).toString();
   }
 
   private async computeSuiteStatus(suite: SuiteDocument): Promise<RunStatus> {
@@ -110,6 +161,8 @@ export default class Database {
       }
     }
 
+    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
+
     await this.database!.tests.bulkInsert(
       tests
         .filter(test => createTests.has(test.id.join(':')))
@@ -122,7 +175,10 @@ export default class Database {
           name: test.name,
           group: test.group,
           status: test.status,
-          location: test.location,
+          location: test.location ? {
+            uri: this.toAbsoluteUri(packagePath, test.location.uri),
+            range: test.location.range,
+          } : undefined,
           time: test.time,
           percentage: test.percentage,
         }))
@@ -131,20 +187,47 @@ export default class Database {
     await this.database!.tests.bulkRemove(removeTests);
   }
 
-  private async upsertCoverage(coverage: Array<FileCoverage>): Promise<void> {
-    await this.database!.coverage.bulkUpsert(coverage.map(fileCoverage => ({
-      fileHash: this.makeFileHash(fileCoverage.fileUri),
-      fileUri: fileCoverage.fileUri,
-      statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-        range: this.keyToRange(rangeKey),
-        testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
-          workspaceId,
-          packageName,
-          suiteName,
-          testId,
-        }))
-      }))
-    })));
+  private async resetCoverage(workspaceId: string, packageName: string, suiteName: string, coverage: Array<FileCoverage>): Promise<void> {
+    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
+    await this.database!.coverage.bulkUpsert(coverage.map(fileCoverage => {
+      const fileUri = this.toAbsoluteUri(packagePath, fileCoverage.fileUri);
+      return {
+        fileHash: this.makeFileHash(fileUri),
+        fileUri,
+        packageName,
+        suiteName,
+        statements: this.mapToStatements(fileCoverage.statements),
+      };
+    }));
+  }
+
+  private async mergeCoverage(workspaceId: string, packageName: string, suiteName: string, coverage: Array<FileCoverage>): Promise<void> {
+    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
+    for (const fileCoverage of coverage) {
+      const fileUri = this.toAbsoluteUri(packagePath, fileCoverage.fileUri);
+      const fileHash = this.makeFileHash(fileUri);
+      const existing: CoverageDocument | null = await this.database!.coverage.findOne({
+        selector: { fileHash }
+      }).exec();
+
+      const merged = existing ? this.statementsToMap(existing.statements) : {};
+      for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
+        const existingTestIds = merged[rangeKey] ?? [];
+        const seen = new Set(existingTestIds.map(testId => testId.join(':')));
+        merged[rangeKey] = [
+          ...existingTestIds,
+          ...testIds.filter(testId => !seen.has(testId.join(':'))),
+        ];
+      }
+
+      await this.database!.coverage.upsert({
+        fileHash,
+        fileUri,
+        packageName,
+        suiteName,
+        statements: this.mapToStatements(merged),
+      });
+    }
   }
 
   public async handleTestSuiteUpdateEvent(event: TestSuiteUpdateEvent): Promise<void> {
@@ -155,7 +238,7 @@ export default class Database {
     }
 
     if (coverage !== undefined) {
-      await this.upsertCoverage(coverage);
+      await this.resetCoverage(workspaceId, packageName, suiteName, coverage);
     }
 
     const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
@@ -193,7 +276,8 @@ export default class Database {
   }
 
   public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
-    await this.upsertCoverage(event.payload.coverage);
+    const [workspaceId, packageName, suiteName] = event.payload.id;
+    await this.mergeCoverage(workspaceId, packageName, suiteName, event.payload.coverage);
   }
 
   public async handleTestRunFailed(testRun: TestRun): Promise<void> {
@@ -382,29 +466,60 @@ export default class Database {
 
     if (coverageDocument === null) return null;
 
-    const statements: Record<string, Array<TestId>> = {};
-    for (const statement of coverageDocument.statements) {
-      const range = [
-        statement.range.start.line,
-        statement.range.start.character,
-        statement.range.end.line,
-        statement.range.end.character
-      ].join(':');
-
-      const testIds: Array<TestId> = statement.testIds.map(testId => [
-        testId.workspaceId,
-        testId.packageName,
-        testId.suiteName,
-        testId.testId
-      ]);
-
-      statements[range] = testIds;
-    }
-
     return {
       fileUri: coverageDocument.fileUri,
-      statements
+      statements: this.statementsToMap(coverageDocument.statements)
     };
+  }
+
+  private async buildFileSummary(file: { fileUri: string; packageName: string; suiteName: string; statements: ReadonlyArray<StoredStatement> }): Promise<CoverageFileSummary> {
+    const statements = this.statementsToMap(file.statements);
+    const rangeKeys = Object.keys(statements);
+    const totalStatements = rangeKeys.length;
+
+    const testIdByComposite = new Map<string, TestId>();
+    for (const testIds of Object.values(statements)) {
+      for (const testId of testIds) {
+        testIdByComposite.set(testId.join(':'), testId);
+      }
+    }
+
+    const testDocuments: Map<string, TestDocument> = testIdByComposite.size === 0
+      ? new Map()
+      : await this.database!.tests.findByIds(Array.from(testIdByComposite.keys())).exec();
+    const nameByComposite = new Map(Array.from(testDocuments.values()).map(testDocument => [testDocument.id, testDocument.name]));
+
+    const tests: Array<CoverageTestSummary> = Array.from(testIdByComposite.entries()).map(([compositeId, testId]) => {
+      const covered = rangeKeys.filter(rangeKey => statements[rangeKey].some(id => id.join(':') === compositeId)).length;
+      return {
+        testId: compositeId,
+        name: nameByComposite.get(compositeId) ?? testId[3],
+        percentage: totalStatements === 0 ? 0 : Math.round((covered / totalStatements) * 100),
+      };
+    });
+
+    const coveredStatements = rangeKeys.filter(rangeKey => statements[rangeKey].length > 0).length;
+
+    return {
+      uri: file.fileUri,
+      packageName: file.packageName,
+      suiteName: file.suiteName,
+      percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
+      tests,
+    };
+  }
+
+  public async getCoverageSummary(): Promise<CoverageFileSummary[]> {
+    const coverageDocuments: Array<CoverageDocument> = await this.database!.coverage.find().exec();
+    const summaries = await Promise.all(coverageDocuments.map(doc => this.buildFileSummary(doc)));
+    return summaries.sort((a, b) => a.uri.localeCompare(b.uri));
+  }
+
+  public onCoverageUpdate(callback: (file: CoverageFileSummary) => void): void {
+    this.database!.coverage.$.subscribe(changeEvent => {
+      if (changeEvent.operation === 'DELETE') return;
+      this.buildFileSummary(changeEvent.documentData).then(callback);
+    });
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

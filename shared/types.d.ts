@@ -123,6 +123,8 @@ type CoverageTestSummary = {
 
 type CoverageFileSummary = {
   uri: string;
+  packageName: string;
+  suiteName: string;
   percentage: number;
   tests: Array<CoverageTestSummary>;
 };
