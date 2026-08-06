@@ -581,6 +581,8 @@ export default class Database {
         testId: toCompositeId(testId),
         name: nameByTestId.get(testId) ?? testId,
         percentage: totalStatements === 0 ? 0 : Math.round((covered / totalStatements) * 100),
+        total: totalStatements,
+        covered,
       };
     });
 
@@ -591,6 +593,8 @@ export default class Database {
       packageName: document.context.packageName,
       suiteName: document.context.suiteName,
       percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
+      total: totalStatements,
+      covered: coveredStatements,
       tests,
     };
   }

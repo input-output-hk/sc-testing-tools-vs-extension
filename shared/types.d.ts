@@ -215,6 +215,8 @@ type CoverageTestSummary = {
   testId: string;
   name: string;
   percentage: number;
+  total: number;
+  covered: number;
 };
 
 type CoverageFileSummary = {
@@ -222,6 +224,8 @@ type CoverageFileSummary = {
   packageName: string;
   suiteName: string;
   percentage: number;
+  total: number;
+  covered: number;
   tests: Array<CoverageTestSummary>;
 };
 
