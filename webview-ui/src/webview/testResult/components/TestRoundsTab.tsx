@@ -1,7 +1,8 @@
 import RunningIndicator from '../../../components/RunningIndicator';
 
 interface Props {
-  testResult: TestResult;
+  test: Test;
+  testRounds: Array<TestRound>;
 }
 
 const columns = [
@@ -12,10 +13,10 @@ const columns = [
   { label: 'Mints', align: 'center' },
 ];
 
-const TestRoundsTab: React.FC<Props> = ({ testResult }) => {
+const TestRoundsTab: React.FC<Props> = ({ test, testRounds }) => {
   return (
     <div className="flex flex-col overflow-hidden flex-1 mt-4">
-      {testResult.test.status === 'running' ? (
+      {test.status === 'running' ? (
         <RunningIndicator />
       ) : (
         <div className="flex-1 overflow-auto">
@@ -33,7 +34,7 @@ const TestRoundsTab: React.FC<Props> = ({ testResult }) => {
               </tr>
             </thead>
             <tbody>
-              {testResult.rounds.sort((a, b) => a.id - b.id).map((round, index) => (
+              {testRounds.sort((a, b) => a.id - b.id).map((round, index) => (
                 <tr
                   key={index}
                   className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}

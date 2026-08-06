@@ -2,7 +2,7 @@ import { createCoverage, updateCoverage } from './coverage';
 import { validateTestEvent, getValidationError } from './validateTestEvent';
 
 import type { ScriptOutput } from './runScript';
-import type { SCToolsStreamingEvent as StreamingEvent } from '../schemas/streaming-events';
+import type { SCToolsStreamingEvent as StreamingEvent, Transition } from '../schemas/streaming-events';
 
 type TestSuiteStartedEvent = Extract<StreamingEvent, { event: 'suite_started' }>;
 type TestSuiteDoneEvent = Extract<StreamingEvent, { event: 'suite_done' }>;
@@ -43,6 +43,7 @@ const parseTestSuiteStartedEvent = (
   workspaceId: string,
   packageName: string,
   suiteName: string,
+  isBuild: boolean,
   isFullRun: boolean,
   event: TestSuiteStartedEvent
 ): TestSuiteUpdateEvent => {
@@ -56,7 +57,7 @@ const parseTestSuiteStartedEvent = (
         id: [workspaceId, packageName, suiteName, testItem.id.toString()],
         name: testItem.name,
         group: testItem.path,
-        status: 'undetermined',
+        status: isBuild ? 'undetermined' : 'waiting',
         location: testItem.srcLoc ? {
           uri: testItem.srcLoc.file,
           range: {
@@ -89,7 +90,7 @@ const parseTestSuiteStartedEvent = (
       workspaceId,
       packageName,
       suiteName,
-      runStatus: 'running',
+      runStatus: isBuild ? 'idle' : 'running',
       tests,
       coverage,
     },
@@ -163,6 +164,32 @@ const parseTestDoneEvent = (
   };
 };
 
+const mapTransitionTx = (transition: Transition): TestTx | undefined => {
+  const tx = transition.transaction;
+  if (!tx) return undefined;
+  return {
+    id: tx.id || undefined,
+    fee: tx.fee,
+    inputs: tx.inputs.map(input => ({
+      address: input.address,
+      utxo: input.utxo,
+      value: input.value,
+      redeemerConstr: input.redeemerConstr || undefined,
+      redeemerKind: input.redeemerKind || undefined,
+      redeemerPayload: input.redeemerPayload || undefined,
+      redeemerRaw: input.redeemerRaw || undefined,
+    })),
+    outputs: tx.outputs.map(output => ({
+      address: output.address,
+      utxo: output.utxo,
+      value: output.value,
+      datum: output.datum || undefined,
+    })),
+    mint: tx.mint || undefined,
+    signers: tx.signers.filter(signer => signer !== null),
+  };
+};
+
 const parseTestTraceEvent = (
   workspaceId: string,
   packageName: string,
@@ -182,6 +209,7 @@ const parseTestTraceEvent = (
       action: transition.action,
       result: transition.result,
       stepIndex: transition.stepIndex,
+      tx: mapTransitionTx(transition),
     });
   }
 
@@ -223,9 +251,7 @@ export const parseBuildTestTreeEvent = (
   const rawEvent = scriptOutput.parsed;
   if (validateTestEvent(rawEvent)) {
     if (rawEvent.event === 'suite_started') {
-      const event = parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, true, rawEvent);
-      event.payload.runStatus = 'idle';
-      return event;
+      return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, true, true, rawEvent);
     }
   } else {
     throwValidationError(rawEvent);
@@ -244,7 +270,7 @@ export const parseTestEvent = (
   if (validateTestEvent(rawEvent)) {
     switch (rawEvent.event) {
       case 'suite_started':
-        return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, !hasTestIds, rawEvent);
+        return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, false, !hasTestIds, rawEvent);
       case 'suite_done':
         return parseTestSuiteDoneEvent(workspaceId, packageName, suiteName, rawEvent);
       case 'test_started':

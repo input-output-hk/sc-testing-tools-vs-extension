@@ -6,17 +6,25 @@ const TEST_STATUS_CONFIG: Record<RunStatus, { icon: string; label: string; class
     className: 'text-purple-02',
   },
   waiting: {
-    icon: 'question',
+    icon: 'history',
     label: 'Waiting',
-    className: 'text-purple-02',
+    className: 'text-yellow-02',
   },
   running: {
     icon: 'loading codicon-modifier-spin',
     label: 'Running',
     className: 'text-blue-06',
   },
-  valid: { icon: 'pass', label: 'Valid', className: 'text-green-01' },
-  invalid: { icon: 'error', label: 'Invalid', className: 'text-red-01' },
+  valid: {
+    icon: 'pass',
+    label: 'Valid',
+    className: 'text-green-01'
+  },
+  invalid: {
+    icon: 'error',
+    label: 'Invalid',
+    className: 'text-red-01'
+  },
 };
 
 const TestStatusBadge: React.FC<{ status: RunStatus }> = ({

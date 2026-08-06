@@ -91,6 +91,8 @@ export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
     return 'running';
   } else if (statuses.includes('invalid')) {
     return 'invalid';
+  } else if (statuses.every((status) => status === 'waiting')) {
+    return 'waiting';
   } else if (statuses.every((status) => status === 'valid')) {
     return 'valid';
   }
@@ -100,4 +102,20 @@ export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
 
 export const isRunnableTestId = (testId: RunTestId): boolean => {
   return testId[3] === undefined || !testId[3].startsWith('static');
+};
+
+export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
+  if (a.type === 'group' && b.type === 'test') {
+    return +1;
+  } else if (a.type === 'test' && b.type === 'group') {
+    return -1;
+  } else if (a.type === 'group' && b.type === 'group') {
+    const groupA = a as TestTreeGroupNode;
+    const groupB = b as TestTreeGroupNode;
+    return groupA.name.localeCompare(groupB.name);
+  } else {
+    const [,,, testIdA] = (a as TestTreeTestNode).test.id;
+    const [,,, testIdB] = (b as TestTreeTestNode).test.id;
+    return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
+  }
 };

@@ -7,11 +7,12 @@ import {
 } from 'rxdb';
 
 import {
-  WORKSPACE_ID_MAX_LENGTH,
-  PACKAGE_NAME_MAX_LENGTH,
-  SUITE_NAME_MAX_LENGTH,
-  SUITE_ID_MAX_LENGTH,
-} from './ids';
+  stringSchema,
+  suiteIdSchema,
+  workspaceIdSchema,
+  packageNameSchema,
+  suiteNameSchema,
+} from '../common/schemas';
 
 const suiteSchemaLiteral = {
   title: 'suite',
@@ -23,29 +24,11 @@ const suiteSchemaLiteral = {
   },
   type: 'object',
   properties: {
-    id: {
-      type: 'string',
-      maxLength: SUITE_ID_MAX_LENGTH,
-      final: true,
-    },
-    workspaceId: {
-      type: 'string',
-      maxLength: WORKSPACE_ID_MAX_LENGTH,
-      final: true,
-    },
-    packageName: {
-      type: 'string',
-      maxLength: PACKAGE_NAME_MAX_LENGTH,
-      final: true,
-    },
-    suiteName: {
-      type: 'string',
-      maxLength: SUITE_NAME_MAX_LENGTH,
-      final: true,
-    },
-    status: {
-      type: 'string',
-    },
+    id: suiteIdSchema,
+    workspaceId: workspaceIdSchema,
+    packageName: packageNameSchema,
+    suiteName: suiteNameSchema,
+    status: stringSchema,
     treeVersion: {
       type: 'number',
       minimum: 0,
@@ -53,6 +36,7 @@ const suiteSchemaLiteral = {
     }
   },
   required: [
+    'id',
     'workspaceId',
     'packageName',
     'suiteName',
