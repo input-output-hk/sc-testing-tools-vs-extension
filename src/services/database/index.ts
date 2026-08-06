@@ -30,16 +30,18 @@ import {
   type CoverageDocument
 } from './coverage';
 
+import {
+  roundSchema,
+  type RoundCollection,
+  type RoundDocument
+} from './round';
+
 type DatabaseCollections = {
   packages: PackageCollection,
   suites: SuiteCollection,
   tests: TestCollection,
   coverage: CoverageCollection,
-};
-
-type StoredStatement = {
-  range: { start: { line: number; character: number }; end: { line: number; character: number } };
-  testIds: Array<{ workspaceId: string; packageName: string; suiteName: string; testId: string }>;
+  rounds: RoundCollection,
 };
 
 addRxPlugin(RxDBUpdatePlugin);
@@ -66,6 +68,9 @@ export default class Database {
       coverage: {
         schema: coverageSchema,
       },
+      rounds: {
+        schema: roundSchema,
+      },
     });
   }
 
@@ -78,36 +83,13 @@ export default class Database {
     return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
   }
 
-  private statementsToMap(statements: ReadonlyArray<StoredStatement>): Record<string, Array<TestId>> {
-    const map: Record<string, Array<TestId>> = {};
-    for (const statement of statements) {
-      const rangeKey = [
-        statement.range.start.line,
-        statement.range.start.character,
-        statement.range.end.line,
-        statement.range.end.character
-      ].join(':');
-
-      map[rangeKey] = statement.testIds.map(testId => [
-        testId.workspaceId,
-        testId.packageName,
-        testId.suiteName,
-        testId.testId
-      ]);
-    }
-    return map;
-  }
-
-  private mapToStatements(map: Record<string, Array<TestId>>): Array<StoredStatement> {
-    return Object.entries(map).map(([rangeKey, testIds]) => ({
-      range: this.keyToRange(rangeKey),
-      testIds: testIds.map(([workspaceId, packageName, suiteName, testId]) => ({
-        workspaceId,
-        packageName,
-        suiteName,
-        testId,
-      }))
-    }));
+  private rangeToKey(range: TestRange): string {
+    return [
+      range.start.line,
+      range.start.character,
+      range.end.line,
+      range.end.character
+    ].join(':');
   }
 
   // Source locations reported by the test binary (test locations, coverage file paths) are
@@ -187,46 +169,77 @@ export default class Database {
     await this.database!.tests.bulkRemove(removeTests);
   }
 
-  private async resetCoverage(workspaceId: string, packageName: string, suiteName: string, coverage: Array<FileCoverage>): Promise<void> {
-    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
+  // Wipes each file back to a clean statement skeleton at the start of a full run, so a fresh
+  // run's percentages aren't polluted by testIds attributed during a previous run.
+  private async resetCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
+    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
+      selector: { id: packageId.join(':') }
+    }).exec();
+
+    if (packageDocument === null) return;
+
+    const packagePath = packageDocument.packagePath;
     await this.database!.coverage.bulkUpsert(coverage.map(fileCoverage => {
-      const fileUri = this.toAbsoluteUri(packagePath, fileCoverage.fileUri);
+      const filePath = `${packagePath}/${fileCoverage.fileUri}`;
       return {
-        fileHash: this.makeFileHash(fileUri),
-        fileUri,
-        packageName,
-        suiteName,
-        statements: this.mapToStatements(fileCoverage.statements),
+        fileHash: this.makeFileHash(filePath),
+        filePath,
+        context: {
+          basePath: packagePath,
+          workspaceId: fileCoverage.workspaceId,
+          packageName: fileCoverage.packageName,
+          suiteName: fileCoverage.suiteName,
+        },
+        statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
+          range: this.keyToRange(rangeKey),
+          testIds,
+        })),
       };
     }));
   }
 
-  private async mergeCoverage(workspaceId: string, packageName: string, suiteName: string, coverage: Array<FileCoverage>): Promise<void> {
-    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
-    for (const fileCoverage of coverage) {
-      const fileUri = this.toAbsoluteUri(packagePath, fileCoverage.fileUri);
-      const fileHash = this.makeFileHash(fileUri);
-      const existing: CoverageDocument | null = await this.database!.coverage.findOne({
-        selector: { fileHash }
-      }).exec();
+  private async upsertCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
+    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
+      selector: { id: packageId.join(':') }
+    }).exec();
 
-      const merged = existing ? this.statementsToMap(existing.statements) : {};
-      for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
-        const existingTestIds = merged[rangeKey] ?? [];
-        const seen = new Set(existingTestIds.map(testId => testId.join(':')));
-        merged[rangeKey] = [
-          ...existingTestIds,
-          ...testIds.filter(testId => !seen.has(testId.join(':'))),
-        ];
+    if (packageDocument !== null) {
+      const packagePath = packageDocument.packagePath;
+      for (const fileCoverage of coverage) {
+        const filePath = `${packagePath}/${fileCoverage.fileUri}`;
+        const fileHash = this.makeFileHash(filePath);
+
+        const coverageDocument: CoverageDocument | null = await this.database!.coverage.findOne({
+          selector: { fileHash }
+        }).exec();
+
+        if (coverageDocument === null) {
+          await this.database!.coverage.insert({
+            fileHash,
+            filePath,
+            context: {
+              basePath: packagePath,
+              workspaceId: fileCoverage.workspaceId,
+              packageName: fileCoverage.packageName,
+              suiteName: fileCoverage.suiteName
+            },
+            statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
+              range: this.keyToRange(rangeKey), testIds
+            }))
+          });
+        } else {
+          const statements = coverageDocument.statements;
+          for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
+            const existingStatement = statements.find(statement => this.rangeToKey(statement.range) === rangeKey);
+            if (existingStatement) {
+              existingStatement.testIds = Array.from(new Set([...existingStatement.testIds, ...testIds]));
+            } else {
+              statements.push({ range: this.keyToRange(rangeKey), testIds });
+            }
+          }
+          await coverageDocument.update({ $set: { statements } });
+        }
       }
-
-      await this.database!.coverage.upsert({
-        fileHash,
-        fileUri,
-        packageName,
-        suiteName,
-        statements: this.mapToStatements(merged),
-      });
     }
   }
 
@@ -238,31 +251,30 @@ export default class Database {
     }
 
     if (coverage !== undefined) {
-      await this.resetCoverage(workspaceId, packageName, suiteName, coverage);
+      await this.resetCoverage([workspaceId, packageName], coverage);
     }
 
     const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { workspaceId, packageName, suiteName }
+      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
     }).exec();
 
     if (suiteDocument !== null) {
       const treeVersion = tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion;
-      
+
       let status: RunStatus = runStatus === 'running' ? 'running' : 'undetermined';
       if (runStatus === 'done') {
         status = await this.computeSuiteStatus(suiteDocument);
       }
-      
+
       await suiteDocument.update({ $set: { status, treeVersion } });
     }
   }
 
   public async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
     const { id, status, time, percentage } = event.payload;
-    const [workspaceId, packageName, suiteName, testId] = id;
 
     const testDocument: TestDocument | null = await this.database!.tests.findOne({
-      selector: { workspaceId, packageName, suiteName, testId }
+      selector: { id: id.join(':') }
     }).exec();
 
     if (testDocument !== null) {
@@ -275,18 +287,37 @@ export default class Database {
     }
   }
 
-  public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
-    const [workspaceId, packageName, suiteName] = event.payload.id;
-    await this.mergeCoverage(workspaceId, packageName, suiteName, event.payload.coverage);
+  private async createRounds(id: TestId, round: TestRound): Promise<void> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+    await this.database!.rounds.upsert({
+      id: `${workspaceId}:${packageName}:${suiteName}:${testId}:${round.id}`,
+      workspaceId,
+      packageName,
+      suiteName,
+      testId,
+      roundId: round.id.toString(),
+      status: round.status,
+      transitions: round.transitions.map(transition => ({
+        action: transition.action,
+        result: transition.result,
+        stepIndex: transition.stepIndex,
+      }))
+    });
+  }
+
+  public async handleTestContextEvent(event: TestContextEvent): Promise<void> {6
+    const [workspaceId, packageName] = event.payload.id;
+    await this.upsertCoverage([workspaceId, packageName], event.payload.coverage);
+    await this.createRounds(event.payload.id, event.payload.round);
   }
 
   public async handleTestRunFailed(testRun: TestRun): Promise<void> {
     const { workspaceId, packageName, suiteName, testIds } = testRun;
 
     const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { workspaceId, packageName, suiteName }
+      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
     }).exec();
-    
+
     if (suiteDocument !== null) {
       if (testIds !== undefined) {
         await this.database!.tests
@@ -404,7 +435,7 @@ export default class Database {
 
         suiteNode.tests = createTestTree(suiteId, openState, tests);
       }
-      
+
       const packageKey = packageId.join(':');
       if (!testTree.packages[packageKey]) {
         testTree.packages[packageKey] = packageNode;
@@ -458,52 +489,107 @@ export default class Database {
       .update({ $set: { status: 'running' } });
   }
 
-  public async getCoverageForFile(fileUri: string): Promise<FileCoverage | null> {
-    const fileHash = this.makeFileHash(fileUri);
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    const coverage: Array<FileCoverage> = [];
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find().exec();
+    for (const document of documents) {
+      const statements: CoverageStatements = {};
+      for (const statement of document.statements) {
+        statements[this.rangeToKey(statement.range)] = statement.testIds;
+      }
+      coverage.push({
+        fileHash: document.fileHash,
+        filePath: document.filePath,
+        context: document.context,
+        statements
+      });
+    }
+    return coverage;
+  }
+
+  public async getCoverageForFile(fileUri: string): Promise<CoverageStatements> {
+    const filePath = fileUri.replace('file://', '');
+    const fileHash = this.makeFileHash(filePath);
+
     const coverageDocument: CoverageDocument | null = await this.database!.coverage.findOne({
       selector: { fileHash }
     }).exec();
 
-    if (coverageDocument === null) return null;
+    if (coverageDocument === null) return {};
 
-    return {
-      fileUri: coverageDocument.fileUri,
-      statements: this.statementsToMap(coverageDocument.statements)
-    };
-  }
-
-  private async buildFileSummary(file: { fileUri: string; packageName: string; suiteName: string; statements: ReadonlyArray<StoredStatement> }): Promise<CoverageFileSummary> {
-    const statements = this.statementsToMap(file.statements);
-    const rangeKeys = Object.keys(statements);
-    const totalStatements = rangeKeys.length;
-
-    const testIdByComposite = new Map<string, TestId>();
-    for (const testIds of Object.values(statements)) {
-      for (const testId of testIds) {
-        testIdByComposite.set(testId.join(':'), testId);
-      }
+    const statements: CoverageStatements = {};
+    for (const statement of coverageDocument.statements) {
+      statements[this.rangeToKey(statement.range)] = statement.testIds;
     }
 
-    const testDocuments: Map<string, TestDocument> = testIdByComposite.size === 0
-      ? new Map()
-      : await this.database!.tests.findByIds(Array.from(testIdByComposite.keys())).exec();
-    const nameByComposite = new Map(Array.from(testDocuments.values()).map(testDocument => [testDocument.id, testDocument.name]));
+    return statements;
+  }
 
-    const tests: Array<CoverageTestSummary> = Array.from(testIdByComposite.entries()).map(([compositeId, testId]) => {
-      const covered = rangeKeys.filter(rangeKey => statements[rangeKey].some(id => id.join(':') === compositeId)).length;
+  public async getCoverageForTest(id: TestId): Promise<Array<FileCoverage>> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+
+    const coverage: Array<FileCoverage> = [];
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find({
+      selector: {
+        'context.workspaceId': workspaceId,
+        'context.packageName': packageName,
+        'context.suiteName': suiteName,
+        'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
+      }
+    }).exec();
+
+    for (const document of documents) {
+      const statements: CoverageStatements = {};
+      for (const statement of document.statements) {
+        statements[this.rangeToKey(statement.range)] = statement.testIds;
+      }
+      coverage.push({
+        fileHash: document.fileHash,
+        filePath: document.filePath,
+        context: document.context,
+        statements
+      });
+    }
+
+    return coverage;
+  }
+
+  // Per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel's
+  // package/suite/file/test tree.
+  private async buildFileSummary(document: {
+    filePath: string;
+    context: FileCoverageContext;
+    statements: ReadonlyArray<{ range: TestRange; testIds: ReadonlyArray<string> }>;
+  }): Promise<CoverageFileSummary> {
+    const totalStatements = document.statements.length;
+    const { workspaceId, packageName, suiteName } = document.context;
+    const toCompositeId = (testId: string) => `${workspaceId}:${packageName}:${suiteName}:${testId}`;
+
+    const testIds = new Set<string>();
+    for (const statement of document.statements) {
+      for (const testId of statement.testIds) testIds.add(testId);
+    }
+
+    const testDocuments: Map<string, TestDocument> = testIds.size === 0
+      ? new Map()
+      : await this.database!.tests.findByIds(Array.from(testIds, toCompositeId)).exec();
+    const nameByTestId = new Map(Array.from(testDocuments.values()).map(testDocument => [testDocument.testId, testDocument.name]));
+
+    const tests: Array<CoverageTestSummary> = Array.from(testIds).map(testId => {
+      const covered = document.statements.filter(statement => statement.testIds.includes(testId)).length;
       return {
-        testId: compositeId,
-        name: nameByComposite.get(compositeId) ?? testId[3],
+        testId: toCompositeId(testId),
+        name: nameByTestId.get(testId) ?? testId,
         percentage: totalStatements === 0 ? 0 : Math.round((covered / totalStatements) * 100),
       };
     });
 
-    const coveredStatements = rangeKeys.filter(rangeKey => statements[rangeKey].length > 0).length;
+    const coveredStatements = document.statements.filter(statement => statement.testIds.length > 0).length;
 
     return {
-      uri: file.fileUri,
-      packageName: file.packageName,
-      suiteName: file.suiteName,
+      uri: document.filePath,
+      packageName: document.context.packageName,
+      suiteName: document.context.suiteName,
       percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
       tests,
     };
@@ -515,11 +601,56 @@ export default class Database {
     return summaries.sort((a, b) => a.uri.localeCompare(b.uri));
   }
 
-  public onCoverageUpdate(callback: (file: CoverageFileSummary) => void): void {
+  public onCoverageSummaryUpdate(callback: (file: CoverageFileSummary) => void): void {
     this.database!.coverage.$.subscribe(changeEvent => {
       if (changeEvent.operation === 'DELETE') return;
       this.buildFileSummary(changeEvent.documentData).then(callback);
     });
+  }
+
+  public async getTest(testId: TestId): Promise<Test> {
+    const testDocument: TestDocument | null = await this.database!.tests.findOne({
+      selector: { id: testId.join(':') }
+    }).exec();
+
+    if (testDocument === null) throw new Error(`Test not found for id: ${testId.join(':')}`);
+
+    return {
+      id: testId,
+      name: testDocument.name,
+      group: testDocument.group,
+      status: testDocument.status as RunStatus,
+      location: testDocument.location ? {
+        uri: testDocument.location.uri,
+        range: new Range(
+          testDocument.location.range.start.line,
+          testDocument.location.range.start.character,
+          testDocument.location.range.end.line,
+          testDocument.location.range.end.character
+        )
+      } : undefined,
+      time: testDocument.time,
+      percentage: testDocument.percentage
+    };
+  }
+
+  public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+    const roundDocuments: Array<RoundDocument> = await this.database!.rounds.find({
+      selector: {
+        workspaceId, packageName, suiteName, testId
+      }
+    }).exec();
+
+    return roundDocuments.map(roundDocument => ({
+      id: parseInt(roundDocument.roundId),
+      status: roundDocument.status as TestRoundStatus,
+      transitions: roundDocument.transitions.map(transition => ({
+        action: transition.action,
+        result: transition.result as TestTransitionResult,
+        stepIndex: transition.stepIndex
+      }))
+    }));
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
@@ -606,13 +737,31 @@ export default class Database {
       const document = changeEvent.documentData;
       const prevStatus = changeEvent.previousDocumentData?.status;
       if (prevStatus !== document.status) {
-        callback({ 
+        callback({
           suiteId: [
             document.workspaceId,
             document.packageName,
             document.suiteName
-          ], 
-          status: document.status as RunStatus 
+          ],
+          status: document.status as RunStatus
+        });
+      }
+    });
+  }
+
+  public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {
+    this.database!.coverage.$.subscribe(changeEvent => {
+      if (changeEvent.operation === 'INSERT' || changeEvent.operation === 'UPDATE') {
+        const document = changeEvent.documentData;
+        const statements: CoverageStatements = {};
+        for (const statement of document.statements) {
+          statements[this.rangeToKey(statement.range)] = statement.testIds;
+        }
+        callback({
+          fileHash: document.fileHash,
+          filePath: document.filePath,
+          context: document.context,
+          statements
         });
       }
     });

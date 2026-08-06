@@ -4,17 +4,34 @@ const toRangeKey = (startLine: number, startCol: number, endLine: number, endCol
   return `${startLine}:${startCol}:${endLine}:${endCol}`;
 };
 
-export const createCoverage = (items: CoverageRanges[], testId?: TestId): FileCoverageMap => {
-  const coverage: FileCoverageMap = {};
-  updateCoverage(coverage, items, testId);
+export const createCoverage = (
+  items: CoverageRanges[],
+  workspaceId: string,
+  packageName: string,
+  suiteName: string,
+  testId?: string
+): TestEventCoverageMap => {
+  const coverage: TestEventCoverageMap = {};
+  updateCoverage(coverage, items, workspaceId, packageName, suiteName, testId);
   return coverage;
 };
 
-export const updateCoverage = (coverage: FileCoverageMap, items: CoverageRanges[], testId?: TestId): void => {
+export const updateCoverage = (
+  coverage: TestEventCoverageMap,
+  items: CoverageRanges[],
+  workspaceId: string,
+  packageName: string,
+  suiteName: string,
+  testId?: string
+): void => {
   for (const item of items) {
-    const fileCoverage: FileCoverage =
-      coverage[item.file] ??
-      { fileUri: item.file, statements: {} };
+    const fileCoverage: TestEventCoverage = coverage[item.file] ?? {
+      workspaceId,
+      packageName,
+      suiteName,
+      fileUri: item.file,
+      statements: {},
+    };
     
     for (let i = 0; i < item.startLines.length; i++) {
       const rangeKey = toRangeKey(

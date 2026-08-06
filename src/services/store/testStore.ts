@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
+import { renderCoverageForEditor, clearCoverageForEditor, getFileCoverageStats } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -69,10 +69,8 @@ export default class TestStore {
     // Render coverage for active document
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor !== undefined) {
-        this.database.getCoverageForFile(editor.document.uri.toString()).then(coverage => {
-          if (coverage !== null) {
-            renderCoverageForEditor(editor, coverage);
-          }
+        this.database.getCoverageForFile(editor.document.uri.toString()).then(statements => {
+          renderCoverageForEditor(editor, statements);
         });
       }
     }, null, this.context.extension.subscriptions);
@@ -150,6 +148,33 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
+  public async getTestResult(testId: TestId): Promise<TestResult> {
+    return {
+      test: await this.database.getTest(testId),
+      rounds: await this.database.getTestRounds(testId),
+    };
+  }
+  
+  public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverage();
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
+  }
+
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverageForTest(testId);
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
+  }
+
   public onTestUpdate(callback: (test: Test) => void): void {
     this.database.onTestUpdate(callback);
   }
@@ -167,7 +192,13 @@ export default class TestStore {
     return this.database.getCoverageSummary();
   }
 
-  public onCoverageUpdate(callback: (file: CoverageFileSummary) => void): void {
-    this.database.onCoverageUpdate(callback);
+  public onCoverageSummaryUpdate(callback: (file: CoverageFileSummary) => void): void {
+    this.database.onCoverageSummaryUpdate(callback);
+  }
+
+  public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
+    this.database.onCoverageUpdate(async fileCoverage => {
+      callback(await getFileCoverageStats(fileCoverage));
+    });
   }
 }

@@ -47,7 +47,7 @@ const parseTestSuiteStartedEvent = (
   event: TestSuiteStartedEvent
 ): TestSuiteUpdateEvent => {
   let tests: Array<Test> | undefined = undefined;
-  let coverage: Array<FileCoverage> | undefined = undefined;
+  let coverage: Array<TestEventCoverage> | undefined = undefined;
 
   if (isFullRun) {
     tests = [];
@@ -73,7 +73,14 @@ const parseTestSuiteStartedEvent = (
       });
     }
 
-    coverage = Object.values(createCoverage(event.coverageIndex));
+    coverage = Object.values(
+      createCoverage(
+        event.coverageIndex,
+        workspaceId,
+        packageName,
+        suiteName
+      )
+    );
   }
 
   return {
@@ -163,17 +170,45 @@ const parseTestTraceEvent = (
   event: TestTraceEvent
 ): TestContextEvent => {
   const testId: TestId = [workspaceId, packageName, suiteName, event.id.toString()];
-  const coverage = createCoverage(event.covered, testId);
+  
+  const round: TestRound = {
+    id: event.trace.index,
+    status: event.trace.status,
+    transitions: [],
+  };
+
+  for (const transition of event.trace.transitions) {
+    round.transitions.push({
+      action: transition.action,
+      result: transition.result,
+      stepIndex: transition.stepIndex,
+    });
+  }
+
+  const coverage = createCoverage(
+    event.covered,
+    workspaceId,
+    packageName,
+    suiteName,
+    event.id.toString()
+  );
 
   for (const tm of event.trace.threatModels) {
-    const tmTestId: TestId = [workspaceId, packageName, suiteName, tm.testId.toString()];
-    updateCoverage(coverage, tm.covered, tmTestId);
+    updateCoverage(
+      coverage,
+      tm.covered,
+      workspaceId,
+      packageName,
+      suiteName,
+      tm.testId.toString()
+    );
   }
 
   return {
     eventType: 'test-context',
     payload: {
       id: testId,
+      round,
       coverage: Object.values(coverage),
     },
   };

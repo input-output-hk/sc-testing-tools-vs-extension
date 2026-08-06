@@ -16,9 +16,10 @@ interface TreeViewProps {
     suiteName?: string,
     path?: Array<string>
   ) => void;
+  onOpenTestResult: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
@@ -140,6 +141,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
               onRunTests={handleRunTests}
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
+              onOpenTestResult={onOpenTestResult}
             />
           ))}
         </VscodeTree>
