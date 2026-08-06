@@ -21,7 +21,7 @@ export default class TestCoverageView {
     private onWebviewResolved(webview: vscode.Webview): void {
         this.webview = webview;
 
-        this.context.store.testStore.onCoverageUpdate((file) => this.sendCoverageUpdate(file));
+        this.context.store.testStore.onCoverageSummaryUpdate((file) => this.sendCoverageUpdate(file));
 
         this.webview.onDidReceiveMessage(
             (message: WebviewToExtensionMessage) => {
