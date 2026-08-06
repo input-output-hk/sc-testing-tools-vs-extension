@@ -222,6 +222,29 @@ export default class Database {
     }
   }
 
+  private async clearCoverageForTest(id: TestId): Promise<void> {
+    const [workspaceId, packageName, suiteName, testId] = id;
+    const documents: Array<CoverageDocument> = await this.database!.coverage.find({
+      selector: {
+        'context.workspaceId': workspaceId,
+        'context.packageName': packageName,
+        'context.suiteName': suiteName,
+        'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
+      }
+    }).exec();
+
+    for (const document of documents) {
+      await document.update({
+        $set: {
+          statements: document.statements.map(statement => ({
+            ...statement,
+            testIds: statement.testIds.filter(id => id !== testId)
+          }))
+        }
+      });
+    }
+  }
+
   public async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
     const { id, status, time, percentage } = event.payload;
 
@@ -230,6 +253,10 @@ export default class Database {
     }).exec();
 
     if (testDocument !== null) {
+      if (status === 'running' && testDocument.status !== 'running') {
+        await this.clearCoverageForTest(id);
+      }
+
       const updateData: Partial<TestDocument> = {};
       if (status !== undefined) updateData.status = status;
       if (time !== undefined) updateData.time = time;
