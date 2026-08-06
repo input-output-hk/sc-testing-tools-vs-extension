@@ -300,15 +300,21 @@ export default class Database {
     
     if (suiteDocument !== null) {
       if (testIds !== undefined) {
+        const testIdQuery = testIds.map(testId => ({ id: `${workspaceId}:${packageName}:${suiteName}:${testId}` }))
         await this.database!.tests
-          .findByIds(testIds.map(testId => `${workspaceId}:${packageName}:${suiteName}:${testId}`))
+          .find({ selector: { $or: testIdQuery, status: 'running' } })
           .update({ $set: { status: 'invalid' } });
+        await this.database!.tests
+          .find({ selector: { $or: testIdQuery, status: 'waiting' } })
+          .update({ $set: { status: 'undetermined' } });
       } else {
         await this.database!.tests
-          .find({ selector: { workspaceId, packageName, suiteName } })
+          .find({ selector: { workspaceId, packageName, suiteName, status: 'running' } })
           .update({ $set: { status: 'invalid' } });
+        await this.database!.tests
+          .find({ selector: { workspaceId, packageName, suiteName, status: 'waiting' } })
+          .update({ $set: { status: 'undetermined' } });
       }
-
       await suiteDocument.update({ $set: { status: 'invalid' } });
     }
   }
