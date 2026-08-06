@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { Range, Position } from 'vscode';
 import { createHash } from 'node:crypto';
+import { Range } from 'vscode';
 import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
@@ -81,7 +80,7 @@ export default class Database {
 
   private keyToRange(key: string): Range {
     const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
-    return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
+    return new Range(startLine, startChar, endLine, endChar);
   }
 
   private rangeToKey(range: TestRange): string {
@@ -254,6 +253,7 @@ export default class Database {
         action: transition.action,
         result: transition.result,
         stepIndex: transition.stepIndex,
+        tx: transition.tx,
       }))
     });
   }
@@ -562,9 +562,39 @@ export default class Database {
       transitions: roundDocument.transitions.map(transition => ({
         action: transition.action,
         result: transition.result as TestTransitionResult,
-        stepIndex: transition.stepIndex
+        stepIndex: transition.stepIndex,
+        tx: transition.tx,
       }))
     }));
+  }
+
+  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
+    const [workspaceId, packageName, suiteName] = testId;
+    
+    return await this.database!.tests.find({
+      selector: { workspaceId, packageName, suiteName, group }
+    }).exec().then(documents => documents.map(test => ({
+      id: [
+        test.workspaceId,
+        test.packageName,
+        test.suiteName,
+        test.testId
+      ],
+      name: test.name,
+      group: test.group,
+      status: test.status as RunStatus,
+      location: test.location ? {
+        uri: test.location.uri,
+        range: new Range(
+          test.location.range.start.line,
+          test.location.range.start.character,
+          test.location.range.end.line,
+          test.location.range.end.character
+        )
+      } : undefined,
+      time: test.time,
+      percentage: test.percentage
+    })));
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

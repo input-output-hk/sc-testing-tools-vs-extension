@@ -15,6 +15,34 @@ import {
   TEST_ROUND_ID_MAX_LENGTH,
 } from './ids';
 
+const stringSchema = {
+  type: 'string',
+} as const;
+
+const numberSchema = {
+  type: 'number',
+} as const;
+
+const valueSchema = {
+  type: 'object',
+  properties: {
+    lovelace: numberSchema,
+    assets: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: stringSchema,
+          policyId: stringSchema,
+          quantity: numberSchema,
+        },
+        required: ['policyId', 'assetName', 'quantity'],
+      },
+    },
+  },
+  required: ['lovelace', 'assets'],
+} as const;
+
 const roundSchemaLiteral = {
   title: 'round',
   version: 0,
@@ -58,12 +86,8 @@ const roundSchemaLiteral = {
     status: {
       type: 'object',
       properties: {
-        status: {
-          type: 'string',
-        },
-        message: {
-          type: 'string',
-        },
+        status: stringSchema,
+        message: stringSchema,
       },
       required: ['status'],
     },
@@ -72,27 +96,59 @@ const roundSchemaLiteral = {
       items: {
         type: 'object',
         properties: {
-          action: {
-            type: 'string',
-          },
+          action: stringSchema,
           result: {
             type: 'object',
             properties: {
-              status: {
-                type: 'string',
-              },
-              txId: {
-                type: 'string',
-              },
-              error: {
-                type: 'string',
-              },
+              status: stringSchema,
+              txId: stringSchema,
+              error: stringSchema,
             },
             required: ['status'],
           },
-          stepIndex: {
-            type: 'number',
-          },
+          stepIndex: numberSchema,
+          tx: {
+            type: 'object',
+            properties: {
+              id: stringSchema,
+              fee: numberSchema,
+              inputs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    address: stringSchema,
+                    utxo: stringSchema,
+                    value: valueSchema,
+                    redeemerConstr: numberSchema,
+                    redeemerKind: stringSchema,
+                    redeemerPayload: { type: 'object' },
+                    redeemerRaw: stringSchema,
+                  },
+                  required: ['address', 'utxo', 'value'],
+                },
+              },
+              outputs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    address: stringSchema,
+                    utxo: stringSchema,
+                    value: valueSchema,
+                    datum: stringSchema,
+                  },
+                  required: ['address', 'utxo', 'value'],
+                },
+              },
+              mint: valueSchema,
+              signers: {
+                type: 'array',
+                items: stringSchema
+              },
+            },
+            required: ['fee', 'inputs', 'outputs'],
+          }
         },
         required: ['action', 'result', 'stepIndex'],
       },

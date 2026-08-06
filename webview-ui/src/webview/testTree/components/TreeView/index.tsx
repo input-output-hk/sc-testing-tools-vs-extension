@@ -87,15 +87,11 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
   };
 
   const handleRunTests = (testIds: Array<RunTestId>) => {
-    const testRun: Set<string> = new Set();
     const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
+    const testRun: Set<string> = new Set(runnableIds);
     if (runnableIds.some(id => selected.has(id))) {
       for (const selectedId of selected) {
         testRun.add(selectedId);
-      }
-    } else if (runnableIds.length > 0) {
-      for (const runnableId of runnableIds) {
-        testRun.add(runnableId);
       }
     }
     if (testRun.size > 0) {
