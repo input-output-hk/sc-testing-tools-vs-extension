@@ -108,9 +108,7 @@ export default class TestTreeView {
   }
 
   private openTestResults(testId: TestId): void {
-    this.context.store.testStore.getTestResult(testId).then((testResult) => {
-      this.context.testResultView.open(testResult);
-    });
+    this.context.testResultView.open(testId);
   }
 
   private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {

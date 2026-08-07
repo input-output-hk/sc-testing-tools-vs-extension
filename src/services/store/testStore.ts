@@ -21,13 +21,13 @@ export default class TestStore {
 
     this.workspaces = new Map(
       vscode.workspace.workspaceFolders?.map(folder => [
-        this.getWorkspaceId(folder.uri.fsPath),
+        this.makeWorkspaceId(folder.uri.fsPath),
         folder.uri.fsPath
       ]) || []
     );
   }
 
-  private getWorkspaceId(workspacePath: string): string {
+  private makeWorkspaceId(workspacePath: string): string {
     return createHash('sha256').update(workspacePath).digest('hex').slice(0, 8);
   }
 
@@ -153,6 +153,23 @@ export default class TestStore {
       test: await this.database.getTest(testId),
       rounds: await this.database.getTestRounds(testId),
     };
+  }
+
+  public async getTestResultWithGroupTests(testId: TestId): Promise<TestResultWithGroupTests> {
+    const test = await this.database.getTest(testId);
+    return {
+      test,
+      rounds: await this.database.getTestRounds(testId),
+      groupTests: await this.database.getTestsByGroup(testId, test.group),
+    };
+  }
+
+  public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
+    return await this.database.getTestRounds(testId);
+  }
+
+  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
+    return await this.database.getTestsByGroup(testId, group);
   }
   
   public async getCoverage(): Promise<Array<FileCoverageWithStats>> {

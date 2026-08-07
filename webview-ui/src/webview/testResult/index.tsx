@@ -16,7 +16,9 @@ interface Props {
 }
 
 const TestResultView: React.FC<Props> = ({ vscode }) => {
-  const [testResult, setTestResult] = useState<TestResult|null>(null);
+  const [test, setTest] = useState<Test|null>(null);
+  const [testRounds, setTestRounds] = useState<Array<TestRound>>([]);
+  const [groupTests, setGroupTests] = useState<Array<Test>>([]);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -24,7 +26,9 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
       if (message.type === 'test-result') {
-        setTestResult(message.payload);
+        setTest(message.payload.test);
+        setTestRounds(message.payload.rounds);
+        setGroupTests(message.payload.groupTests);
       }
     };
 
@@ -32,24 +36,31 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  if (!testResult) return <></>;
+  const handleSelectTest = (testId: TestId) => {
+    vscode.postMessage({ type: 'select-test', payload: { testId } } as WebviewToExtensionMessage);
+  };
+
+  const handleRecheck = () => {
+    if (test !== null) {
+      vscode.postMessage({ type: 'run-test' } as WebviewToExtensionMessage);
+    }
+  };
+
+  if (!test) return <></>;
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-base-20 p-4">
       <div className="flex items-center py-1 gap-2 shrink-0 border-b border-(--vscode-panel-border) min-h-8">
         <TestSelector
-          tests={[testResult.test]}
-          selectedTestId={testResult.test.id.join(':')}
-          onTestSelected={() => {}}
+          tests={groupTests}
+          selectedTestId={test.id}
+          onTestSelected={handleSelectTest}
         />
-
-        <TestStatusBadge status={testResult.test.status} />
-
+        <TestStatusBadge status={test.status} />
         <div className="flex-1" />
-
         <button
           className="flex items-center gap-1.5 bg-base-15 text-base-06 rounded pl-2 pr-2.75 py-1.5 text-[13px] shrink-0 cursor-pointer active:bg-blue-07 active:text-base-01"
-          onClick={() => {}}
+          onClick={handleRecheck}
         >
           <i className="codicon codicon-refresh" />
           Recheck
@@ -60,7 +71,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
         <VscodeTabHeader slot="header">Test rounds</VscodeTabHeader>
 
         <VscodeTabPanel className="flex flex-col flex-1 overflow-hidden p-0">
-          <TestRoundsTab testResult={testResult} />
+          <TestRoundsTab test={test} testRounds={testRounds} />
         </VscodeTabPanel>
       </VscodeTabs>
     </div>

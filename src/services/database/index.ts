@@ -1,48 +1,40 @@
-import { Range, Position, Uri } from 'vscode';
-import { createHash } from 'node:crypto';
 import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 
-import { createTestTree } from '../../utils/testTree';
+import { databaseCollections, type DatabaseCollections, type TestDocument, type CoverageDocument } from './collections';
 
 import {
-  packageSchema,
-  type PackageCollection,
-  type PackageDocument
-} from './package';
+  handleTestTree,
+  buildTestTree
+} from './methods/testTree';
 
 import {
-  suiteSchema,
-  type SuiteCollection,
-  type SuiteDocument
-} from './suite';
+  handleTestSuiteUpdateEvent,
+  onTestSuiteUpdate,
+  onTestSuiteStatusUpdate
+} from './methods/suite';
 
 import {
-  testSchema,
-  type TestCollection,
-  type TestDocument
-} from './test';
+  handleTestUpdateEvent,
+  handleTestContextEvent,
+  handleTestRunFailed,
+  handleRunTests,
+  getTest,
+  getTestsByGroup,
+  onTestUpdate
+} from './methods/test';
 
 import {
-  coverageSchema,
-  type CoverageCollection,
-  type CoverageDocument
-} from './coverage';
+  getCoverage,
+  getCoverageForFile,
+  getCoverageForTest,
+  onCoverageUpdate
+} from './methods/coverage';
 
 import {
-  roundSchema,
-  type RoundCollection,
-  type RoundDocument
-} from './round';
-
-type DatabaseCollections = {
-  packages: PackageCollection,
-  suites: SuiteCollection,
-  tests: TestCollection,
-  coverage: CoverageCollection,
-  rounds: RoundCollection,
-};
+  getTestRounds
+} from './methods/round';
 
 addRxPlugin(RxDBUpdatePlugin);
 
@@ -55,503 +47,47 @@ export default class Database {
       storage: getRxStorageMemory()
     });
 
-    await this.database.addCollections({
-      packages: {
-        schema: packageSchema,
-      },
-      suites: {
-        schema: suiteSchema,
-      },
-      tests: {
-        schema: testSchema,
-      },
-      coverage: {
-        schema: coverageSchema,
-      },
-      rounds: {
-        schema: roundSchema,
-      },
-    });
-  }
-
-  private makeFileHash(fileUri: string): string {
-    return createHash('sha256').update(fileUri).digest('hex');
-  }
-
-  private keyToRange(key: string): Range {
-    const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
-    return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
-  }
-
-  private rangeToKey(range: TestRange): string {
-    return [
-      range.start.line,
-      range.start.character,
-      range.end.line,
-      range.end.character
-    ].join(':');
-  }
-
-  // Source locations reported by the test binary (test locations, coverage file paths) are
-  // relative to the package directory, not absolute — resolve them against the package's
-  // known packagePath into real, openable file URIs.
-  private async resolvePackagePath(workspaceId: string, packageName: string): Promise<string | null> {
-    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
-      selector: { workspaceId, packageName }
-    }).exec();
-    return packageDocument?.packagePath ?? null;
-  }
-
-  private toAbsoluteUri(packagePath: string | null, relativePath: string): string {
-    return packagePath === null ? relativePath : Uri.file(`${packagePath}/${relativePath}`).toString();
-  }
-
-  private async computeSuiteStatus(suite: SuiteDocument): Promise<RunStatus> {
-    const tests: Array<TestDocument> = await this.database!.tests.find({
-      selector: {
-        workspaceId: suite.workspaceId,
-        packageName: suite.packageName,
-        suiteName: suite.suiteName,
-      }
-    }).exec();
-
-    if (tests.some(test => test.status === 'running')) return 'running';
-    if (tests.some(test => test.status === 'invalid')) return 'invalid';
-    if (tests.every(test => test.status === 'valid')) return 'valid';
-
-    return 'undetermined';
-  }
-
-  private async upsertTests(workspaceId: string, packageName: string, suiteName: string, tests: Array<Test>): Promise<void> {
-    const existingTests: Array<TestDocument> = await this.database!.tests.find({
-      selector: {
-        workspaceId,
-        packageName,
-        suiteName,
-      }
-    }).exec();
-
-    const createTests: Set<string> = new Set(tests.map(test => test.id.join(':')));
-    const removeTests: Array<string> = [];
-    for (const existingTest of existingTests) {
-      const { workspaceId, packageName, suiteName, testId } = existingTest;
-      const id = `${workspaceId}:${packageName}:${suiteName}:${testId}`;
-      if (!createTests.has(id)) {
-        removeTests.push(id);
-      } else {
-        createTests.delete(id);
-      }
-    }
-
-    const packagePath = await this.resolvePackagePath(workspaceId, packageName);
-
-    await this.database!.tests.bulkInsert(
-      tests
-        .filter(test => createTests.has(test.id.join(':')))
-        .map(test => ({
-          id: test.id.join(':'),
-          workspaceId,
-          packageName,
-          suiteName,
-          testId: test.id[3],
-          name: test.name,
-          group: test.group,
-          status: test.status,
-          location: test.location ? {
-            uri: this.toAbsoluteUri(packagePath, test.location.uri),
-            range: test.location.range,
-          } : undefined,
-          time: test.time,
-          percentage: test.percentage,
-        }))
-    );
-
-    await this.database!.tests.bulkRemove(removeTests);
-  }
-
-  // Wipes each file back to a clean statement skeleton at the start of a full run, so a fresh
-  // run's percentages aren't polluted by testIds attributed during a previous run.
-  private async resetCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
-    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
-      selector: { id: packageId.join(':') }
-    }).exec();
-
-    if (packageDocument === null) return;
-
-    const packagePath = packageDocument.packagePath;
-    await this.database!.coverage.bulkUpsert(coverage.map(fileCoverage => {
-      const filePath = `${packagePath}/${fileCoverage.fileUri}`;
-      return {
-        fileHash: this.makeFileHash(filePath),
-        filePath,
-        context: {
-          basePath: packagePath,
-          workspaceId: fileCoverage.workspaceId,
-          packageName: fileCoverage.packageName,
-          suiteName: fileCoverage.suiteName,
-        },
-        statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-          range: this.keyToRange(rangeKey),
-          testIds,
-        })),
-      };
-    }));
-  }
-
-  private async upsertCoverage(packageId: TestPackageId, coverage: Array<TestEventCoverage>): Promise<void> {
-    const packageDocument: PackageDocument | null = await this.database!.packages.findOne({
-      selector: { id: packageId.join(':') }
-    }).exec();
-
-    if (packageDocument !== null) {
-      const packagePath = packageDocument.packagePath;
-      for (const fileCoverage of coverage) {
-        const filePath = `${packagePath}/${fileCoverage.fileUri}`;
-        const fileHash = this.makeFileHash(filePath);
-
-        const coverageDocument: CoverageDocument | null = await this.database!.coverage.findOne({
-          selector: { fileHash }
-        }).exec();
-
-        if (coverageDocument === null) {
-          await this.database!.coverage.insert({
-            fileHash,
-            filePath,
-            context: {
-              basePath: packagePath,
-              workspaceId: fileCoverage.workspaceId,
-              packageName: fileCoverage.packageName,
-              suiteName: fileCoverage.suiteName
-            },
-            statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-              range: this.keyToRange(rangeKey), testIds
-            }))
-          });
-        } else {
-          const statements = coverageDocument.statements;
-          for (const [rangeKey, testIds] of Object.entries(fileCoverage.statements)) {
-            const existingStatement = statements.find(statement => this.rangeToKey(statement.range) === rangeKey);
-            if (existingStatement) {
-              existingStatement.testIds = Array.from(new Set([...existingStatement.testIds, ...testIds]));
-            } else {
-              statements.push({ range: this.keyToRange(rangeKey), testIds });
-            }
-          }
-          await coverageDocument.update({ $set: { statements } });
-        }
-      }
-    }
+    await this.database.addCollections(databaseCollections);
   }
 
   public async handleTestSuiteUpdateEvent(event: TestSuiteUpdateEvent): Promise<void> {
-    const { workspaceId, packageName, suiteName, runStatus, tests, coverage } = event.payload;
-
-    if (tests !== undefined) {
-      await this.upsertTests(workspaceId, packageName, suiteName, tests);
-    }
-
-    if (coverage !== undefined) {
-      await this.resetCoverage([workspaceId, packageName], coverage);
-    }
-
-    const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
-    }).exec();
-
-    if (suiteDocument !== null) {
-      const treeVersion = tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion;
-
-      let status: RunStatus = runStatus === 'running' ? 'running' : 'undetermined';
-      if (runStatus === 'done') {
-        status = await this.computeSuiteStatus(suiteDocument);
-      }
-
-      await suiteDocument.update({ $set: { status, treeVersion } });
-    }
+    return await handleTestSuiteUpdateEvent(this.database!, event);
   }
 
   public async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
-    const { id, status, time, percentage } = event.payload;
-
-    const testDocument: TestDocument | null = await this.database!.tests.findOne({
-      selector: { id: id.join(':') }
-    }).exec();
-
-    if (testDocument !== null) {
-      const updateData: Partial<TestDocument> = {};
-      if (status !== undefined) updateData.status = status;
-      if (time !== undefined) updateData.time = time;
-      if (percentage !== undefined) updateData.percentage = percentage;
-
-      await testDocument.update({ $set: updateData });
-    }
-  }
-
-  private async createRounds(id: TestId, round: TestRound): Promise<void> {
-    const [workspaceId, packageName, suiteName, testId] = id;
-    await this.database!.rounds.upsert({
-      id: `${workspaceId}:${packageName}:${suiteName}:${testId}:${round.id}`,
-      workspaceId,
-      packageName,
-      suiteName,
-      testId,
-      roundId: round.id.toString(),
-      status: round.status,
-      transitions: round.transitions.map(transition => ({
-        action: transition.action,
-        result: transition.result,
-        stepIndex: transition.stepIndex,
-      }))
-    });
+    return await handleTestUpdateEvent(this.database!, event);
   }
 
   public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
-    const [workspaceId, packageName] = event.payload.id;
-    await this.upsertCoverage([workspaceId, packageName], event.payload.coverage);
-    await this.createRounds(event.payload.id, event.payload.round);
+    return await handleTestContextEvent(this.database!, event);
   }
 
   public async handleTestRunFailed(testRun: TestRun): Promise<void> {
-    const { workspaceId, packageName, suiteName, testIds } = testRun;
-
-    const suiteDocument: SuiteDocument | null = await this.database!.suites.findOne({
-      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
-    }).exec();
-
-    if (suiteDocument !== null) {
-      if (testIds !== undefined) {
-        await this.database!.tests
-          .findByIds(testIds.map(testId => `${workspaceId}:${packageName}:${suiteName}:${testId}`))
-          .update({ $set: { status: 'invalid' } });
-      } else {
-        await this.database!.tests
-          .find({ selector: { workspaceId, packageName, suiteName } })
-          .update({ $set: { status: 'invalid' } });
-      }
-
-      await suiteDocument.update({ $set: { status: 'invalid' } });
-    }
+    return await handleTestRunFailed(this.database!, testRun);
   }
 
   public async handleTestTree(testTree: TestTree): Promise<void> {
-    const packages: Array<Partial<PackageDocument>> = [];
-    const suites: Array<Partial<SuiteDocument>> = [];
-
-    for (const testPackage of Object.values(testTree.packages)) {
-      packages.push({
-        id: `${testPackage.workspace.id}:${testPackage.name}`,
-        workspaceId: testPackage.workspace.id,
-        workspacePath: testPackage.workspace.path,
-        packageName: testPackage.name,
-        packagePath: testPackage.packagePath
-      });
-
-      for (const suite of Object.values(testPackage.suites)) {
-        suites.push({
-          id: `${testPackage.workspace.id}:${testPackage.name}:${suite.name}`,
-          workspaceId: testPackage.workspace.id,
-          packageName: testPackage.name,
-          suiteName: suite.name,
-          status: suite.status,
-          treeVersion: 0,
-        });
-      }
-    }
-
-    await this.database!.packages.bulkUpsert(packages);
-    await this.database!.suites.bulkUpsert(suites);
+    return await handleTestTree(this.database!, testTree);
   }
 
   public async buildTestTree(prefetchTree: TestTree, openState: Record<string, boolean>): Promise<TestTree> {
-    const testTree: TestTree = { packages: { ...prefetchTree.packages } };
-    for (const packageNode of Object.values(testTree.packages)) {
-      packageNode.isOpen = openState[[packageNode.workspace.id, packageNode.name].join(':')] ?? false;
-      for (const suiteNode of Object.values(packageNode.suites)) {
-        suiteNode.isOpen = openState[[packageNode.workspace.id, packageNode.name, suiteNode.name].join(':')] ?? false;
-      }
-    }
-
-    const packageDocuments: Array<PackageDocument> = await this.database!.packages.find().exec();
-    for (const packageDocument of packageDocuments) {
-      const packageId: TestPackageId = [packageDocument.workspaceId, packageDocument.packageName];
-      const packageNode: TestPackage = {
-        workspace: {
-          id: packageDocument.workspaceId,
-          path: packageDocument.workspacePath
-        },
-        name: packageDocument.packageName,
-        packagePath: packageDocument.packagePath,
-        isOpen: openState[packageId.join(':')] ?? false,
-        suites: {}
-      };
-
-      const suiteDocuments: Array<SuiteDocument> = await this.database!.suites.find({
-        selector: {
-          workspaceId: packageDocument.workspaceId,
-          packageName: packageDocument.packageName
-        }
-      }).exec();
-
-      for (const suiteDocument of suiteDocuments) {
-        const suiteId: TestSuiteId = [suiteDocument.workspaceId, suiteDocument.packageName, suiteDocument.suiteName];
-        const suiteNode: TestSuite = {
-          name: suiteDocument.suiteName,
-          status: suiteDocument.status as RunStatus,
-          isOpen: openState[suiteId.join(':')] ?? false,
-          tests: {}
-        };
-        packageNode.suites[suiteNode.name] = suiteNode;
-
-        const testDocuments: Array<TestDocument> = await this.database!.tests.find({
-          selector: {
-            workspaceId: suiteDocument.workspaceId,
-            packageName: suiteDocument.packageName,
-            suiteName: suiteDocument.suiteName
-          }
-        }).exec();
-
-        const tests: Array<Test> = testDocuments.map(testDocument => ({
-          id: [
-            testDocument.workspaceId,
-            testDocument.packageName,
-            testDocument.suiteName,
-            testDocument.testId
-          ],
-          name: testDocument.name,
-          group: testDocument.group,
-          status: testDocument.status as RunStatus,
-          location: testDocument.location ? {
-            uri: testDocument.location.uri,
-            range: new Range(
-              testDocument.location.range.start.line,
-              testDocument.location.range.start.character,
-              testDocument.location.range.end.line,
-              testDocument.location.range.end.character
-            )
-          } : undefined,
-          time: testDocument.time,
-          percentage: testDocument.percentage
-        }));
-
-        suiteNode.tests = createTestTree(suiteId, openState, tests);
-      }
-
-      const packageKey = packageId.join(':');
-      if (!testTree.packages[packageKey]) {
-        testTree.packages[packageKey] = packageNode;
-      } else {
-        for (const [suiteName, suiteNode] of Object.entries(packageNode.suites)) {
-          if (
-            !testTree.packages[packageKey].suites[suiteName] ||
-            Object.keys(suiteNode.tests).length > 0
-          ) {
-            testTree.packages[packageKey].suites[suiteName] = suiteNode;
-          }
-        }
-      }
-    }
-
-    return testTree;
+    return await buildTestTree(this.database!, prefetchTree, openState);
   }
 
   public async handleRunTests(testIds: Array<RunTestId>): Promise<void> {
-    const suites: Set<string> = new Set();
-    for (const [workspaceId, packageName, suiteName] of testIds) {
-      suites.add(`${workspaceId}:${packageName}:${suiteName}`);
-    }
-
-    await this.database!.tests
-      .findByIds(
-        Array.from(testIds)
-          .filter(id => id[3] !== undefined)
-          .map(
-            ([workspaceId, packageName, suiteName, testId]) =>
-              `${workspaceId}:${packageName}:${suiteName}:${testId}`
-          )
-      )
-      .update({ $set: { status: 'waiting' } });
-
-    await this.database!.tests
-      .find({
-        selector: {
-          $or: Array.from(testIds)
-            .filter(id => id[3] === undefined)
-            .map(
-              ([workspaceId, packageName, suiteName]) =>
-                ({ workspaceId, packageName, suiteName })
-            )
-        }
-      })
-      .update({ $set: { status: 'waiting' } });
-
-    await this.database!.suites
-      .findByIds(Array.from(suites))
-      .update({ $set: { status: 'running' } });
+    return await handleRunTests(this.database!, testIds);
   }
 
   public async getCoverage(): Promise<Array<FileCoverage>> {
-    const coverage: Array<FileCoverage> = [];
-    const documents: Array<CoverageDocument> = await this.database!.coverage.find().exec();
-    for (const document of documents) {
-      const statements: CoverageStatements = {};
-      for (const statement of document.statements) {
-        statements[this.rangeToKey(statement.range)] = statement.testIds;
-      }
-      coverage.push({
-        fileHash: document.fileHash,
-        filePath: document.filePath,
-        context: document.context,
-        statements
-      });
-    }
-    return coverage;
+    return await getCoverage(this.database!);
   }
 
   public async getCoverageForFile(fileUri: string): Promise<CoverageStatements> {
-    const filePath = fileUri.replace('file://', '');
-    const fileHash = this.makeFileHash(filePath);
-
-    const coverageDocument: CoverageDocument | null = await this.database!.coverage.findOne({
-      selector: { fileHash }
-    }).exec();
-
-    if (coverageDocument === null) return {};
-
-    const statements: CoverageStatements = {};
-    for (const statement of coverageDocument.statements) {
-      statements[this.rangeToKey(statement.range)] = statement.testIds;
-    }
-
-    return statements;
+    return await getCoverageForFile(this.database!, fileUri);
   }
 
   public async getCoverageForTest(id: TestId): Promise<Array<FileCoverage>> {
-    const [workspaceId, packageName, suiteName, testId] = id;
-
-    const coverage: Array<FileCoverage> = [];
-    const documents: Array<CoverageDocument> = await this.database!.coverage.find({
-      selector: {
-        'context.workspaceId': workspaceId,
-        'context.packageName': packageName,
-        'context.suiteName': suiteName,
-        'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
-      }
-    }).exec();
-
-    for (const document of documents) {
-      const statements: CoverageStatements = {};
-      for (const statement of document.statements) {
-        statements[this.rangeToKey(statement.range)] = statement.testIds;
-      }
-      coverage.push({
-        fileHash: document.fileHash,
-        filePath: document.filePath,
-        context: document.context,
-        statements
-      });
-    }
-
-    return coverage;
+    return await getCoverageForTest(this.database!, id);
   }
 
   // Per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel's
@@ -613,161 +149,30 @@ export default class Database {
   }
 
   public async getTest(testId: TestId): Promise<Test> {
-    const testDocument: TestDocument | null = await this.database!.tests.findOne({
-      selector: { id: testId.join(':') }
-    }).exec();
-
-    if (testDocument === null) throw new Error(`Test not found for id: ${testId.join(':')}`);
-
-    return {
-      id: testId,
-      name: testDocument.name,
-      group: testDocument.group,
-      status: testDocument.status as RunStatus,
-      location: testDocument.location ? {
-        uri: testDocument.location.uri,
-        range: new Range(
-          testDocument.location.range.start.line,
-          testDocument.location.range.start.character,
-          testDocument.location.range.end.line,
-          testDocument.location.range.end.character
-        )
-      } : undefined,
-      time: testDocument.time,
-      percentage: testDocument.percentage
-    };
+    return await getTest(this.database!, testId);
   }
 
   public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
-    const [workspaceId, packageName, suiteName, testId] = id;
-    const roundDocuments: Array<RoundDocument> = await this.database!.rounds.find({
-      selector: {
-        workspaceId, packageName, suiteName, testId
-      }
-    }).exec();
+    return await getTestRounds(this.database!, id);
+  }
 
-    return roundDocuments.map(roundDocument => ({
-      id: parseInt(roundDocument.roundId),
-      status: roundDocument.status as TestRoundStatus,
-      transitions: roundDocument.transitions.map(transition => ({
-        action: transition.action,
-        result: transition.result as TestTransitionResult,
-        stepIndex: transition.stepIndex
-      }))
-    }));
+  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
+    return await getTestsByGroup(this.database!, testId, group);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
-    this.database!.tests.update$.subscribe(changeEvent => {
-      const document = changeEvent.documentData;
-      callback({
-        id: [
-          document.workspaceId,
-          document.packageName,
-          document.suiteName,
-          document.testId
-        ],
-        name: document.name,
-        group: document.group,
-        status: document.status as RunStatus,
-        location: document.location ? {
-          uri: document.location.uri,
-          range: new Range(
-            document.location.range.start.line,
-            document.location.range.start.character,
-            document.location.range.end.line,
-            document.location.range.end.character
-          )
-        } : undefined,
-        time: document.time,
-        percentage: document.percentage
-      });
-    });
+    onTestUpdate(this.database!, callback);
   }
 
   public onTestSuiteUpdate(openState: Record<string, boolean>, callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    this.database!.suites.update$.subscribe(async changeEvent => {
-      const document = changeEvent.documentData;
-      const prevVersion = changeEvent.previousDocumentData?.treeVersion;
-      if (prevVersion !== document.treeVersion) {
-        const testDocuments: Array<TestDocument> = await this.database!.tests.find({
-          selector: {
-            workspaceId: document.workspaceId,
-            packageName: document.packageName,
-            suiteName: document.suiteName
-          }
-        }).exec();
-
-        const tests: Array<Test> = testDocuments.map(testDocument => ({
-          id: [
-            testDocument.workspaceId,
-            testDocument.packageName,
-            testDocument.suiteName,
-            testDocument.testId
-          ],
-          name: testDocument.name,
-          group: testDocument.group,
-          status: testDocument.status as RunStatus,
-          location: testDocument.location ? {
-            uri: testDocument.location.uri,
-            range: new Range(
-              testDocument.location.range.start.line,
-              testDocument.location.range.start.character,
-              testDocument.location.range.end.line,
-              testDocument.location.range.end.character
-            )
-          } : undefined,
-          time: testDocument.time,
-          percentage: testDocument.percentage
-        }));
-
-        const packageId: TestPackageId = [document.workspaceId, document.packageName];
-        const suiteId: TestSuiteId = [...packageId, document.suiteName];
-        const testTree = createTestTree(suiteId, openState, tests);
-        const suite: TestSuite = {
-          name: document.suiteName,
-          status: document.status as RunStatus,
-          tests: testTree,
-          isOpen: openState[suiteId.join(':')] ?? false,
-        };
-
-        callback({ packageId, suite });
-      }
-    });
+    onTestSuiteUpdate(this.database!, openState, callback);
   }
 
   public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
-    this.database!.suites.update$.subscribe(changeEvent => {
-      const document = changeEvent.documentData;
-      const prevStatus = changeEvent.previousDocumentData?.status;
-      if (prevStatus !== document.status) {
-        callback({
-          suiteId: [
-            document.workspaceId,
-            document.packageName,
-            document.suiteName
-          ],
-          status: document.status as RunStatus
-        });
-      }
-    });
+    onTestSuiteStatusUpdate(this.database!, callback);
   }
 
   public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {
-    this.database!.coverage.$.subscribe(changeEvent => {
-      if (changeEvent.operation === 'INSERT' || changeEvent.operation === 'UPDATE') {
-        const document = changeEvent.documentData;
-        const statements: CoverageStatements = {};
-        for (const statement of document.statements) {
-          statements[this.rangeToKey(statement.range)] = statement.testIds;
-        }
-        callback({
-          fileHash: document.fileHash,
-          filePath: document.filePath,
-          context: document.context,
-          statements
-        });
-      }
-    });
+    onCoverageUpdate(this.database!, callback);
   }
 }

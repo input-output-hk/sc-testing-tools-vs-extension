@@ -4,8 +4,15 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import useTreeItemState from './useTreeItemState';
-import { getGroupTestIds, getGroupStatus, nodeMatchesFilter, nodeMatchesStatus, isRunnableTestId } from '../../utils/treeUtils';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
+import {
+  getGroupTestIds,
+  getGroupStatus,
+  nodeMatchesFilter,
+  nodeMatchesStatus,
+  isRunnableTestId,
+  sortTreeNodes,
+} from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
   workspaceId: string;
@@ -67,7 +74,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
         (childNode) =>
           nodeMatchesStatus(childNode, statusFilter) &&
           nodeMatchesFilter(childNode, effectiveFilterText),
-      ),
+      )
+      .sort(sortTreeNodes),
     [node.nodes, effectiveFilterText, statusFilter],
   );
 
