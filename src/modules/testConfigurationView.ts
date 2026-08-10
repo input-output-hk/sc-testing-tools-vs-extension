@@ -109,7 +109,7 @@ export default class TestConfigurationView {
     this.webview?.postMessage({ type: 'dependency-status', payload: { error } } as ExtensionToWebviewMessage);
   }
 
-  private onDependencyError({ hasError, message, code }: ErrorObj): void {
+  private onDependencyError({ hasError, message, code }: DependencyError): void {
     // Update the status bar and show error notification if no dependencies are installed
     if (hasError && code === 'no-dependencies') {
       this.context.statusBarItem.text = '$(error) No dependencies detected.';
@@ -151,5 +151,4 @@ export default class TestConfigurationView {
       this.context.statusBarItem.hide();
     }
   }
-
 }

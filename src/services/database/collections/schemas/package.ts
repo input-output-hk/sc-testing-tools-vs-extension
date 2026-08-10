@@ -7,10 +7,11 @@ import {
 } from 'rxdb';
 
 import {
-  WORKSPACE_ID_MAX_LENGTH,
-  PACKAGE_NAME_MAX_LENGTH,
-  PACKAGE_ID_MAX_LENGTH,
-} from './ids';
+  finalStringSchema,
+  workspaceIdSchema,
+  packageNameSchema,
+  packageIdSchema,
+} from '../common/schemas';
 
 const packageSchemaLiteral = {
   title: 'package',
@@ -22,31 +23,14 @@ const packageSchemaLiteral = {
   },
   type: 'object',
   properties: {
-    id: {
-      type: 'string',
-      maxLength: PACKAGE_ID_MAX_LENGTH,
-      final: true,
-    },
-    workspaceId: {
-      type: 'string',
-      maxLength: WORKSPACE_ID_MAX_LENGTH,
-      final: true,
-    },
-    workspacePath: {
-      type: 'string',
-      final: true,
-    },
-    packageName: {
-      type: 'string',
-      maxLength: PACKAGE_NAME_MAX_LENGTH,
-      final: true,
-    },
-    packagePath: {
-      type: 'string',
-      final: true,
-    },
+    id: packageIdSchema,
+    workspaceId: workspaceIdSchema,
+    workspacePath: finalStringSchema,
+    packageName: packageNameSchema,
+    packagePath: finalStringSchema,
   },
   required: [
+    'id',
     'workspaceId',
     'workspacePath',
     'packageName',

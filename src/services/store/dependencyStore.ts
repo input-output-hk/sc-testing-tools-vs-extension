@@ -39,8 +39,8 @@ export default class DependencyStore {
   private hasNix: boolean = false;
   private hasDocker: boolean = false;
   private dockerRunning: boolean = false;
-  private dependencyError: ErrorObj = { hasError: false, message: '', code: undefined };
-  private dependencyErrorCallbacks: ((error: ErrorObj) => void)[] = [];
+  private dependencyError: DependencyError = { hasError: false, message: '', code: undefined };
+  private dependencyErrorCallbacks: ((error: DependencyError) => void)[] = [];
 
 
   public async initialize(context: PbtContext): Promise<void> {
@@ -65,13 +65,13 @@ export default class DependencyStore {
     return this.dockerRunning;
   }
 
-  public getDependencyError(): ErrorObj {
+  public getDependencyError(): DependencyError {
     return this.dependencyError;
   }
 
   // notified whenever the computed dependency error actually changes, regardless of
   // which caller (retry button, mode change, pre-flight check, ...) triggered the recheck
-  public onDependencyErrorChange(callback: (error: ErrorObj) => void): void {
+  public onDependencyErrorChange(callback: (error: DependencyError) => void): void {
     this.dependencyErrorCallbacks.push(callback);
   }
 
@@ -119,7 +119,7 @@ export default class DependencyStore {
     }
   }
 
-  private computeDependencyError(): ErrorObj {
+  private computeDependencyError(): DependencyError {
     if (!this.hasNix && !this.hasDocker) {
       return { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 'no-dependencies' };
     } else if (this.context?.store.settingStore.getSettings().mode === "nix" && !this.hasNix) {

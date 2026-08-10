@@ -15,7 +15,7 @@ const mapTestStatusToIcon = (status: RunStatus, isThreatModel?: boolean): string
     case 'invalid':
       return 'codicon-error text-red-01';
     case 'waiting':
-      return 'codicon-question text-purple-02';
+      return 'codicon-history text-yellow-02';
     case 'running':
       return 'codicon-loading';
   }

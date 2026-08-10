@@ -1,11 +1,15 @@
 {
   "name": "pbt-extension",
   "private": true,
-  "publisher": "cardano-ha",
+  "publisher": "iog",
   "displayName": "PBT",
   "description": "",
   "icon": "images/pbt-logo.png",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension.git"
+  },
   "engines": {
     "vscode": "^1.118.0"
   },
@@ -25,10 +29,6 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "pbt-extension.buildTestTree",
-        "title": "PBT: Build Test Tree"
-      },
       {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
@@ -79,7 +79,8 @@
         {
           "id": "pbt-test-run-configuration",
           "name": "Test Run Configuration",
-          "type": "webview"
+          "type": "webview",
+          "icon": "images/pbt-icon.svg"
         }
       ]
     }
@@ -98,7 +99,10 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
+    "ajv": "^8.20.0",
     "rxdb": "^17.4.0",
-    "vscode-jsonrpc": "^8.2.1"
+    "tree-sitter-haskell": "^0.23.1",
+    "vscode-jsonrpc": "^8.2.1",
+    "web-tree-sitter": "^0.26.11"
   }
 }

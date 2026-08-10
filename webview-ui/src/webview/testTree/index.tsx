@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import EmptyView from './components/EmptyView';
 import ErrorView from './components/ErrorView';
 import TreeView from './components/TreeView';
+
 import {
   updateTest,
   updateTestSuite,
@@ -17,7 +18,7 @@ interface Props {
 }
 
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
-  const [activeView, setActiveView] = useState<'loading'| 'empty' | 'noTree' | 'tree' | 'error'>('loading');
+  const [activeView, setActiveView] = useState<null | 'empty-workspaces' | 'empty-tree' | 'tree' | 'error'>(null);
   const [testTree, setTestTree] = useState<TestTree | null>(null);
 
   useEffect(() => {
@@ -25,29 +26,13 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'no-folders-detected') {
-        if (message.payload.noFolders) {
-          setActiveView('empty');
-        } 
+      if (message.type === 'empty-workspaces') {
+        setActiveView('empty-workspaces');
       }
       if (message.type === 'test-tree') {
-        const payload = message.payload;
-
-        if (
-          payload !== null &&
-          payload !== undefined &&
-          payload.testTree.packages !== null &&
-          Object.keys(payload.testTree.packages).length > 0
-        ) {
-          setTestTree(payload.testTree);
-          setActiveView('tree');
-        } else {
-          setActiveView('noTree');
-        }
+        setTestTree(message.payload.testTree);
+        setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');
       }
-      // if (message.type === 'test-tree-error') {
-      //   setActiveView('error');
-      // }
       if (message.type === 'test-suite-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
@@ -102,23 +87,35 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     } as WebviewToExtensionMessage);
   };
 
+  const onOpenTestResult = (testId: TestId) => {
+    vscode.postMessage({ type: 'open-test-results', payload: { testId } } as WebviewToExtensionMessage);
+  };
+
   return (
     <>
-      {activeView === 'empty' && <EmptyView vscode={vscode} />}
-      {activeView === 'noTree' && (
+      {activeView === 'error' &&
+        <ErrorView vscode={vscode} />
+      }
+      {activeView === 'empty-workspaces' &&
         <EmptyView
           vscode={vscode}
-          message="No test suites found in this workspace. Open a different folder, or add a test-suite file to the open folder."
+          message="empty-workspaces"
         />
-      )}
-      {activeView === 'error' && <ErrorView vscode={vscode} />}
-      {activeView === 'tree' && testTree && (
+      }
+      {activeView === 'empty-tree' &&
+        <EmptyView
+          vscode={vscode}
+          message="empty-tree"
+        />
+      }
+      {activeView === 'tree' && testTree !== null &&
         <TreeView
-          testTree={testTree} 
+          testTree={testTree}
           onRunTests={onRunTests}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
+          onOpenTestResult={onOpenTestResult}
         />
-      )}
+      }
     </>
   )
 };

@@ -12,7 +12,7 @@ interface Props {
 
 const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   const [executionMode, setExecutionMode] = useState<ExtensionMode | null>('docker');
-  const [error, setError] = useState<ErrorObj>({ hasError: false, message: '', code: undefined });
+  const [error, setError] = useState<DependencyError>({ hasError: false, message: '', code: undefined });
   const [testRoundsMode, setTestRoundsMode] = useState<'default' | 'custom'>('custom');
   const [rounds, setRounds] = useState<string>('100');
 

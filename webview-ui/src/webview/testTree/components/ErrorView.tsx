@@ -11,7 +11,7 @@ const ErrorView: React.FC<Props> = ({ vscode }) => (
     <p className="text-[12px] opacity-60">Error occured while attempting to discover tests. View the output panel for more details.</p>
     <VscodeButton
       className="mt-4 w-full max-w-[300px]"
-      onClick={() => vscode.postMessage({ type: 'refresh-test-packages' } as WebviewToExtensionMessage)}
+      onClick={() => vscode.postMessage({ type: 'fetch-test-tree' } as WebviewToExtensionMessage)}
     >
       Retry
     </VscodeButton>

@@ -20,10 +20,10 @@ const keyToRange = (key: string): vscode.Range => {
   );
 };
 
-export function renderCoverageForEditor(
+export const renderCoverageForEditor = (
   editor: vscode.TextEditor,
   statements: CoverageStatements,
-) {
+) => {
   const covered: Array<vscode.Range> = [];
   const uncovered: Array<vscode.Range> = [];
   for (const [rangeKey, testIds] of Object.entries(statements)) {
@@ -38,7 +38,38 @@ export function renderCoverageForEditor(
   editor.setDecorations(uncoveredStyle, uncovered);
 }
 
-export function clearCoverageForEditor(editor: vscode.TextEditor) {
+export const clearCoverageForEditor = (editor: vscode.TextEditor) => {
   editor.setDecorations(coveredStyle, []);
   editor.setDecorations(uncoveredStyle, []);
+}
+
+export const getFileCoverageStats = async (fileCoverage: FileCoverage): Promise<FileCoverageWithStats> => {
+  const fileBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(fileCoverage.filePath));
+  const fileContent = Buffer.from(fileBuffer).toString('utf-8');
+  const fileLines = fileContent.split('\n');
+  const total = fileContent.length;
+  const covered = Object.entries(fileCoverage.statements).reduce((acc, [rangeKey, testIds]) => {
+    if (testIds.length > 0) {
+      const [startLine, startChar, endLine, endChar] = rangeKey.split(':').map(Number);
+      let rangeLength = 0;
+      for (let line = startLine; line <= endLine; line++) {
+        if (line === startLine && line === endLine) {
+          rangeLength += endChar - startChar;
+        } else if (line === startLine) {
+          rangeLength += fileLines[line].length - startChar + 1; // +1 for newline
+        } else if (line === endLine) {
+          rangeLength += endChar;
+        } else {
+          rangeLength += fileLines[line].length + 1; // +1 for newline
+        }
+      }
+      return acc + rangeLength;
+    }
+    return acc;
+  }, 0);
+
+  return {
+    ...fileCoverage,
+    stats: { total, covered },
+  };
 }
