@@ -1,9 +1,9 @@
-import { Range } from 'vscode';
+import { Range, Uri } from 'vscode';
 
 import { createRounds } from './round';
-import { clearCoverageForTest, upsertCoverage } from './coverage';
+import { clearCoverageForTest, getCoverageForFile, toCoverageFilePath, upsertCoverage } from './coverage';
 
-import type { Database, SuiteDocument, TestDocument } from '../collections';
+import type { Database, PackageDocument, SuiteDocument, TestDocument } from '../collections';
 
 export const upsertTests = async (
   database: Database,
@@ -78,6 +78,19 @@ export const handleTestContextEvent = async (database: Database, event: TestCont
   const [workspaceId, packageName] = event.payload.id;
   await upsertCoverage(database, [workspaceId, packageName], event.payload.coverage);
   await createRounds(database, event.payload.id, event.payload.round);
+
+  const fileUri = event.payload.coverage[0]?.fileUri;
+  if (fileUri !== undefined) {
+    const packageDocument: PackageDocument | null = await database.packages.findOne({
+      selector: { id: [workspaceId, packageName].join(':') }
+    }).exec();
+
+    if (packageDocument !== null) {
+      const absoluteUri = Uri.file(toCoverageFilePath(packageDocument.packagePath, fileUri)).toString();
+      const sum = await getCoverageForFile(database, absoluteUri);
+      console.log('file coverage', fileUri, sum);
+    }
+  }
 }
 
 export const handleTestRunFailed = async (database: Database, testRun: TestRun): Promise<void> => {

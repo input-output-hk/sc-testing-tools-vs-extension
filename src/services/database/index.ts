@@ -2,7 +2,7 @@ import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 
-import { databaseCollections, type DatabaseCollections, type TestDocument, type CoverageDocument } from './collections';
+import { databaseCollections, type DatabaseCollections, type CoverageDocument } from './collections';
 
 import {
   handleTestTree,
@@ -90,38 +90,13 @@ export default class Database {
     return await getCoverageForTest(this.database!, id);
   }
 
-  // Per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel's
-  // package/suite/file/test tree.
-  private async buildFileSummary(document: {
+  // Per-file coverage summary (aggregate %), for the Test Coverage panel's package/suite/folder/file tree.
+  private buildFileSummary(document: {
     filePath: string;
     context: FileCoverageContext;
     statements: ReadonlyArray<{ range: TestRange; testIds: ReadonlyArray<string> }>;
-  }): Promise<CoverageFileSummary> {
+  }): CoverageFileSummary {
     const totalStatements = document.statements.length;
-    const { workspaceId, packageName, suiteName } = document.context;
-    const toCompositeId = (testId: string) => `${workspaceId}:${packageName}:${suiteName}:${testId}`;
-
-    const testIds = new Set<string>();
-    for (const statement of document.statements) {
-      for (const testId of statement.testIds) testIds.add(testId);
-    }
-
-    const testDocuments: Map<string, TestDocument> = testIds.size === 0
-      ? new Map()
-      : await this.database!.tests.findByIds(Array.from(testIds, toCompositeId)).exec();
-    const nameByTestId = new Map(Array.from(testDocuments.values()).map(testDocument => [testDocument.testId, testDocument.name]));
-
-    const tests: Array<CoverageTestSummary> = Array.from(testIds).map(testId => {
-      const covered = document.statements.filter(statement => statement.testIds.includes(testId)).length;
-      return {
-        testId: toCompositeId(testId),
-        name: nameByTestId.get(testId) ?? testId,
-        percentage: totalStatements === 0 ? 0 : Math.round((covered / totalStatements) * 100),
-        total: totalStatements,
-        covered,
-      };
-    });
-
     const coveredStatements = document.statements.filter(statement => statement.testIds.length > 0).length;
     const relativePath = document.filePath.slice(document.context.basePath.length).replace(/^[\\/]+/, '');
 
@@ -133,20 +108,19 @@ export default class Database {
       percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
       total: totalStatements,
       covered: coveredStatements,
-      tests,
     };
   }
 
   public async getCoverageSummary(): Promise<CoverageFileSummary[]> {
     const coverageDocuments: Array<CoverageDocument> = await this.database!.coverage.find().exec();
-    const summaries = await Promise.all(coverageDocuments.map(doc => this.buildFileSummary(doc)));
+    const summaries = coverageDocuments.map(doc => this.buildFileSummary(doc));
     return summaries.sort((a, b) => a.uri.localeCompare(b.uri));
   }
 
   public onCoverageSummaryUpdate(callback: (file: CoverageFileSummary) => void): void {
     this.database!.coverage.$.subscribe(changeEvent => {
       if (changeEvent.operation === 'DELETE') return;
-      this.buildFileSummary(changeEvent.documentData).then(callback);
+      callback(this.buildFileSummary(changeEvent.documentData));
     });
   }
 

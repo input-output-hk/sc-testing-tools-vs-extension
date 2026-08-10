@@ -211,14 +211,6 @@ type FileCoverageWithStats = FileCoverage & {
 
 // Coverage
 
-type CoverageTestSummary = {
-  testId: string;
-  name: string;
-  percentage: number;
-  total: number;
-  covered: number;
-};
-
 type CoverageFileSummary = {
   uri: string;
   relativePath: string;
@@ -227,7 +219,6 @@ type CoverageFileSummary = {
   percentage: number;
   total: number;
   covered: number;
-  tests: Array<CoverageTestSummary>;
 };
 
 type TestSuiteUpdate = {
