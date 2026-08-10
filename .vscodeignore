@@ -1,7 +1,12 @@
+.gitignore
 .vscode/**
 src/**
 webview-ui/**
-.gitignore
+server/**
+!out/server/**
+server/node_modules/**
+node_modules/pbt-jsonrpc-api
+node_modules/pbt-extension-webview-ui
 **/tsconfig.json
 **/*.map
 **/*.ts

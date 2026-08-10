@@ -16,9 +16,10 @@ interface TreeViewProps {
     suiteName?: string,
     path?: Array<string>
   ) => void;
+  onOpenTestResult: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
@@ -86,15 +87,11 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
   };
 
   const handleRunTests = (testIds: Array<RunTestId>) => {
-    const testRun: Set<string> = new Set();
     const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
+    const testRun: Set<string> = new Set(runnableIds);
     if (runnableIds.some(id => selected.has(id))) {
       for (const selectedId of selected) {
         testRun.add(selectedId);
-      }
-    } else if (runnableIds.length > 0) {
-      for (const runnableId of runnableIds) {
-        testRun.add(runnableId);
       }
     }
     if (testRun.size > 0) {
@@ -140,6 +137,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
               onRunTests={handleRunTests}
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
+              onOpenTestResult={onOpenTestResult}
             />
           ))}
         </VscodeTree>

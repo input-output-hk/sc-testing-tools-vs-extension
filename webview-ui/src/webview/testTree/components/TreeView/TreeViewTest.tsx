@@ -9,6 +9,7 @@ interface TreeViewTestProps {
   path: Array<string>;
   onRunTests: (testIds: Array<RunTestId>) => void;
   onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onOpenTestResult: (testId: TestId) => void;
 }
 
 const formatTestTime = (time: number): string => {
@@ -24,6 +25,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   path,
   onRunTests,
   onUpdateSelection,
+  onOpenTestResult,
 }) => {
   const isRunnable = isRunnableTestId(node.test.id);
   const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
@@ -50,6 +52,17 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             </span>
           }
         </span>
+
+        {node.test.status === 'valid' &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={() => onOpenTestResult(node.test.id)}
+          >
+            <i className="codicon codicon-tasklist" />
+          </button>
+        }
+
         <button
           type="button"
           className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${

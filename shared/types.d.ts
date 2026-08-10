@@ -102,20 +102,109 @@ type TestTreeTestNode = TestTreeNode & {
   test: Test;
 };
 
+// Test Result
+
+type TestRound = {
+  id: number;
+  status: TestRoundStatus;
+  transitions: Array<TestTransition>;
+};
+
+type TestRoundStatus = {
+  status: "success";
+} | {
+  status: "failure";
+  message: string;
+} | {
+  status: "discarded";
+  message: string;
+};
+
+type TestTransition = {
+  action: string;
+  result: TestTransitionResult;
+  stepIndex: number;
+  tx?: TestTx;
+};
+
+type TestTransitionResult = {
+  status: "success";
+  txId: string;
+} | {
+  status: "failure";
+  error: string;
+};
+
+type TestTx = {
+  id?: string;
+  fee: number;
+  inputs: Array<TxInput>;
+  outputs: Array<TxOutput>;
+  mint?: TxValue;
+  signers?: Array<string>;
+};
+
+type TxInput = {
+  address: string;
+  utxo: string;
+  value: TxValue;
+  redeemerConstr?: number;
+  redeemerKind?: string;
+  redeemerPayload?: unknown;
+  redeemerRaw?: string;
+};
+
+type TxOutput = {
+  address: string;
+  utxo: string;
+  value: TxValue;
+  datum?: string;
+};
+
+type TxValue = {
+  lovelace: number;
+  assets: Array<TxAsset>;
+};
+
+type TxAsset = {
+  name: string;
+  policyId: string;
+  quantity: number;
+};
+
 // Coverage
 
-type CoverageStatements = Record<string, Array<TestId>>;
+type CoverageStatements = Record<string, Array<string>>;
 
 type TestEventCoverageMap = Record<string, TestEventCoverage>;
 
 type TestEventCoverage = {
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
   fileUri: string;
   statements: CoverageStatements;
 };
 
 type FileCoverage = {
+  fileHash: string;
   filePath: string;
+  context: FileCoverageContext;
   statements: CoverageStatements;
+};
+
+type FileCoverageContext = {
+  basePath: string;
+  workspaceId: string;
+  packageName: string;
+  suiteName: string;
+};
+
+type FileCoverageWithStats = FileCoverage & {
+  stats: {
+    total: number;
+    covered: number;
+  };
 };
 
 // Webview message
@@ -138,19 +227,37 @@ type TestTreeUpdate = {
   path?: Array<string>;
 };
 
+type TestResult = {
+  test: Test;
+  rounds: Array<TestRound>;
+};
+
+type TestResultWithGroupTests = TestResult & {
+  groupTests: Array<Test>;
+};
+
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-update", payload: { test: Test } }
   | { type: "test-suite-update", payload: TestSuiteUpdate }
   | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
+  | { type: "test-result", payload: TestResultWithGroupTests }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "dependency-status", payload: { hasError: boolean, message: string } };
+  | { type: "test-rounds-config", payload: { rounds: number } }
+  | { type: "dependency-status", payload: { error: DependencyError } }
+  | { type: "empty-workspaces" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
+  | { type: "fetch-test-tree" }
+  | { type: "open-folder" }
+  | { type: "run-test" }
   | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "open-test-results", payload: { testId: TestId } }
+  | { type: "select-test", payload: { testId: TestId } }
   | { type: "update-test-tree", payload: TestTreeUpdate }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } };
+  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "update-test-rounds", payload: { rounds: number } };
 
 // RPC message
 
@@ -207,6 +314,7 @@ type TestContextEvent = TestEvent & {
   payload: {
     id: TestId;
     coverage: Array<TestEventCoverage>;
+    round: TestRound;
   };
 };
 
@@ -229,7 +337,10 @@ type RunTestsErrorData = ScriptExecutionErrorData & {
   runParams: RunTestsParams & { testRun: TestRun };
 };
 
+type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+
 type DependencyError = {
   hasError: boolean;
   message: string;
+  code?: DependencyErrorCode;
 };

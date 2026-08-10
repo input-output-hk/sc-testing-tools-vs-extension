@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
+import { renderCoverageForEditor, clearCoverageForEditor, getFileCoverageStats } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -21,13 +21,13 @@ export default class TestStore {
 
     this.workspaces = new Map(
       vscode.workspace.workspaceFolders?.map(folder => [
-        this.getWorkspaceId(folder.uri.fsPath),
+        this.makeWorkspaceId(folder.uri.fsPath),
         folder.uri.fsPath
       ]) || []
     );
   }
 
-  private getWorkspaceId(workspacePath: string): string {
+  private makeWorkspaceId(workspacePath: string): string {
     return createHash('sha256').update(workspacePath).digest('hex').slice(0, 8);
   }
 
@@ -148,12 +148,48 @@ export default class TestStore {
     await this.database!.handleRunTests(testIds);
   }
 
-  public async getCoverage(): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverage();
+  public async getTestResult(testId: TestId): Promise<TestResult> {
+    return {
+      test: await this.database.getTest(testId),
+      rounds: await this.database.getTestRounds(testId),
+    };
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverageForTest(testId);
+  public async getTestResultWithGroupTests(testId: TestId): Promise<TestResultWithGroupTests> {
+    const test = await this.database.getTest(testId);
+    return {
+      test,
+      rounds: await this.database.getTestRounds(testId),
+      groupTests: await this.database.getTestsByGroup(testId, test.group),
+    };
+  }
+
+  public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
+    return await this.database.getTestRounds(testId);
+  }
+
+  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
+    return await this.database.getTestsByGroup(testId, group);
+  }
+  
+  public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverage();
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
+  }
+
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverageWithStats>> {
+    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
+    const coverageItems = await this.database.getCoverageForTest(testId);
+    for (const coverageItem of coverageItems) {
+      const coverageWithStats = await getFileCoverageStats(coverageItem);
+      coverageItemsWithStats.push(coverageWithStats);
+    }
+    return coverageItemsWithStats;
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
@@ -166,5 +202,11 @@ export default class TestStore {
 
   public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
     this.database.onTestSuiteStatusUpdate(callback);
+  }
+
+  public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
+    this.database.onCoverageUpdate(async fileCoverage => {
+      callback(await getFileCoverageStats(fileCoverage));
+    });
   }
 }
