@@ -123,9 +123,11 @@ export default class Database {
     });
 
     const coveredStatements = document.statements.filter(statement => statement.testIds.length > 0).length;
+    const relativePath = document.filePath.slice(document.context.basePath.length).replace(/^[\\/]+/, '');
 
     return {
       uri: document.filePath,
+      relativePath,
       packageName: document.context.packageName,
       suiteName: document.context.suiteName,
       percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),

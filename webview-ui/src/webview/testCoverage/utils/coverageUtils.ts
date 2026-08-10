@@ -1,23 +1,32 @@
-export const getFileName = (uri: string): string => {
-  const decoded = decodeURIComponent(uri);
-  const segments = decoded.split(/[\\/]/).filter(Boolean);
-  return segments[segments.length - 1] ?? decoded;
+export const getFileName = (relativePath: string): string => {
+  const segments = relativePath.split(/[\\/]/).filter(Boolean);
+  return segments[segments.length - 1] ?? relativePath;
 };
 
-export type CoverageTree = Record<string, Record<string, Array<CoverageFileSummary>>>;
+export type CoverageFolderNode = {
+  folders: Record<string, CoverageFolderNode>;
+  files: Array<CoverageFileSummary>;
+};
 
-export const groupFilesByPackageSuite = (files: Array<CoverageFileSummary>): CoverageTree => {
+const createFolderNode = (): CoverageFolderNode => ({ folders: {}, files: [] });
+
+export type CoverageTree = Record<string, Record<string, CoverageFolderNode>>;
+
+export const groupFilesByPackageSuiteFolder = (files: Array<CoverageFileSummary>): CoverageTree => {
   const tree: CoverageTree = {};
   for (const file of files) {
     if (!tree[file.packageName]) tree[file.packageName] = {};
-    if (!tree[file.packageName][file.suiteName]) tree[file.packageName][file.suiteName] = [];
-    tree[file.packageName][file.suiteName].push(file);
+    if (!tree[file.packageName][file.suiteName]) tree[file.packageName][file.suiteName] = createFolderNode();
+
+    const segments = file.relativePath.split(/[\\/]/).filter(Boolean);
+    const folderSegments = segments.slice(0, -1);
+
+    let node = tree[file.packageName][file.suiteName];
+    for (const segment of folderSegments) {
+      if (!node.folders[segment]) node.folders[segment] = createFolderNode();
+      node = node.folders[segment];
+    }
+    node.files.push(file);
   }
   return tree;
-};
-
-export const getGroupPercentage = (files: Array<CoverageFileSummary>): number => {
-  const total = files.reduce((sum, file) => sum + file.total, 0);
-  const covered = files.reduce((sum, file) => sum + file.covered, 0);
-  return total === 0 ? 0 : Math.round((covered / total) * 100);
 };

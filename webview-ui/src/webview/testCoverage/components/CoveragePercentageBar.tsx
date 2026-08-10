@@ -16,7 +16,7 @@ const getSwatchBorderClass = (percentage: number): string => {
   return 'border-red-01';
 };
 
-const CoverageSwatch: React.FC<Props> = ({ percentage }) => (
+const CoveragePercentageBar: React.FC<Props> = ({ percentage }) => (
   <span className={`relative h-[15px] w-[28px] rounded-sm shrink-0 overflow-hidden border ${getSwatchBorderClass(percentage)}`}>
     <span
       className={`absolute inset-y-0 left-0 ${getSwatchBgClass(percentage)}`}
@@ -25,4 +25,4 @@ const CoverageSwatch: React.FC<Props> = ({ percentage }) => (
   </span>
 );
 
-export default CoverageSwatch;
+export default CoveragePercentageBar;

@@ -38,7 +38,7 @@ export default class TestCoverageView {
 
     private async sendCoverageSummary(): Promise<void> {
         const files = await this.context.store.testStore.getCoverageSummary();
-        this.webview?.postMessage({ type: 'coverage-summary', payload: { files } } as ExtensionToWebviewMessage);
+        this.webview?.postMessage({ type: 'coverage', payload: { files } } as ExtensionToWebviewMessage);
     }
 
     private sendCoverageUpdate(file: CoverageFileSummary): void {

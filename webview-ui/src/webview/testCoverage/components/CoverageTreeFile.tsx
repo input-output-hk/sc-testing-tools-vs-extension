@@ -1,26 +1,24 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
-import CoverageSwatch from './CoverageSwatch';
+import CoveragePercentageBar from './CoveragePercentageBar';
 
 interface Props {
   label: string;
   percentage: number;
-  children: React.ReactNode;
 }
 
-const CoverageTreeGroup: React.FC<Props> = ({ label, percentage, children }) => (
-  <VscodeTreeItem open>
+const CoverageTreeFile: React.FC<Props> = ({ label, percentage }) => (
+  <VscodeTreeItem>
     <span className="flex flex-row w-full items-center justify-between gap-1.5">
       <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
         {label}
       </span>
       <span className="flex items-center gap-1.5 shrink-0">
         {percentage > 0 && <span className="opacity-70">{percentage}%</span>}
-        <CoverageSwatch percentage={percentage} />
+        <CoveragePercentageBar percentage={percentage} />
       </span>
     </span>
-    {children}
   </VscodeTreeItem>
 );
 
-export default CoverageTreeGroup;
+export default CoverageTreeFile;

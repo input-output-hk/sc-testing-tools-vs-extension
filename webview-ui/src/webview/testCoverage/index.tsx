@@ -4,7 +4,7 @@ import { VscodeProgressBar } from '@vscode-elements/react-elements';
 
 import type { WebviewApi } from 'vscode-webview';
 
-import CoverageTreeView from './components/CoverageTreeView';
+import CoverageTree from './components/CoverageTree';
 
 interface TestCoverageProps {
   vscode: WebviewApi<unknown>;
@@ -26,7 +26,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'coverage-summary') {
+      if (message.type === 'coverage') {
         setFiles(message.payload.files);
       }
       if (message.type === 'coverage-update') {
@@ -46,7 +46,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
           <VscodeProgressBar />
         </div>
       )}
-      {files !== null && <CoverageTreeView files={files} />}
+      {files !== null && <CoverageTree files={files} />}
     </>
   );
 };

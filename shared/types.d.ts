@@ -221,6 +221,7 @@ type CoverageTestSummary = {
 
 type CoverageFileSummary = {
   uri: string;
+  relativePath: string;
   packageName: string;
   suiteName: string;
   percentage: number;
@@ -266,7 +267,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }
   | { type: "empty-workspaces" }
-  | { type: "coverage-summary", payload: { files: Array<CoverageFileSummary> } }
+  | { type: "coverage", payload: { files: Array<CoverageFileSummary> } }
   | { type: "coverage-update", payload: { file: CoverageFileSummary } };
 
 type WebviewToExtensionMessage =
