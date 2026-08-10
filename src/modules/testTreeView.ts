@@ -65,12 +65,21 @@ export default class TestTreeView {
   private fetchTestTree(): void {
     this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
+    }).catch((error: unknown) => {
+      this.showError('Test discovery failed', error instanceof Error ? error.message : String(error));
+      this.sendTestTreeErrorToWebview();
     });
   }
 
   private sendTestTreeToWebview(testTree: TestTree): void {
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-tree', payload: { testTree } } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private sendTestTreeErrorToWebview(): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-tree-error' } as ExtensionToWebviewMessage);
     }
   }
 
@@ -134,12 +143,15 @@ export default class TestTreeView {
     }
   }
 
-  // private showError(message: string): void {
-  //   this.context.statusBarItem.text = `$(error) ${message}`;
-  //   this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-  //   this.context.statusBarItem.show();
-  //   this.context.outputChannel.show(true);
-  // }
+  private showError(title: string, message: string): void {
+    this.context.outputChannel.appendLine(`> ERROR: ${title}`);
+    this.context.outputChannel.appendLine(message);
+    this.context.outputChannel.show(true);
+
+    this.context.statusBarItem.text = `$(error) ${title}`;
+    this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    this.context.statusBarItem.show();
+  }
 
   private clearError(): void {
     this.context.statusBarItem.hide();
