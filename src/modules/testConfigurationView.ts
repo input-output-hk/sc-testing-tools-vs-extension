@@ -16,7 +16,7 @@ export default class TestConfigurationView {
     // create a webview view provider for the test configuration panel
     const TestConfigurationProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testConfiguration', this.onWebviewResolved.bind(this));
     // register the webview view provider with the extension context
-    const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-configuration', TestConfigurationProvider);
+    const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
     // add the webview view provider to the extension context subscriptions
     context.extension.subscriptions.push(TestConfigurationPanel);
 
@@ -133,19 +133,22 @@ export default class TestConfigurationView {
             break;
         }
       });
-    } 
+    } else if (hasError && code === 'nix-not-detected') {
+      this.context.statusBarItem.text = '$(error) Nix not detected';
+      this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      this.context.statusBarItem.show();
+    } else if (hasError && code === 'docker-not-detected') {
+      this.context.statusBarItem.text = '$(error) Docker not detected';
+      this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      this.context.statusBarItem.show();
+    }
     // Update the status bar and show error notification if Docker is installed but not running
     else if (hasError && code === 'docker-connection') {
       this.context.statusBarItem.text = '$(error) Problem with Docker connection';
-      this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-      this.context.statusBarItem.show();
-    } else if (hasError && code === 'nix-not-detected') {
-      this.context.statusBarItem.text = '$(error) Nix not detected';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.show();
     } else {
       this.context.statusBarItem.hide();
     }
   }
-
 }

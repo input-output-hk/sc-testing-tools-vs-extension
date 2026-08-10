@@ -14,7 +14,6 @@ export default class SettingStore {
   };
 
   private modeChangeCallbacks: ((mode: ExtensionMode) => void)[] = [];
-  
   // Set right before we write our own mode change to config, so the resulting
   // onDidChangeConfiguration event (our own echo) doesn't get mistaken for an
   // external change and bounce the in-memory mode back to whatever the config

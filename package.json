@@ -39,7 +39,7 @@
       "view/title": [
         {
           "command": "pbt-extension.refreshTestConfiguration",
-          "when": "view == pbt-test-configuration",
+          "when": "view == pbt-test-run-configuration",
           "group": "navigation"
         }
       ]
@@ -77,7 +77,7 @@
           "icon": "images/pbt-icon.svg"
         },
         {
-          "id": "pbt-test-configuration",
+          "id": "pbt-test-run-configuration",
           "name": "Test Run Configuration",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
