@@ -260,6 +260,7 @@ type ExtensionToWebviewMessage =
   | { type: "empty-workspaces" }
   | { type: "coverage", payload: { files: Array<CoverageFileSummary> } }
   | { type: "coverage-update", payload: { file: CoverageFileSummary } };
+  | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
@@ -351,7 +352,7 @@ type RunTestsErrorData = ScriptExecutionErrorData & {
   runParams: RunTestsParams & { testRun: TestRun };
 };
 
-type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
 
 type DependencyError = {
   hasError: boolean;
