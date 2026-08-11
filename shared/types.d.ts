@@ -259,7 +259,7 @@ type ExtensionToWebviewMessage =
   | { type: "dependency-status", payload: { error: DependencyError } }
   | { type: "empty-workspaces" }
   | { type: "coverage", payload: { files: Array<CoverageFileSummary> } }
-  | { type: "coverage-update", payload: { file: CoverageFileSummary } };
+  | { type: "coverage-update", payload: { file: CoverageFileSummary } }
   | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =
