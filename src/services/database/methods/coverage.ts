@@ -76,39 +76,6 @@ export const upsertCoverage = async (
   }
 }
 
-// Wipes each file back to a clean statement skeleton at the start of a full run, so a fresh
-// run's percentages aren't polluted by testIds attributed during a previous run.
-export const resetCoverage = async (
-  database: Database,
-  packageId: TestPackageId,
-  coverage: Array<TestEventCoverage>
-): Promise<void> => {
-  const packageDocument: PackageDocument | null = await database.packages.findOne({
-    selector: { id: packageId.join(':') }
-  }).exec();
-
-  if (packageDocument === null) return;
-
-  const packagePath = packageDocument.packagePath;
-  await database.coverage.bulkUpsert(coverage.map(fileCoverage => {
-    const filePath = toCoverageFilePath(packagePath, fileCoverage.fileUri);
-    return {
-      fileHash: makeFileHash(filePath),
-      filePath,
-      context: {
-        basePath: packagePath,
-        workspaceId: fileCoverage.workspaceId,
-        packageName: fileCoverage.packageName,
-        suiteName: fileCoverage.suiteName,
-      },
-      statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-        range: keyToRange(rangeKey),
-        testIds,
-      })),
-    };
-  }));
-}
-
 export const clearCoverageForTest = async (database: Database, id: TestId): Promise<void> => {
   const [workspaceId, packageName, suiteName, testId] = id;
   const documents: Array<CoverageDocument> = await database.coverage.find({

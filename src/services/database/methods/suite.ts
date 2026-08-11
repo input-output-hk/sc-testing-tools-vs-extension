@@ -1,7 +1,7 @@
 import { Range } from 'vscode';
 
 import { upsertTests } from './test';
-import { resetCoverage } from './coverage';
+import { upsertCoverage } from './coverage';
 import { createTestTree } from '../../../utils/testTree';
 
 import type { Database, SuiteDocument, TestDocument } from '../collections';
@@ -30,7 +30,7 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
   }
 
   if (coverage !== undefined) {
-    await resetCoverage(database, [workspaceId, packageName], coverage);
+    await upsertCoverage(database, [workspaceId, packageName], coverage);
   }
 
   const suiteDocument: SuiteDocument | null = await database.suites.findOne({
