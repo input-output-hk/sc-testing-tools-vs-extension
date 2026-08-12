@@ -12,6 +12,10 @@ const makeFileHash = (fileUri: string): string => {
   return createHash('sha256').update(fileUri).digest('hex');
 }
 
+const toCoverageFilePath = (packagePath: string, fileUri: string): string => {
+  return vscode.Uri.joinPath(vscode.Uri.file(packagePath), fileUri).fsPath;
+}
+
 const keyToRange = (key: string): vscode.Range => {
   const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
   return new vscode.Range(startLine, startChar, endLine, endChar);
@@ -124,7 +128,7 @@ export const upsertCoverage = async (
   if (packageDocument !== null) {
     const packagePath = packageDocument.packagePath;
     for (const fileCoverage of coverage) {
-      const filePath = `${packagePath}/${fileCoverage.fileUri}`;
+      const filePath = toCoverageFilePath(packagePath, fileCoverage.fileUri);
       const fileHash = makeFileHash(filePath);
       
       const coverageDocument: CoverageDocument | null = await database.coverage.findOne({
@@ -206,7 +210,7 @@ export const getCoverage = async (database: Database): Promise<Array<FileCoverag
 }
 
 export const getCoverageForFile = async (database: Database, fileUri: string): Promise<CoverageStatements> => {
-  const filePath = fileUri.replace('file://', '');
+  const filePath = vscode.Uri.parse(fileUri).fsPath;
   const fileHash = makeFileHash(filePath);
 
   const coverageDocument: CoverageDocument | null = await database.coverage.findOne({

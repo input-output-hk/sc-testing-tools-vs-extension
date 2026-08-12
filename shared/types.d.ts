@@ -239,6 +239,8 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-update", payload: TestSuiteUpdate }
   | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-result", payload: TestResultWithGroupTests }
+  | { type: "coverage", payload: { files: Array<FileCoverageWithStats> } }
+  | { type: "coverage-update", payload: { file: FileCoverageWithStats } }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }

@@ -81,7 +81,13 @@
           "name": "Test Run Configuration",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
-        }
+        },
+        {
+          "id": "pbt-test-coverage",
+          "name": "Test Coverage",
+          "type": "webview",
+          "icon": "images/pbt-icon.svg"
+        }        
       ]
     }
   },
