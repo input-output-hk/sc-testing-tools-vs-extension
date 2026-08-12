@@ -3,25 +3,36 @@ export const getFileName = (relativePath: string): string => {
   return segments[segments.length - 1] ?? relativePath;
 };
 
+export const getFileRelativePath = (file: FileCoverageWithStats): string => {
+  return file.filePath.slice(file.context.basePath.length).replace(/^[\\/]+/, '');
+};
+
+export const getFilePercentage = (file: FileCoverageWithStats): number => {
+  const { total, covered } = file.stats;
+  if (total === 0 || covered === 0) return 0;
+  return Math.max(1, Math.round((covered / total) * 100));
+};
+
 export type CoverageFolderNode = {
   folders: Record<string, CoverageFolderNode>;
-  files: Array<CoverageFileSummary>;
+  files: Array<FileCoverageWithStats>;
 };
 
 const createFolderNode = (): CoverageFolderNode => ({ folders: {}, files: [] });
 
 export type CoverageTree = Record<string, Record<string, CoverageFolderNode>>;
 
-export const groupFilesByPackageSuiteFolder = (files: Array<CoverageFileSummary>): CoverageTree => {
+export const groupFilesByPackageSuiteFolder = (files: Array<FileCoverageWithStats>): CoverageTree => {
   const tree: CoverageTree = {};
   for (const file of files) {
-    if (!tree[file.packageName]) tree[file.packageName] = {};
-    if (!tree[file.packageName][file.suiteName]) tree[file.packageName][file.suiteName] = createFolderNode();
+    const { packageName, suiteName } = file.context;
+    if (!tree[packageName]) tree[packageName] = {};
+    if (!tree[packageName][suiteName]) tree[packageName][suiteName] = createFolderNode();
 
-    const segments = file.relativePath.split(/[\\/]/).filter(Boolean);
+    const segments = getFileRelativePath(file).split(/[\\/]/).filter(Boolean);
     const folderSegments = segments.slice(0, -1);
 
-    let node = tree[file.packageName][file.suiteName];
+    let node = tree[packageName][suiteName];
     for (const segment of folderSegments) {
       if (!node.folders[segment]) node.folders[segment] = createFolderNode();
       node = node.folders[segment];

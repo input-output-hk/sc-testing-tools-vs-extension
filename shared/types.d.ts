@@ -211,16 +211,6 @@ type FileCoverageWithStats = FileCoverage & {
 
 // Coverage
 
-type CoverageFileSummary = {
-  uri: string;
-  relativePath: string;
-  packageName: string;
-  suiteName: string;
-  percentage: number;
-  total: number;
-  covered: number;
-};
-
 type TestSuiteUpdate = {
   packageId: TestPackageId;
   suite: TestSuite;
@@ -258,8 +248,8 @@ type ExtensionToWebviewMessage =
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }
   | { type: "empty-workspaces" }
-  | { type: "coverage", payload: { files: Array<CoverageFileSummary> } }
-  | { type: "coverage-update", payload: { file: CoverageFileSummary } }
+  | { type: "coverage", payload: { files: Array<FileCoverageWithStats> } }
+  | { type: "coverage-update", payload: { file: FileCoverageWithStats } }
   | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =

@@ -21,13 +21,13 @@ export default class TestCoverageView {
     private onWebviewResolved(webview: vscode.Webview): void {
         this.webview = webview;
 
-        this.context.store.testStore.onCoverageSummaryUpdate((file) => this.sendCoverageUpdate(file));
+        this.context.store.testStore.onCoverageUpdate((file) => this.sendCoverageUpdate(file));
 
         this.webview.onDidReceiveMessage(
             (message: WebviewToExtensionMessage) => {
                 switch (message.type) {
                     case 'webview-ready':
-                        this.sendCoverageSummary();
+                        this.sendCoverage();
                         break;
                 }
             },
@@ -36,12 +36,12 @@ export default class TestCoverageView {
         );
     }
 
-    private async sendCoverageSummary(): Promise<void> {
-        const files = await this.context.store.testStore.getCoverageSummary();
+    private async sendCoverage(): Promise<void> {
+        const files = await this.context.store.testStore.getCoverage();
         this.webview?.postMessage({ type: 'coverage', payload: { files } } as ExtensionToWebviewMessage);
     }
 
-    private sendCoverageUpdate(file: CoverageFileSummary): void {
+    private sendCoverageUpdate(file: FileCoverageWithStats): void {
         this.webview?.postMessage({ type: 'coverage-update', payload: { file } } as ExtensionToWebviewMessage);
     }
 }

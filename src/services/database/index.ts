@@ -2,7 +2,7 @@ import { addRxPlugin, createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 
-import { databaseCollections, type DatabaseCollections, type CoverageDocument } from './collections';
+import { databaseCollections, type DatabaseCollections } from './collections';
 
 import {
   handleTestTree,
@@ -88,40 +88,6 @@ export default class Database {
 
   public async getCoverageForTest(id: TestId): Promise<Array<FileCoverage>> {
     return await getCoverageForTest(this.database!, id);
-  }
-
-  // Per-file coverage summary (aggregate %), for the Test Coverage panel's package/suite/folder/file tree.
-  private buildFileSummary(document: {
-    filePath: string;
-    context: FileCoverageContext;
-    statements: ReadonlyArray<{ range: TestRange; testIds: ReadonlyArray<string> }>;
-  }): CoverageFileSummary {
-    const totalStatements = document.statements.length;
-    const coveredStatements = document.statements.filter(statement => statement.testIds.length > 0).length;
-    const relativePath = document.filePath.slice(document.context.basePath.length).replace(/^[\\/]+/, '');
-
-    return {
-      uri: document.filePath,
-      relativePath,
-      packageName: document.context.packageName,
-      suiteName: document.context.suiteName,
-      percentage: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
-      total: totalStatements,
-      covered: coveredStatements,
-    };
-  }
-
-  public async getCoverageSummary(): Promise<CoverageFileSummary[]> {
-    const coverageDocuments: Array<CoverageDocument> = await this.database!.coverage.find().exec();
-    const summaries = coverageDocuments.map(doc => this.buildFileSummary(doc));
-    return summaries.sort((a, b) => a.uri.localeCompare(b.uri));
-  }
-
-  public onCoverageSummaryUpdate(callback: (file: CoverageFileSummary) => void): void {
-    this.database!.coverage.$.subscribe(changeEvent => {
-      if (changeEvent.operation === 'DELETE') return;
-      callback(this.buildFileSummary(changeEvent.documentData));
-    });
   }
 
   public async getTest(testId: TestId): Promise<Test> {

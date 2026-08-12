@@ -10,8 +10,8 @@ interface TestCoverageProps {
   vscode: WebviewApi<unknown>;
 }
 
-const upsertCoverageFile = (files: Array<CoverageFileSummary>, file: CoverageFileSummary): Array<CoverageFileSummary> => {
-  const index = files.findIndex((existing) => existing.uri === file.uri);
+const upsertCoverageFile = (files: Array<FileCoverageWithStats>, file: FileCoverageWithStats): Array<FileCoverageWithStats> => {
+  const index = files.findIndex((existing) => existing.filePath === file.filePath);
   if (index === -1) return [...files, file];
   const next = [...files];
   next[index] = file;
@@ -19,7 +19,7 @@ const upsertCoverageFile = (files: Array<CoverageFileSummary>, file: CoverageFil
 };
 
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
-  const [files, setFiles] = useState<Array<CoverageFileSummary> | null>(null);
+  const [files, setFiles] = useState<Array<FileCoverageWithStats> | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -30,6 +30,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
         setFiles(message.payload.files);
       }
       if (message.type === 'coverage-update') {
+        console.log('---- message.payload.file---', message.payload.file);
         setFiles((files) => upsertCoverageFile(files ?? [], message.payload.file));
       }
     };

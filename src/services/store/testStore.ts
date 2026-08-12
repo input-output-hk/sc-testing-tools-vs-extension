@@ -204,15 +204,6 @@ export default class TestStore {
     this.database.onTestSuiteStatusUpdate(callback);
   }
 
-  // Get a per-file coverage summary (aggregate % and per-test breakdown), for the Test Coverage panel.
-  public async getCoverageSummary(): Promise<CoverageFileSummary[]> {
-    return this.database.getCoverageSummary();
-  }
-
-  public onCoverageSummaryUpdate(callback: (file: CoverageFileSummary) => void): void {
-    this.database.onCoverageSummaryUpdate(callback);
-  }
-
   public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
     this.database.onCoverageUpdate(async fileCoverage => {
       callback(await getFileCoverageStats(fileCoverage));
