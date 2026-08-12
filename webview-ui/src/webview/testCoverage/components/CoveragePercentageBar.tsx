@@ -2,7 +2,7 @@ interface Props {
   percentage: number;
 }
 
-const getSwatchBgClass = (percentage: number): string => {
+const getBarBackgroundClass = (percentage: number): string => {
   if (percentage === 0) return 'bg-base-12';
   if (percentage > 80) return 'bg-green-01';
   if (percentage >= 50) return 'bg-yellow-02';
@@ -19,7 +19,7 @@ const getSwatchBorderClass = (percentage: number): string => {
 const CoveragePercentageBar: React.FC<Props> = ({ percentage }) => (
   <span className={`relative h-[15px] w-[28px] rounded-sm shrink-0 overflow-hidden border ${getSwatchBorderClass(percentage)}`}>
     <span
-      className={`absolute inset-y-0 left-0 ${getSwatchBgClass(percentage)}`}
+      className={`absolute inset-y-0 left-0 opacity-70 ${getBarBackgroundClass(percentage)}`}
       style={{ width: percentage === 0 ? '100%' : `${percentage}%` }}
     />
   </span>
