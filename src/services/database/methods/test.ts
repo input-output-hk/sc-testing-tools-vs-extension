@@ -1,9 +1,9 @@
-import { Range, Uri } from 'vscode';
+import { Range } from 'vscode';
 
 import { createRounds } from './round';
-import { clearCoverageForTest, getCoverageForFile, toCoverageFilePath, upsertCoverage } from './coverage';
+import { clearCoverageForTest, upsertCoverage } from './coverage';
 
-import type { Database, PackageDocument, SuiteDocument, TestDocument } from '../collections';
+import type { Database, SuiteDocument, TestDocument } from '../collections';
 
 export const upsertTests = async (
   database: Database,
