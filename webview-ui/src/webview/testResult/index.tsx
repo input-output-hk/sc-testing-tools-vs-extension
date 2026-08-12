@@ -5,11 +5,12 @@ import {
   VscodeTabPanel,
 } from '@vscode-elements/react-elements';
 
-import type { WebviewApi } from 'vscode-webview';
-
+import RunningIndicator from '../../components/RunningIndicator';
 import TestStatusBadge from '../../components/TestStatusBadge';
 import TestSelector from '../../components/TestSelector';
 import TestRoundsTab from './components/TestRoundsTab';
+
+import type { WebviewApi } from 'vscode-webview';
 
 interface Props {
   vscode: WebviewApi<unknown>;
@@ -49,31 +50,43 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
   if (!test) return <></>;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-base-20 p-4">
-      <div className="flex items-center py-1 gap-2 shrink-0 border-b border-(--vscode-panel-border) min-h-8">
-        <TestSelector
-          tests={groupTests}
-          selectedTestId={test.id}
-          onTestSelected={handleSelectTest}
-        />
-        <TestStatusBadge status={test.status} />
-        <div className="flex-1" />
+    <div className="flex flex-col h-full bg-base-20">
+      <div className="flex-none flex justify-between items-center pt-4 px-4">
+        <div className="flex-1">
+          <TestSelector
+            tests={groupTests}
+            selectedTestId={test.id}
+            onTestSelected={handleSelectTest}
+          />
+          <TestStatusBadge status={test.status} />
+        </div>
         <button
-          className="flex items-center gap-1.5 bg-base-15 text-base-06 rounded pl-2 pr-2.75 py-1.5 text-[13px] shrink-0 cursor-pointer active:bg-blue-07 active:text-base-01"
+          className="flex-none py-1 px-2 text-base-06 bg-base-15 rounded cursor-pointer inline-flex items-center gap-1.5"
           onClick={handleRecheck}
         >
           <i className="codicon codicon-refresh" />
-          Recheck
+          <span>Recheck</span>
         </button>
       </div>
 
-      <VscodeTabs className="flex-1 flex flex-col overflow-hidden min-h-0 mb-4">
-        <VscodeTabHeader slot="header">Test rounds</VscodeTabHeader>
+      { test.status === 'running' && testRounds.length === 0 &&
+        <RunningIndicator />
+      }
 
-        <VscodeTabPanel className="flex flex-col flex-1 overflow-hidden p-0">
-          <TestRoundsTab test={test} testRounds={testRounds} />
-        </VscodeTabPanel>
-      </VscodeTabs>
+      { test.status !== 'running' && testRounds.length === 0 &&
+        <div className="flex-1 flex flex-col items-center justify-center gap-2">
+          <span className="text-md">This test does not have any rounds</span>
+        </div>
+      }
+
+      { testRounds.length > 0 &&
+        <VscodeTabs className="flex-1 min-h-0 flex flex-col p-4">
+          <VscodeTabHeader slot="header">Test rounds</VscodeTabHeader>
+          <VscodeTabPanel className="flex-1 min-h-0 pt-4">
+            <TestRoundsTab test={test} testRounds={testRounds} />
+          </VscodeTabPanel>
+        </VscodeTabs>
+      }
     </div>
   );
 };

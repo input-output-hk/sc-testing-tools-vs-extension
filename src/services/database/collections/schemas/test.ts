@@ -38,6 +38,7 @@ const testSchemaLiteral = {
       items: stringSchema
     },
     status: stringSchema,
+    type: stringSchema,
     location: {
       type: 'object',
       properties: {
@@ -67,7 +68,6 @@ const testSchemaLiteral = {
     'workspaceId',
     ['workspaceId', 'packageName'],
     ['workspaceId', 'packageName', 'suiteName'],
-    'status',
   ],
 } as const;
 

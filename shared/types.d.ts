@@ -22,6 +22,8 @@ type TestId = [
 
 type RunTestId = TestSuiteId | TestId;
 
+type TestType = "unit-test" | "positive" | "negative" | "threat-model";
+
 type Test = {
   id: TestId;
   name: string;
@@ -30,6 +32,7 @@ type Test = {
   location?: TestLocation;
   time?: number;
   percentage?: number;
+  type?: TestType;
 };
 
 type TestRangePosition = {
@@ -190,7 +193,8 @@ type FileCoverage = {
   fileHash: string;
   filePath: string;
   context: FileCoverageContext;
-  statements: CoverageStatements;
+  total: number;
+  covered: number;
 };
 
 type FileCoverageContext = {
@@ -198,13 +202,6 @@ type FileCoverageContext = {
   workspaceId: string;
   packageName: string;
   suiteName: string;
-};
-
-type FileCoverageWithStats = FileCoverage & {
-  stats: {
-    total: number;
-    covered: number;
-  };
 };
 
 // Webview message
@@ -296,7 +293,7 @@ type TestSuiteUpdateEvent = TestEvent & {
     suiteName: string;
     runStatus: "idle" | "running" | "done";
     tests?: Array<Test>;
-    coverage?: Array<TestEventCoverage>;
+    coverageIndex?: Array<TestEventCoverage>;
   };
 };
 
@@ -307,6 +304,7 @@ type TestUpdateEvent = TestEvent & {
     status?: RunStatus;
     time?: number;
     percentage?: number;
+    type?: TestType;
   };
 };
 
@@ -314,6 +312,7 @@ type TestContextEvent = TestEvent & {
   eventType: "test-context";
   payload: {
     id: TestId;
+    type?: TestType;
     coverage: Array<TestEventCoverage>;
     round: TestRound;
   };

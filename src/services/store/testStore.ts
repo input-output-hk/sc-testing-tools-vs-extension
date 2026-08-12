@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor, getFileCoverageStats } from '../../utils/coverage';
+import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -172,24 +172,12 @@ export default class TestStore {
     return await this.database.getTestsByGroup(testId, group);
   }
   
-  public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
-    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
-    const coverageItems = await this.database.getCoverage();
-    for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFileCoverageStats(coverageItem);
-      coverageItemsWithStats.push(coverageWithStats);
-    }
-    return coverageItemsWithStats;
+  public async getCoverage(): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverage();
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverageWithStats>> {
-    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
-    const coverageItems = await this.database.getCoverageForTest(testId);
-    for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFileCoverageStats(coverageItem);
-      coverageItemsWithStats.push(coverageWithStats);
-    }
-    return coverageItemsWithStats;
+  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
+    return await this.database.getCoverageForTest(testId);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
@@ -204,9 +192,7 @@ export default class TestStore {
     this.database.onTestSuiteStatusUpdate(callback);
   }
 
-  public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
-    this.database.onCoverageUpdate(async fileCoverage => {
-      callback(await getFileCoverageStats(fileCoverage));
-    });
+  public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {
+    this.database.onCoverageUpdate(callback);
   }
 }

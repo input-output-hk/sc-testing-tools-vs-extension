@@ -48,7 +48,7 @@ const parseTestSuiteStartedEvent = (
   event: TestSuiteStartedEvent
 ): TestSuiteUpdateEvent => {
   let tests: Array<Test> | undefined = undefined;
-  let coverage: Array<TestEventCoverage> | undefined = undefined;
+  let coverageIndex: Array<TestEventCoverage> | undefined = undefined;
 
   if (isFullRun) {
     tests = [];
@@ -74,7 +74,7 @@ const parseTestSuiteStartedEvent = (
       });
     }
 
-    coverage = Object.values(
+    coverageIndex = Object.values(
       createCoverage(
         event.coverageIndex,
         workspaceId,
@@ -92,7 +92,7 @@ const parseTestSuiteStartedEvent = (
       suiteName,
       runStatus: isBuild ? 'idle' : 'running',
       tests,
-      coverage,
+      coverageIndex,
     },
   };
 }
@@ -158,6 +158,7 @@ const parseTestDoneEvent = (
     eventType: 'test-update',
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
+      type: event.threat_model ? 'threat-model' : undefined,
       status: event.success ? 'valid' : 'invalid',
       time: event.duration * 1000,
     },
@@ -197,6 +198,7 @@ const parseTestTraceEvent = (
   event: TestTraceEvent
 ): TestContextEvent => {
   const testId: TestId = [workspaceId, packageName, suiteName, event.id.toString()];
+  const type: TestType | undefined = event.category === 'positive' || event.category === 'negative' ? event.category : undefined;
   
   const round: TestRound = {
     id: event.trace.index,
@@ -236,6 +238,7 @@ const parseTestTraceEvent = (
     eventType: 'test-context',
     payload: {
       id: testId,
+      type,
       round,
       coverage: Object.values(coverage),
     },
