@@ -29,6 +29,9 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'empty-workspaces') {
         setActiveView('empty-workspaces');
       }
+      if (message.type === 'test-tree-error') {
+        setActiveView('error');
+      }
       if (message.type === 'test-tree') {
         setTestTree(message.payload.testTree);
         setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');

@@ -58,13 +58,16 @@ export default class TestTreeView {
     if (vscode.workspace.workspaceFolders?.length) {
       this.fetchTestTree();
     } else {
-      this.noWorkspacesDetected();
+      this.noFoldersDetected();
     }
   }
 
   private fetchTestTree(): void {
     this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
+    }).catch((error: unknown) => {
+      this.showError('Test discovery failed', error instanceof Error ? error.message : String(error));
+      this.sendTestTreeErrorToWebview();
     });
   }
 
@@ -74,7 +77,13 @@ export default class TestTreeView {
     }
   }
 
-  private noWorkspacesDetected(): void {
+  private sendTestTreeErrorToWebview(): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-tree-error' } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private noFoldersDetected(): void {
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'empty-workspaces' } as ExtensionToWebviewMessage);
     }
@@ -92,9 +101,8 @@ export default class TestTreeView {
       await this.context.store.dependencyStore.checkDockerRunning();
     }
 
-    const { hasError, message } = this.context.store.dependencyStore.getDependencyError();
+    const { hasError } = this.context.store.dependencyStore.getDependencyError();
     if (hasError) {
-      this.showError(message);
       return false;
     }
 
@@ -135,11 +143,15 @@ export default class TestTreeView {
     }
   }
 
-  private showError(message: string): void {
-    this.context.statusBarItem.text = `$(error) ${message}`;
+  private showError(title: string, message: string): void {
+    this.context.outputChannel.appendLine(`> ERROR: ${title}`);
+    this.context.outputChannel.appendLine(message);
+    this.context.outputChannel.show(true);
+
+    this.context.statusBarItem.text = `$(error) ${title}`;
     this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
     this.context.statusBarItem.show();
-    this.context.outputChannel.show(true);
+    vscode.window.showErrorMessage(`${title}: ${message}`);
   }
 
   private clearError(): void {

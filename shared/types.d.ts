@@ -245,7 +245,8 @@ type ExtensionToWebviewMessage =
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }
-  | { type: "empty-workspaces" };
+  | { type: "empty-workspaces" }
+  | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
@@ -337,7 +338,7 @@ type RunTestsErrorData = ScriptExecutionErrorData & {
   runParams: RunTestsParams & { testRun: TestRun };
 };
 
-type DependencyErrorCode = 'no-dependencies' | 'docker-connection' | 'nix-not-detected';
+type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
 
 type DependencyError = {
   hasError: boolean;

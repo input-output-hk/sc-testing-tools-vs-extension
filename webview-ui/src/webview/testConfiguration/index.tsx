@@ -99,7 +99,12 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
                 id="execution-mode"
                 className={error.hasError ? 'codicon codicon-error text-red-01' : 'codicon codicon-info opacity-60'}
               />
-              <Tooltip content={error.hasError ? error.message : "Select the mode for executing commands."} id="execution-mode" />
+              {error.code !== 'no-dependencies' && (
+                <Tooltip
+                  content={error.hasError ? error.message : "Select the mode for executing commands."}
+                  id="execution-mode"
+                />
+              )}
             </span>
             {error.hasError && error.code === 'no-dependencies' ? (
               <p className="text-[12px] opacity-60">{error.message}</p>
