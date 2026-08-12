@@ -1,10 +1,16 @@
-import { Range } from 'vscode';
+import { Range, Uri } from 'vscode';
 import { createHash } from 'node:crypto';
 
 import type { Database, PackageDocument, CoverageDocument } from '../collections';
 
 const makeFileHash = (fileUri: string): string => {
   return createHash('sha256').update(fileUri).digest('hex');
+}
+
+// Canonicalizes to fsPath so the write side (packagePath + relative fileUri) and the read side
+// (an editor's file:// URI) hash to the same key for the same physical file.
+export const toCoverageFilePath = (packagePath: string, fileUri: string): string => {
+  return Uri.joinPath(Uri.file(packagePath), fileUri).fsPath;
 }
 
 const keyToRange = (key: string): Range => {
@@ -33,7 +39,7 @@ export const upsertCoverage = async (
   if (packageDocument !== null) {
     const packagePath = packageDocument.packagePath;
     for (const fileCoverage of coverage) {
-      const filePath = `${packagePath}/${fileCoverage.fileUri}`;
+      const filePath = toCoverageFilePath(packagePath, fileCoverage.fileUri);
       const fileHash = makeFileHash(filePath);
       
       const coverageDocument: CoverageDocument | null = await database.coverage.findOne({
@@ -117,7 +123,7 @@ export const getCoverage = async (database: Database): Promise<Array<FileCoverag
 }
 
 export const getCoverageForFile = async (database: Database, fileUri: string): Promise<CoverageStatements> => {
-  const filePath = fileUri.replace('file://', '');
+  const filePath = Uri.parse(fileUri).fsPath;
   const fileHash = makeFileHash(filePath);
 
   const coverageDocument: CoverageDocument | null = await database.coverage.findOne({
