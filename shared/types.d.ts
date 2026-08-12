@@ -209,8 +209,6 @@ type FileCoverageWithStats = FileCoverage & {
 
 // Webview message
 
-// Coverage
-
 type TestSuiteUpdate = {
   packageId: TestPackageId;
   suite: TestSuite;
