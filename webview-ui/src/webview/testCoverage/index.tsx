@@ -4,6 +4,7 @@ import { VscodeProgressBar } from '@vscode-elements/react-elements';
 
 import type { WebviewApi } from 'vscode-webview';
 
+import CoverageSummary from './components/CoverageSummary';
 import CoverageTree from './components/CoverageTree';
 
 interface TestCoverageProps {
@@ -51,7 +52,14 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
           <VscodeProgressBar />
         </div>
       )}
-      {files !== null && <CoverageTree files={files} onOpenFile={onOpenFile} />}
+      {files !== null && (
+        <div className="flex h-full flex-col">
+          <CoverageSummary />
+          <div className="min-h-0 flex-1">
+            <CoverageTree files={files} onOpenFile={onOpenFile} />
+          </div>
+        </div>
+      )}
     </>
   );
 };
