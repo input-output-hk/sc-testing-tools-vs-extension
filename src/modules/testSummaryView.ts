@@ -38,6 +38,28 @@ export default class TestSummaryView {
   }
 
   private sendTestSummaryDetails(): void {
-    console.log('Sending test summary details');
+    this.webview?.postMessage({
+      type: 'test-summary-details',
+      //TODO: update message payload
+      payload: {
+        summaryDetails: {
+          testName: 'Positive Tests',
+          path: 'Project_Package > TestSuite1 > Group1',
+          status: 'valid',
+          rounds: {
+            total: 100,
+          valid: {
+            total: 75,
+            validRounds: [1, 2, 3, 4, 5, 6, 7, 8]
+          },
+          failed: {
+            total: 25,
+            failedRounds: [94, 96, 97, 98, 99, 100]
+          },
+          skipped: 0
+        },
+        totalTime: '4s',
+      }
+    }});
   }
 }

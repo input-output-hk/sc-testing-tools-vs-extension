@@ -236,6 +236,26 @@ type TestResultWithGroupTests = TestResult & {
   groupTests: Array<Test>;
 };
 
+//TODO: update summary details type
+type TestSummaryDetails = {
+  testName: string; 
+  path: string; 
+  status: 'valid' | 'invalid';
+  rounds?: {
+    total: number;
+    valid: {
+      total: number;
+      validRounds: Array<number>;
+    };
+    failed: {
+      total: number;
+      failedRounds: Array<number>; 
+    };
+    skipped: number;
+  }
+  totalTime: string; 
+}
+
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-update", payload: { test: Test } }
@@ -246,7 +266,9 @@ type ExtensionToWebviewMessage =
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }
   | { type: "empty-workspaces" }
-  | { type: "test-tree-error" };
+  | { type: "test-tree-error" }
+  //TODO: update message payload
+  | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails }};
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
