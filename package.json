@@ -33,6 +33,11 @@
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "pbt-extension.closeTestCoverage",
+        "title": "Close",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -40,6 +45,11 @@
         {
           "command": "pbt-extension.refreshTestConfiguration",
           "when": "view == pbt-test-run-configuration",
+          "group": "navigation"
+        },
+        {
+          "command": "pbt-extension.closeTestCoverage",
+          "when": "view == pbt-test-coverage",
           "group": "navigation"
         }
       ]
@@ -84,7 +94,7 @@
         },
         {
           "id": "pbt-test-coverage",
-          "name": "Test Coverage",
+          "name": "Plinth Script Coverage",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
         }        

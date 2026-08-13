@@ -16,6 +16,13 @@ export default class TestCoverageView {
         const TestCoverageProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
         const TestCoveragePanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestCoverageProvider);
         context.extension.subscriptions.push(TestCoveragePanel);
+
+        const closeCommand = vscode.commands.registerCommand('pbt-extension.closeTestCoverage', () => this.close());
+        context.extension.subscriptions.push(closeCommand);
+    }
+
+    private close(): void {
+         vscode.commands.executeCommand('pbt-test-coverage.removeView');
     }
 
     private onWebviewResolved(webview: vscode.Webview): void {
