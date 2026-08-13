@@ -43,6 +43,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         <div className="flex items-center gap-2">
           <i className={`codicon codicon-${testSummary?.status === 'valid' ? 'pass' : 'error'} ${testSummary?.status === 'valid' ? 'text-green-01' : 'text-red-01'}`} />
           <span className="text-base-06 font-bold text-lg">{testSummary?.testName}</span>
+          <span className="ml-auto text-base-06">{testSummary?.totalTime}</span>
         </div>
 
         <div className="text-base-10 mt-1">
@@ -61,9 +62,6 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
                     <TableCell amount={testSummary?.rounds.skipped} label="Skipped" color="base-06" />
                   </>
                 }
-                <td className="py-3 pr-4 text-right">
-                  <span className="text-base-06 font-bold">{testSummary?.totalTime}</span>
-                </td>
               </tr>
             </tbody>
           </table>
