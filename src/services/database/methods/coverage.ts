@@ -16,9 +16,12 @@ const toCoverageFilePath = (packagePath: string, fileUri: string): string => {
   return vscode.Uri.joinPath(vscode.Uri.file(packagePath), fileUri).fsPath;
 }
 
-const keyToRange = (key: string): vscode.Range => {
+const keyToRange = (key: string): TestRange => {
   const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
-  return new vscode.Range(startLine, startChar, endLine, endChar);
+  return {
+    start: { line: startLine, character: startChar },
+    end: { line: endLine, character: endChar }
+  };
 }
 
 const rangeToKey = (range: TestRange): string => {
@@ -30,89 +33,29 @@ const rangeToKey = (range: TestRange): string => {
   ].join(':');
 }
 
-const clearRangesIntersections = (ranges: Array<vscode.Range>): Array<vscode.Range> => {
-  const sortedRanges = ranges.sort((a, b) => {
-    if (a.start.line !== b.start.line) {
-      return a.start.line - b.start.line;
-    }
-    return a.start.character - b.start.character;
-  });
-
-  const result: Array<vscode.Range> = [];
-
-  let current: vscode.Range | null = null;
-  for (const next of sortedRanges) {
-    if (!current) {
-      current = next;
-    } else {
-      if (!current.intersection(next)) {
-        result.push(current);
-        current = next;
-      } else {
-        current = current.union(next);
-      }
-    }
-  }
-
-  if (current) {
-    result.push(current);
-  }
-
-  return result;
-}
-
-const calculateRangesCoverage = (fileLines: Array<string>, ranges: Array<vscode.Range>): number => {
-  return clearRangesIntersections(ranges).reduce((covered, range) => {
-    if (range.start.line === range.end.line) {
-      return covered + (range.end.character - range.start.character);
-    } else {
-      let count = 0;
-      for (let line = range.start.line; line <= range.end.line; line++) {
-        if (line === range.start.line) {
-          count += fileLines[line].length - range.start.character;
-        } else if (line === range.end.line) {
-          count += range.end.character;
-        } else {
-          count += fileLines[line].length;
-        }
-      }
-      return covered + count;
-    }
-  }, 0);
-}
-
-const calculateCoverageStats = async (document: Partial<CoverageDocument>): Promise<CoverageStats> => {
+const calculateCoverageStats = (document: Partial<CoverageDocument>, testId?: string): CoverageStats => {
   if (!document.filePath) {
     return { total: 0, covered: 0 };
   }
 
-  const fileBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(document.filePath));
-  const fileContent = Buffer.from(fileBuffer).toString('utf-8');
-  const fileLines = fileContent.split('\n');
-
-  const covered: Array<vscode.Range> = [];
+  const covered = new Set<string>();
   for (const statement of document.statements || []) {
-    covered.push(new vscode.Range(
-      statement.range.start.line,
-      statement.range.start.character,
-      statement.range.end.line,
-      statement.range.end.character
-    ));
+    if (testId) {
+      if (!statement.testIds.includes(testId)) continue;
+    } else {
+      if (statement.testIds.length === 0) continue;
+    }
+    covered.add(rangeToKey(statement.range));
   }
 
-  const index: Array<vscode.Range> = [];
+  const index = new Set<string>();
   for (const range of document.index || []) {
-    index.push(new vscode.Range(
-      range.start.line,
-      range.start.character,
-      range.end.line,
-      range.end.character
-    ));
+    index.add(rangeToKey(range));
   }
 
   return {
-    total: calculateRangesCoverage(fileLines, index),
-    covered: calculateRangesCoverage(fileLines, covered)
+    total: index.size,
+    covered: covered.size
   };
 }
 
@@ -197,7 +140,7 @@ export const getCoverage = async (database: Database): Promise<Array<FileCoverag
   const coverage: Array<FileCoverage> = [];
   const documents: Array<CoverageDocument> = await database.coverage.find().exec();
   for (const document of documents) {
-    const { total, covered } = await calculateCoverageStats(document);
+    const { total, covered } = calculateCoverageStats(document);
     coverage.push({
       fileHash: document.fileHash,
       filePath: document.filePath,
@@ -256,7 +199,7 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
   }).exec();
   
   for (const document of documents) {
-    const { total, covered } = await calculateCoverageStats(document);
+    const { total, covered } = calculateCoverageStats(document, testId);
     coverage.push({
       fileHash: document.fileHash,
       filePath: document.filePath,
@@ -270,10 +213,10 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
 }
 
 export const onCoverageUpdate = (database: Database, callback: (fileCoverage: FileCoverage) => void): void => {
-  database.coverage.$.subscribe(async changeEvent => {
+  database.coverage.$.subscribe(changeEvent => {
     if (changeEvent.operation === 'INSERT' || changeEvent.operation === 'UPDATE') {
       const document = changeEvent.documentData;
-      const { total, covered } = await calculateCoverageStats(document);
+      const { total, covered } = calculateCoverageStats(document);
       callback({
         fileHash: document.fileHash,
         filePath: document.filePath,
