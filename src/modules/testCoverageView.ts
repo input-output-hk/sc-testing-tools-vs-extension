@@ -29,11 +29,19 @@ export default class TestCoverageView {
                     case 'webview-ready':
                         this.sendCoverage();
                         break;
+                    case 'open-coverage-file':
+                        this.openFile(message.payload.filePath);
+                        break;
                 }
             },
             undefined,
             this.context.extension.subscriptions
         );
+    }
+
+    private async openFile(filePath: string): Promise<void> {
+        const document = await vscode.workspace.openTextDocument(filePath);
+        await vscode.window.showTextDocument(document);
     }
 
     private async sendCoverage(): Promise<void> {

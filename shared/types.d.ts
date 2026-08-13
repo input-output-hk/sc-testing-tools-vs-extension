@@ -260,7 +260,8 @@ type WebviewToExtensionMessage =
   | { type: "select-test", payload: { testId: TestId } }
   | { type: "update-test-tree", payload: TestTreeUpdate }
   | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "update-test-rounds", payload: { rounds: number } };
+  | { type: "update-test-rounds", payload: { rounds: number } }
+  | { type: "open-coverage-file", payload: { filePath: string } };
 
 // RPC message
 

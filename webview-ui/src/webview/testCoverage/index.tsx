@@ -40,6 +40,10 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
+  const onOpenFile = (filePath: string) => {
+    vscode.postMessage({ type: 'open-coverage-file', payload: { filePath } } as WebviewToExtensionMessage);
+  };
+
   return (
     <>
       {files === null && (
@@ -47,7 +51,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
           <VscodeProgressBar />
         </div>
       )}
-      {files !== null && <CoverageTree files={files} />}
+      {files !== null && <CoverageTree files={files} onOpenFile={onOpenFile} />}
     </>
   );
 };
