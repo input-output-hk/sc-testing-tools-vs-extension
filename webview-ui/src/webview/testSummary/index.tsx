@@ -50,25 +50,26 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
           {testSummary?.path} <span className="text-base-06">&gt; {testSummary?.testName}</span>
         </div>
 
-        <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
-          <table className="w-full text-left">
-            <tbody>
-              <tr>
-                {testSummary?.rounds && 
-                  <>
+        {testSummary?.rounds ? 
+          <>
+            <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
+              <table className="w-full text-left">
+                <tbody>
+                  <tr>
                     <TableCell amount={testSummary?.rounds.total} label="Test Rounds" color="base-06" />
                     <TableCell amount={testSummary?.rounds.valid.total} label="Valid" color="green-01" />
                     <TableCell amount={testSummary?.rounds.failed.total} label="Failed" color="red-01" />
                     <TableCell amount={testSummary?.rounds.skipped} label="Skipped" color="base-06" />
-                  </>
-                }
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <RoundsAccordion title="Failed Rounds" rounds={[94, 96, 97, 98, 99, 100]} defaultOpen />
-        <RoundsAccordion title="Valid Rounds" rounds={[1, 2, 3, 4, 5, 6, 7, 8]} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <RoundsAccordion title="Failed Rounds" rounds={[94, 96, 97, 98, 99, 100]} defaultOpen />
+            <RoundsAccordion title="Valid Rounds" rounds={[1, 2, 3, 4, 5, 6, 7, 8]} />
+          </>
+          : <div className="mt-4 text-base-06">No rounds data available.</div>
+        }
       </div>
     </div>
   );
