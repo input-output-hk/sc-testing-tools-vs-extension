@@ -38,6 +38,11 @@
         "command": "pbt-extension.closeTestCoverage",
         "title": "Close",
         "icon": "$(close)"
+      },
+      {
+        "command": "pbt-extension.collapseAllTestCoverage",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
       }
     ],
     "menus": {
@@ -48,9 +53,14 @@
           "group": "navigation"
         },
         {
+          "command": "pbt-extension.collapseAllTestCoverage",
+          "when": "view == pbt-test-coverage",
+          "group": "navigation@1"
+        },
+        {
           "command": "pbt-extension.closeTestCoverage",
           "when": "view == pbt-test-coverage",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ]
     },
