@@ -11,7 +11,7 @@ const getBarBackgroundClass = (percentage: number): string => {
 
 const getBarBorderClass = (percentage: number): string => {
   if (percentage === 0) return 'border-base-12';
-  if (percentage > 80) return 'border-green-01';
+  if (percentage >= 90) return 'border-green-01';
   if (percentage >= 50) return 'border-yellow-02';
   return 'border-red-01';
 };
