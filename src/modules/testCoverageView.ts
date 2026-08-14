@@ -16,6 +16,20 @@ export default class TestCoverageView {
         const TestCoverageProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
         const TestCoveragePanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestCoverageProvider);
         context.extension.subscriptions.push(TestCoveragePanel);
+
+        const closeCommand = vscode.commands.registerCommand('pbt-extension.closeTestCoverage', () => this.close());
+        context.extension.subscriptions.push(closeCommand);
+
+        const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestCoverage', () => this.collapseAll());
+        context.extension.subscriptions.push(collapseAllCommand);
+    }
+
+    private close(): void {
+         vscode.commands.executeCommand('pbt-test-coverage.removeView');
+    }
+
+    private collapseAll(): void {
+        this.webview?.postMessage({ type: 'collapse-all-coverage' } as ExtensionToWebviewMessage);
     }
 
     private onWebviewResolved(webview: vscode.Webview): void {
@@ -29,11 +43,19 @@ export default class TestCoverageView {
                     case 'webview-ready':
                         this.sendCoverage();
                         break;
+                    case 'open-coverage-file':
+                        this.openFile(message.payload.filePath);
+                        break;
                 }
             },
             undefined,
             this.context.extension.subscriptions
         );
+    }
+
+    private async openFile(filePath: string): Promise<void> {
+        const document = await vscode.workspace.openTextDocument(filePath);
+        await vscode.window.showTextDocument(document);
     }
 
     private async sendCoverage(): Promise<void> {

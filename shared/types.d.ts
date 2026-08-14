@@ -248,6 +248,7 @@ type ExtensionToWebviewMessage =
   | { type: "empty-workspaces" }
   | { type: "coverage", payload: { files: Array<FileCoverageWithStats> } }
   | { type: "coverage-update", payload: { file: FileCoverageWithStats } }
+  | { type: "collapse-all-coverage" }
   | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =
@@ -260,7 +261,8 @@ type WebviewToExtensionMessage =
   | { type: "select-test", payload: { testId: TestId } }
   | { type: "update-test-tree", payload: TestTreeUpdate }
   | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "update-test-rounds", payload: { rounds: number } };
+  | { type: "update-test-rounds", payload: { rounds: number } }
+  | { type: "open-coverage-file", payload: { filePath: string } };
 
 // RPC message
 

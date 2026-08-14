@@ -33,6 +33,16 @@
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "pbt-extension.closeTestCoverage",
+        "title": "Close",
+        "icon": "$(close)"
+      },
+      {
+        "command": "pbt-extension.collapseAllTestCoverage",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
       }
     ],
     "menus": {
@@ -41,6 +51,16 @@
           "command": "pbt-extension.refreshTestConfiguration",
           "when": "view == pbt-test-run-configuration",
           "group": "navigation"
+        },
+        {
+          "command": "pbt-extension.collapseAllTestCoverage",
+          "when": "view == pbt-test-coverage",
+          "group": "navigation@1"
+        },
+        {
+          "command": "pbt-extension.closeTestCoverage",
+          "when": "view == pbt-test-coverage",
+          "group": "navigation@2"
         }
       ]
     },
@@ -84,7 +104,7 @@
         },
         {
           "id": "pbt-test-coverage",
-          "name": "Test Coverage",
+          "name": "Plinth Script Coverage",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
         }        
