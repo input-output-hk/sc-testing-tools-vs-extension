@@ -248,6 +248,7 @@ type ExtensionToWebviewMessage =
   | { type: "empty-workspaces" }
   | { type: "coverage", payload: { files: Array<FileCoverageWithStats> } }
   | { type: "coverage-update", payload: { file: FileCoverageWithStats } }
+  | { type: "collapse-all-coverage" }
   | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =

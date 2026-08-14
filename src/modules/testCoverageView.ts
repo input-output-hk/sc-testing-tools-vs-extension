@@ -19,10 +19,17 @@ export default class TestCoverageView {
 
         const closeCommand = vscode.commands.registerCommand('pbt-extension.closeTestCoverage', () => this.close());
         context.extension.subscriptions.push(closeCommand);
+
+        const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestCoverage', () => this.collapseAll());
+        context.extension.subscriptions.push(collapseAllCommand);
     }
 
     private close(): void {
          vscode.commands.executeCommand('pbt-test-coverage.removeView');
+    }
+
+    private collapseAll(): void {
+        this.webview?.postMessage({ type: 'collapse-all-coverage' } as ExtensionToWebviewMessage);
     }
 
     private onWebviewResolved(webview: vscode.Webview): void {

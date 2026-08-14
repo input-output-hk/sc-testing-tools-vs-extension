@@ -21,6 +21,7 @@ const upsertCoverageFile = (files: Array<FileCoverageWithStats>, file: FileCover
 
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
   const [files, setFiles] = useState<Array<FileCoverageWithStats> | null>(null);
+  const [collapseSignal, setCollapseSignal] = useState(0);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -33,6 +34,9 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
       if (message.type === 'coverage-update') {
         console.log('---- message.payload.file---', message.payload.file);
         setFiles((files) => upsertCoverageFile(files ?? [], message.payload.file));
+      }
+      if (message.type === 'collapse-all-coverage') {
+        setCollapseSignal((signal) => signal + 1);
       }
     };
 
@@ -54,9 +58,9 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
       )}
       {files !== null && (
         <div className="flex h-full flex-col">
-          <CoverageSummary />
+          {files.length > 0 && <CoverageSummary />}
           <div className="min-h-0 flex-1">
-            <CoverageTree files={files} onOpenFile={onOpenFile} />
+            <CoverageTree files={files} collapseSignal={collapseSignal} onOpenFile={onOpenFile} />
           </div>
         </div>
       )}
