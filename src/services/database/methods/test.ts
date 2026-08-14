@@ -54,7 +54,7 @@ export const upsertTests = async (
 }
 
 export const handleTestUpdateEvent = async (database: Database, event: TestUpdateEvent): Promise<void> => {
-  const { id, status, time, percentage } = event.payload;
+  const { id, status, time, percentage, type } = event.payload;
 
   const testDocument: TestDocument | null = await database.tests.findOne({
     selector: { id: id.join(':') }
@@ -69,15 +69,30 @@ export const handleTestUpdateEvent = async (database: Database, event: TestUpdat
     if (status !== undefined) updateData.status = status;
     if (time !== undefined) updateData.time = time;
     if (percentage !== undefined) updateData.percentage = percentage;
+    
+    if (status === 'valid' || status === 'invalid') {
+      if (testDocument.type === undefined) {
+        if (type !== undefined) {
+          updateData.type = type;
+        } else {
+          updateData.type = 'unit-test';
+        }
+      }
+    }
 
     await testDocument.update({ $set: updateData });
   }
 }
 
 export const handleTestContextEvent = async (database: Database, event: TestContextEvent): Promise<void> => {
-  const [workspaceId, packageName] = event.payload.id;
+  const [workspaceId, packageName, suiteName, testId] = event.payload.context.testId;
+  if (event.payload.context.type) {
+    await database.tests
+      .findOne({ selector: { id: `${workspaceId}:${packageName}:${suiteName}:${testId}` } })
+      .update({ $set: { type: event.payload.context.type } });
+  }
   await upsertCoverage(database, [workspaceId, packageName], event.payload.coverage);
-  await createRounds(database, event.payload.id, event.payload.round);
+  await createRounds(database, event.payload.rounds);
 }
 
 export const handleTestRunFailed = async (database: Database, testRun: TestRun): Promise<void> => {
@@ -165,7 +180,8 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
       )
     } : undefined,
     time: testDocument.time,
-    percentage: testDocument.percentage
+    percentage: testDocument.percentage,
+    type: testDocument.type ? testDocument.type as TestType : undefined,
   };
 }
 
@@ -194,7 +210,8 @@ export const getTestsByGroup = async (database: Database, testId: TestId, group:
       )
     } : undefined,
     time: test.time,
-    percentage: test.percentage
+    percentage: test.percentage,
+    type: test.type ? test.type as TestType : undefined,
   })));
 }
 
@@ -221,7 +238,8 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
         )
       } : undefined,
       time: document.time,
-      percentage: document.percentage
+      percentage: document.percentage,
+      type: document.type ? document.type as TestType : undefined,
     });
   });
 }

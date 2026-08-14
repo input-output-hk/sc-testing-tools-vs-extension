@@ -26,6 +26,7 @@ const updateTestNodeMap = (
             time: test.time,
             status: test.status,
             percentage: test.percentage,
+            type: test.type,
           },
         } as TestTreeTestNode;
         updated = true;

@@ -32,9 +32,9 @@ const TestStatusBadge: React.FC<{ status: RunStatus }> = ({
 }) => {
   const { icon, label, className } = TEST_STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-px rounded-sm text-xs font-medium shrink-0 ${className}`}>
+    <span className={`ml-3 text-xs font-medium inline-flex items-center gap-1.5 ${className}`}>
       <i className={`codicon codicon-${icon}`} />
-      {label}
+      <span>{label}</span>
     </span>
   );
 };

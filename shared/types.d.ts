@@ -22,6 +22,8 @@ type TestId = [
 
 type RunTestId = TestSuiteId | TestId;
 
+type TestType = "unit-test" | "positive" | "negative" | "threat-model";
+
 type Test = {
   id: TestId;
   name: string;
@@ -30,6 +32,7 @@ type Test = {
   location?: TestLocation;
   time?: number;
   percentage?: number;
+  type?: TestType;
 };
 
 type TestRangePosition = {
@@ -106,8 +109,9 @@ type TestTreeTestNode = TestTreeNode & {
 
 type TestRound = {
   id: number;
+  testId: TestId;
+  type?: 'positive' | 'negative' | 'threat-model';
   status: TestRoundStatus;
-  transitions: Array<TestTransition>;
 };
 
 type TestRoundStatus = {
@@ -120,11 +124,23 @@ type TestRoundStatus = {
   message: string;
 };
 
+type TransitionTestRound = TestRound & {
+  type?: 'positive' | 'negative';
+  threatModelTestIds: Array<TestId>;
+  transitions: Array<TestTransition>;
+};
+
+type ThreatModelTestRound = TestRound & {
+  type: 'threat-model';
+  parentTestId: TestId;
+  traces: Array<ThreatModelTrace>;
+};
+
 type TestTransition = {
   action: string;
   result: TestTransitionResult;
   stepIndex: number;
-  tx?: TestTx;
+  tx?: Tx;
 };
 
 type TestTransitionResult = {
@@ -135,7 +151,28 @@ type TestTransitionResult = {
   error: string;
 };
 
-type TestTx = {
+type ThreatModelTrace = {
+  tx: Tx;
+  modifiedTx?: Tx;
+  modifications: Array<TxMod>;
+  outcome: ThreatModelOutcome;
+  targetTxIndex: number;
+};
+
+type ThreatModelOutcome = {
+  status: "passed";
+} | {
+  reason: string;
+  status: "failed";
+} | {
+  reason: string;
+  status: "skipped";
+} | {
+  message: string;
+  status: "error";
+};
+
+type Tx = {
   id?: string;
   fee: number;
   inputs: Array<TxInput>;
@@ -172,6 +209,84 @@ type TxAsset = {
   quantity: number;
 };
 
+type TxMod = {
+  type: "removeInput";
+  utxo: string;
+} | {
+  type: "removeOutput";
+  index: number;
+} | {
+  type: "changeOutput";
+  index: number;
+  address: string | null;
+  value: TxValue | null;
+  datum: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeInput";
+  utxo: string;
+  address: string | null;
+  value: TxValue | null;
+  datum: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeScriptInput";
+  utxo: string;
+  value: TxValue | null;
+  datum: string | null;
+  redeemer: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeValidityRange";
+  lowerBound: string | null;
+  upperBound: string | null;
+} | {
+  type: "addOutput";
+  address: string;
+  value: TxValue;
+  datum: string | null;
+  referenceScript: string;
+} | {
+  type: "addInput";
+  address: string;
+  value: TxValue;
+  isReferenceInput: boolean;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addReferenceScriptInput";
+  value: TxValue;
+  redeemer: string;
+  scriptHash: string;
+  datum: string | null;
+} | {
+  type: "addPlutusScriptInput";
+  value: TxValue;
+  redeemer: string;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addPlutusScriptReferenceInput";
+  value: TxValue;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addSimpleScriptInput";
+  value: TxValue;
+  referenceScript: string;
+  isReferenceInput: boolean;
+} | {
+  type: "addPlutusScriptMint";
+  quantity: number;
+  assetName: string;
+  redeemer: string;
+} | {
+  type: "removeRequiredSigner";
+  keyHash: string;
+} | {
+  type: "replaceTx";
+};
+
 // Coverage
 
 type CoverageStatements = Record<string, Array<string>>;
@@ -190,7 +305,8 @@ type FileCoverage = {
   fileHash: string;
   filePath: string;
   context: FileCoverageContext;
-  statements: CoverageStatements;
+  total: number;
+  covered: number;
 };
 
 type FileCoverageContext = {
@@ -198,13 +314,6 @@ type FileCoverageContext = {
   workspaceId: string;
   packageName: string;
   suiteName: string;
-};
-
-type FileCoverageWithStats = FileCoverage & {
-  stats: {
-    total: number;
-    covered: number;
-  };
 };
 
 // Webview message
@@ -242,13 +351,13 @@ type ExtensionToWebviewMessage =
   | { type: "test-suite-update", payload: TestSuiteUpdate }
   | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-result", payload: TestResultWithGroupTests }
+  | { type: "coverage", payload: { files: Array<FileCoverage> } }
+  | { type: "coverage-update", payload: { file: FileCoverage } }
+  | { type: "collapse-all-coverage" }
   | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
   | { type: "test-rounds-config", payload: { rounds: number } }
   | { type: "dependency-status", payload: { error: DependencyError } }
   | { type: "empty-workspaces" }
-  | { type: "coverage", payload: { files: Array<FileCoverageWithStats> } }
-  | { type: "coverage-update", payload: { file: FileCoverageWithStats } }
-  | { type: "collapse-all-coverage" }
   | { type: "test-tree-error" };
 
 type WebviewToExtensionMessage =
@@ -300,7 +409,7 @@ type TestSuiteUpdateEvent = TestEvent & {
     suiteName: string;
     runStatus: "idle" | "running" | "done";
     tests?: Array<Test>;
-    coverage?: Array<TestEventCoverage>;
+    coverageIndex?: Array<TestEventCoverage>;
   };
 };
 
@@ -311,15 +420,19 @@ type TestUpdateEvent = TestEvent & {
     status?: RunStatus;
     time?: number;
     percentage?: number;
+    type?: TestType;
   };
 };
 
 type TestContextEvent = TestEvent & {
   eventType: "test-context";
   payload: {
-    id: TestId;
+    context: {
+      testId: TestId;
+      type?: TestType;
+    };
+    rounds: Array<TestRound>;
     coverage: Array<TestEventCoverage>;
-    round: TestRound;
   };
 };
 

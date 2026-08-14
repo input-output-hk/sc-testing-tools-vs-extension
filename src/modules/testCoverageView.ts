@@ -3,67 +3,67 @@ import { PbtContext } from '../extension';
 import { GenericWebviewViewProvider } from '../utils/webview';
 
 export default class TestCoverageView {
-    private context: PbtContext;
-    private webview: vscode.Webview | null = null;
+  private context: PbtContext;
+  private webview: vscode.Webview | null = null;
 
-    constructor() {
-        this.context = {} as PbtContext;
-    }
+  constructor() {
+    this.context = {} as PbtContext;
+  }
 
-    public activate(context: PbtContext) {
-        this.context = context;
+  public activate(context: PbtContext) {
+    this.context = context;
 
-        const TestCoverageProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
-        const TestCoveragePanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestCoverageProvider);
-        context.extension.subscriptions.push(TestCoveragePanel);
+    const TestCoverageProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testCoverage', this.onWebviewResolved.bind(this));
+    const TestCoveragePanel = vscode.window.registerWebviewViewProvider('pbt-test-coverage', TestCoverageProvider);
+    context.extension.subscriptions.push(TestCoveragePanel);
+    
+    const closeCommand = vscode.commands.registerCommand('pbt-extension.closeTestCoverage', () => this.close());
+    context.extension.subscriptions.push(closeCommand);
+    
+    const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestCoverage', () => this.collapseAll());
+    context.extension.subscriptions.push(collapseAllCommand);
+  }
 
-        const closeCommand = vscode.commands.registerCommand('pbt-extension.closeTestCoverage', () => this.close());
-        context.extension.subscriptions.push(closeCommand);
+  private close(): void {
+    vscode.commands.executeCommand('pbt-test-coverage.removeView');
+  }
+  
+  private collapseAll(): void {
+    this.webview?.postMessage({ type: 'collapse-all-coverage' } as ExtensionToWebviewMessage);
+  }
 
-        const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestCoverage', () => this.collapseAll());
-        context.extension.subscriptions.push(collapseAllCommand);
-    }
+  private onWebviewResolved(webview: vscode.Webview): void {
+    this.webview = webview;
 
-    private close(): void {
-         vscode.commands.executeCommand('pbt-test-coverage.removeView');
-    }
+    this.context.store.testStore.onCoverageUpdate((file) => this.sendCoverageUpdate(file));
 
-    private collapseAll(): void {
-        this.webview?.postMessage({ type: 'collapse-all-coverage' } as ExtensionToWebviewMessage);
-    }
+    this.webview.onDidReceiveMessage(
+      (message: WebviewToExtensionMessage) => {
+        switch (message.type) {
+          case 'webview-ready':
+            this.sendCoverage();
+            break;
+          case 'open-coverage-file':
+            this.openFile(message.payload.filePath);
+            break;
+        }
+      },
+      undefined,
+      this.context.extension.subscriptions
+    );
+  }
 
-    private onWebviewResolved(webview: vscode.Webview): void {
-        this.webview = webview;
+  private async sendCoverage(): Promise<void> {
+    const files = await this.context.store.testStore.getCoverage();
+    this.webview?.postMessage({ type: 'coverage', payload: { files } } as ExtensionToWebviewMessage);
+  }
 
-        this.context.store.testStore.onCoverageUpdate((file) => this.sendCoverageUpdate(file));
-
-        this.webview.onDidReceiveMessage(
-            (message: WebviewToExtensionMessage) => {
-                switch (message.type) {
-                    case 'webview-ready':
-                        this.sendCoverage();
-                        break;
-                    case 'open-coverage-file':
-                        this.openFile(message.payload.filePath);
-                        break;
-                }
-            },
-            undefined,
-            this.context.extension.subscriptions
-        );
-    }
-
-    private async openFile(filePath: string): Promise<void> {
-        const document = await vscode.workspace.openTextDocument(filePath);
-        await vscode.window.showTextDocument(document);
-    }
-
-    private async sendCoverage(): Promise<void> {
-        const files = await this.context.store.testStore.getCoverage();
-        this.webview?.postMessage({ type: 'coverage', payload: { files } } as ExtensionToWebviewMessage);
-    }
-
-    private sendCoverageUpdate(file: FileCoverageWithStats): void {
-        this.webview?.postMessage({ type: 'coverage-update', payload: { file } } as ExtensionToWebviewMessage);
-    }
+  private sendCoverageUpdate(file: FileCoverage): void {
+    this.webview?.postMessage({ type: 'coverage-update', payload: { file } } as ExtensionToWebviewMessage);
+  }
+  
+  private async openFile(filePath: string): Promise<void> {
+    const document = await vscode.workspace.openTextDocument(filePath);
+    await vscode.window.showTextDocument(document);
+  }
 }

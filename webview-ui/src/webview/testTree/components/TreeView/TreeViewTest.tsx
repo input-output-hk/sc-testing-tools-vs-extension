@@ -53,7 +53,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }
         </span>
 
-        {node.test.status === 'valid' &&
+        {node.test.type && node.test.type !== 'unit-test' &&
           <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"

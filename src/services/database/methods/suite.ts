@@ -23,14 +23,14 @@ const computeSuiteStatus = async (database: Database, suite: SuiteDocument): Pro
 }
 
 export const handleTestSuiteUpdateEvent = async (database: Database, event: TestSuiteUpdateEvent): Promise<void> => {
-  const { workspaceId, packageName, suiteName, runStatus, tests, coverage } = event.payload;
+  const { workspaceId, packageName, suiteName, runStatus, tests, coverageIndex } = event.payload;
 
   if (tests !== undefined) {
     await upsertTests(database, workspaceId, packageName, suiteName, tests);
   }
 
-  if (coverage !== undefined) {
-    await upsertCoverage(database, [workspaceId, packageName], coverage);
+  if (coverageIndex !== undefined) {
+    await upsertCoverage(database, [workspaceId, packageName], coverageIndex);
   }
 
   const suiteDocument: SuiteDocument | null = await database.suites.findOne({

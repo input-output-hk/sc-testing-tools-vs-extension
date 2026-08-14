@@ -9,7 +9,7 @@ import { getFileName, getFilePercentage, getFileRelativePath, groupFilesByPackag
 import type { CoverageFolderNode } from '../utils/coverageUtils';
 
 interface Props {
-  files: Array<FileCoverageWithStats>;
+  files: Array<FileCoverage>;
   collapseSignal: number;
   onOpenFile: (filePath: string) => void;
 }

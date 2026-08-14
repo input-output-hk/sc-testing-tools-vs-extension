@@ -11,7 +11,7 @@ interface TestCoverageProps {
   vscode: WebviewApi<unknown>;
 }
 
-const upsertCoverageFile = (files: Array<FileCoverageWithStats>, file: FileCoverageWithStats): Array<FileCoverageWithStats> => {
+const upsertCoverageFile = (files: Array<FileCoverage>, file: FileCoverage): Array<FileCoverage> => {
   const index = files.findIndex((existing) => existing.filePath === file.filePath);
   if (index === -1) return [...files, file];
   const next = [...files];
@@ -20,7 +20,7 @@ const upsertCoverageFile = (files: Array<FileCoverageWithStats>, file: FileCover
 };
 
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
-  const [files, setFiles] = useState<Array<FileCoverageWithStats> | null>(null);
+  const [files, setFiles] = useState<Array<FileCoverage> | null>(null);
   const [collapseSignal, setCollapseSignal] = useState(0);
 
   useEffect(() => {

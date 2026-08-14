@@ -1,21 +1,27 @@
-import { Range, Uri } from 'vscode';
+import * as vscode from 'vscode';
 import { createHash } from 'node:crypto';
 
 import type { Database, PackageDocument, CoverageDocument } from '../collections';
+
+interface CoverageStats{
+  total: number;
+  covered: number;
+}
 
 const makeFileHash = (fileUri: string): string => {
   return createHash('sha256').update(fileUri).digest('hex');
 }
 
-// Canonicalizes to fsPath so the write side (packagePath + relative fileUri) and the read side
-// (an editor's file:// URI) hash to the same key for the same physical file.
-export const toCoverageFilePath = (packagePath: string, fileUri: string): string => {
-  return Uri.joinPath(Uri.file(packagePath), fileUri).fsPath;
+const toCoverageFilePath = (packagePath: string, fileUri: string): string => {
+  return vscode.Uri.joinPath(vscode.Uri.file(packagePath), fileUri).fsPath;
 }
 
-const keyToRange = (key: string): Range => {
+const keyToRange = (key: string): TestRange => {
   const [startLine, startChar, endLine, endChar] = key.split(':').map(Number);
-  return new Range(startLine, startChar, endLine, endChar);
+  return {
+    start: { line: startLine, character: startChar },
+    end: { line: endLine, character: endChar }
+  };
 }
 
 const rangeToKey = (range: TestRange): string => {
@@ -25,6 +31,32 @@ const rangeToKey = (range: TestRange): string => {
     range.end.line,
     range.end.character
   ].join(':');
+}
+
+const calculateCoverageStats = (document: Partial<CoverageDocument>, testId?: string): CoverageStats => {
+  if (!document.filePath) {
+    return { total: 0, covered: 0 };
+  }
+
+  const covered = new Set<string>();
+  for (const statement of document.statements || []) {
+    if (testId) {
+      if (!statement.testIds.includes(testId)) continue;
+    } else {
+      if (statement.testIds.length === 0) continue;
+    }
+    covered.add(rangeToKey(statement.range));
+  }
+
+  const index = new Set<string>();
+  for (const range of document.index || []) {
+    index.add(rangeToKey(range));
+  }
+
+  return {
+    total: index.size,
+    covered: covered.size
+  };
 }
 
 export const upsertCoverage = async (
@@ -56,9 +88,14 @@ export const upsertCoverage = async (
             packageName: fileCoverage.packageName,
             suiteName: fileCoverage.suiteName
           },
-          statements: Object.entries(fileCoverage.statements).map(([rangeKey, testIds]) => ({
-            range: keyToRange(rangeKey), testIds
-          }))
+          index: Object.entries(fileCoverage.statements)
+            .filter(([, testIds]) => testIds.length === 0)
+            .map(([rangeKey]) => keyToRange(rangeKey)),
+          statements: Object.entries(fileCoverage.statements)
+            .filter(([, testIds]) => testIds.length > 0)
+            .map(([rangeKey, testIds]) => ({
+              range: keyToRange(rangeKey), testIds
+            })),
         });
       } else {
         const statements = coverageDocument.statements;
@@ -103,27 +140,20 @@ export const getCoverage = async (database: Database): Promise<Array<FileCoverag
   const coverage: Array<FileCoverage> = [];
   const documents: Array<CoverageDocument> = await database.coverage.find().exec();
   for (const document of documents) {
-    const statements: CoverageStatements = {};
-    for (const statement of document.statements) {
-      statements[[
-        statement.range.start.line,
-        statement.range.start.character,
-        statement.range.end.line,
-        statement.range.end.character
-      ].join(':')] = statement.testIds;
-    }
+    const { total, covered } = calculateCoverageStats(document);
     coverage.push({
       fileHash: document.fileHash,
       filePath: document.filePath,
       context: document.context,
-      statements
+      total,
+      covered,
     });
   }
   return coverage;
 }
 
 export const getCoverageForFile = async (database: Database, fileUri: string): Promise<CoverageStatements> => {
-  const filePath = Uri.parse(fileUri).fsPath;
+  const filePath = vscode.Uri.parse(fileUri).fsPath;
   const fileHash = makeFileHash(filePath);
 
   const coverageDocument: CoverageDocument | null = await database.coverage.findOne({
@@ -133,6 +163,16 @@ export const getCoverageForFile = async (database: Database, fileUri: string): P
   if (coverageDocument === null) return {};
 
   const statements: CoverageStatements = {};
+
+  for (const range of coverageDocument.index) {
+    statements[[
+      range.start.line,
+      range.start.character,
+      range.end.line,
+      range.end.character
+    ].join(':')] = [];
+  }
+
   for (const statement of coverageDocument.statements) {
     statements[[
       statement.range.start.line,
@@ -159,20 +199,13 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
   }).exec();
   
   for (const document of documents) {
-    const statements: CoverageStatements = {};
-    for (const statement of document.statements) {
-      statements[[
-        statement.range.start.line,
-        statement.range.start.character,
-        statement.range.end.line,
-        statement.range.end.character
-      ].join(':')] = statement.testIds;
-    }
+    const { total, covered } = calculateCoverageStats(document, testId);
     coverage.push({
       fileHash: document.fileHash,
       filePath: document.filePath,
       context: document.context,
-      statements
+      total,
+      covered,
     });
   }
 
@@ -183,20 +216,13 @@ export const onCoverageUpdate = (database: Database, callback: (fileCoverage: Fi
   database.coverage.$.subscribe(changeEvent => {
     if (changeEvent.operation === 'INSERT' || changeEvent.operation === 'UPDATE') {
       const document = changeEvent.documentData;
-      const statements: CoverageStatements = {};
-      for (const statement of document.statements) {
-        statements[[
-          statement.range.start.line,
-          statement.range.start.character,
-          statement.range.end.line,
-          statement.range.end.character
-        ].join(':')] = statement.testIds;
-      }
+      const { total, covered } = calculateCoverageStats(document);
       callback({
         fileHash: document.fileHash,
         filePath: document.filePath,
         context: document.context,
-        statements
+        total,
+        covered
       });
     }
   });

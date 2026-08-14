@@ -38,6 +38,10 @@ const coverageSchemaLiteral = {
       required: ['basePath', 'workspaceId', 'packageName', 'suiteName'],
       final: true,
     },
+    index: {
+      type: 'array',
+      items: rangeSchema,
+    },
     statements: {
       type: 'array',
       items: {
@@ -57,6 +61,7 @@ const coverageSchemaLiteral = {
     'fileHash',
     'filePath',
     'context',
+    'index',
     'statements',
   ],
   indexes: [
