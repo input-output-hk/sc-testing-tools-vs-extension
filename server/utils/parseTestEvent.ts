@@ -2,14 +2,14 @@ import { createCoverage, updateCoverage } from './coverage';
 import { validateTestEvent, getValidationError } from './validateTestEvent';
 
 import type { ScriptOutput } from './runScript';
-import type { SCToolsStreamingEvent as StreamingEvent, Transition } from '../schemas/streaming-events';
+import type { SCToolsStreamingEvent as ScEvent, TxSummary as ScTx } from '../schemas/streaming-events';
 
-type TestSuiteStartedEvent = Extract<StreamingEvent, { event: 'suite_started' }>;
-type TestSuiteDoneEvent = Extract<StreamingEvent, { event: 'suite_done' }>;
-type TestStartedEvent = Extract<StreamingEvent, { event: 'test_started' }>;
-type TestTraceEvent = Extract<StreamingEvent, { event: 'test_trace' }>;
-type TestProgressEvent = Extract<StreamingEvent, { event: 'test_progress' }>;
-type TestDoneEvent = Extract<StreamingEvent, { event: 'test_done' }>;
+type TestSuiteStartedEvent = Extract<ScEvent, { event: 'suite_started' }>;
+type TestSuiteDoneEvent = Extract<ScEvent, { event: 'suite_done' }>;
+type TestStartedEvent = Extract<ScEvent, { event: 'test_started' }>;
+type TestTraceEvent = Extract<ScEvent, { event: 'test_trace' }>;
+type TestProgressEvent = Extract<ScEvent, { event: 'test_progress' }>;
+type TestDoneEvent = Extract<ScEvent, { event: 'test_done' }>;
 
 export type TestEventValidationErrorData = {
   kind: 'invalid-test-event';
@@ -165,8 +165,7 @@ const parseTestDoneEvent = (
   };
 };
 
-const mapTransitionTx = (transition: Transition): TestTx | undefined => {
-  const tx = transition.transaction;
+const mapScTx = (tx: ScTx | null): Tx | undefined => {
   if (!tx) return undefined;
   return {
     id: tx.id || undefined,
@@ -200,20 +199,16 @@ const parseTestTraceEvent = (
   const testId: TestId = [workspaceId, packageName, suiteName, event.id.toString()];
   const type: TestType | undefined = event.category === 'positive' || event.category === 'negative' ? event.category : undefined;
   
-  const round: TestRound = {
+  const testRound: TransitionTestRound = {
+    type,
+    testId,
     id: event.trace.index,
     status: event.trace.status,
     transitions: [],
+    threatModelTestIds:
+      Array.from(new Set<string>(event.trace.threatModels.map(tm => tm.testId.toString())))
+        .map(tmId => [workspaceId, packageName, suiteName, tmId]),
   };
-
-  for (const transition of event.trace.transitions) {
-    round.transitions.push({
-      action: transition.action,
-      result: transition.result,
-      stepIndex: transition.stepIndex,
-      tx: mapTransitionTx(transition),
-    });
-  }
 
   const coverage = createCoverage(
     event.covered,
@@ -223,23 +218,59 @@ const parseTestTraceEvent = (
     event.id.toString()
   );
 
+  for (const transition of event.trace.transitions) {
+    testRound.transitions.push({
+      action: transition.action,
+      result: transition.result,
+      stepIndex: transition.stepIndex,
+      tx: mapScTx(transition.transaction),
+    });
+  }
+
+  const tmRounds: Record<string, ThreatModelTestRound> = {};
+  const traces: Record<string, Array<ThreatModelTrace>> = {};
+
   for (const tm of event.trace.threatModels) {
+    const tmId = tm.testId.toString();
+
     updateCoverage(
       coverage,
       tm.covered,
       workspaceId,
       packageName,
       suiteName,
-      tm.testId.toString()
+      tmId
     );
+
+    tmRounds[tmId] = {
+      type: 'threat-model',
+      id: event.trace.index,
+      status: event.trace.status,
+      testId: [workspaceId, packageName, suiteName, tmId],
+      parentTestId: testId,
+      traces: [],
+    };
+
+    if (!traces[tmId]) traces[tmId] = [];
+
+    traces[tmId].push({
+      tx: mapScTx(tm.originalTx)!,
+      modifiedTx: mapScTx(tm.modifiedTx),
+      modifications: tm.modifications,
+      outcome: tm.outcome,
+      targetTxIndex: tm.targetTxIndex,
+    });
+  }
+
+  for (const tmRound of Object.values(tmRounds)) {
+    tmRound.traces = traces[tmRound.testId[3]];
   }
 
   return {
     eventType: 'test-context',
     payload: {
-      id: testId,
-      type,
-      round,
+      context: { testId, type },
+      rounds: [testRound, ...Object.values(tmRounds)],
       coverage: Object.values(coverage),
     },
   };

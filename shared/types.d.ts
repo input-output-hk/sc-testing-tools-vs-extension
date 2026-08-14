@@ -109,8 +109,9 @@ type TestTreeTestNode = TestTreeNode & {
 
 type TestRound = {
   id: number;
+  testId: TestId;
+  type?: 'positive' | 'negative' | 'threat-model';
   status: TestRoundStatus;
-  transitions: Array<TestTransition>;
 };
 
 type TestRoundStatus = {
@@ -123,11 +124,23 @@ type TestRoundStatus = {
   message: string;
 };
 
+type TransitionTestRound = TestRound & {
+  type?: 'positive' | 'negative';
+  threatModelTestIds: Array<TestId>;
+  transitions: Array<TestTransition>;
+};
+
+type ThreatModelTestRound = TestRound & {
+  type: 'threat-model';
+  parentTestId: TestId;
+  traces: Array<ThreatModelTrace>;
+};
+
 type TestTransition = {
   action: string;
   result: TestTransitionResult;
   stepIndex: number;
-  tx?: TestTx;
+  tx?: Tx;
 };
 
 type TestTransitionResult = {
@@ -138,7 +151,28 @@ type TestTransitionResult = {
   error: string;
 };
 
-type TestTx = {
+type ThreatModelTrace = {
+  tx: Tx;
+  modifiedTx?: Tx;
+  modifications: Array<TxMod>;
+  outcome: ThreatModelOutcome;
+  targetTxIndex: number;
+};
+
+type ThreatModelOutcome = {
+  status: "passed";
+} | {
+  reason: string;
+  status: "failed";
+} | {
+  reason: string;
+  status: "skipped";
+} | {
+  message: string;
+  status: "error";
+};
+
+type Tx = {
   id?: string;
   fee: number;
   inputs: Array<TxInput>;
@@ -173,6 +207,84 @@ type TxAsset = {
   name: string;
   policyId: string;
   quantity: number;
+};
+
+type TxMod = {
+  type: "removeInput";
+  utxo: string;
+} | {
+  type: "removeOutput";
+  index: number;
+} | {
+  type: "changeOutput";
+  index: number;
+  address: string | null;
+  value: TxValue | null;
+  datum: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeInput";
+  utxo: string;
+  address: string | null;
+  value: TxValue | null;
+  datum: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeScriptInput";
+  utxo: string;
+  value: TxValue | null;
+  datum: string | null;
+  redeemer: string | null;
+  referenceScript: string | null;
+} | {
+  type: "changeValidityRange";
+  lowerBound: string | null;
+  upperBound: string | null;
+} | {
+  type: "addOutput";
+  address: string;
+  value: TxValue;
+  datum: string | null;
+  referenceScript: string;
+} | {
+  type: "addInput";
+  address: string;
+  value: TxValue;
+  isReferenceInput: boolean;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addReferenceScriptInput";
+  value: TxValue;
+  redeemer: string;
+  scriptHash: string;
+  datum: string | null;
+} | {
+  type: "addPlutusScriptInput";
+  value: TxValue;
+  redeemer: string;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addPlutusScriptReferenceInput";
+  value: TxValue;
+  referenceScript: string;
+  datum: string | null;
+} | {
+  type: "addSimpleScriptInput";
+  value: TxValue;
+  referenceScript: string;
+  isReferenceInput: boolean;
+} | {
+  type: "addPlutusScriptMint";
+  quantity: number;
+  assetName: string;
+  redeemer: string;
+} | {
+  type: "removeRequiredSigner";
+  keyHash: string;
+} | {
+  type: "replaceTx";
 };
 
 // Coverage
@@ -313,10 +425,12 @@ type TestUpdateEvent = TestEvent & {
 type TestContextEvent = TestEvent & {
   eventType: "test-context";
   payload: {
-    id: TestId;
-    type?: TestType;
+    context: {
+      testId: TestId;
+      type?: TestType;
+    };
+    rounds: Array<TestRound>;
     coverage: Array<TestEventCoverage>;
-    round: TestRound;
   };
 };
 

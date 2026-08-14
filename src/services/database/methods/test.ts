@@ -85,14 +85,14 @@ export const handleTestUpdateEvent = async (database: Database, event: TestUpdat
 }
 
 export const handleTestContextEvent = async (database: Database, event: TestContextEvent): Promise<void> => {
-  const [workspaceId, packageName, suiteName, testId] = event.payload.id;
-  if (event.payload.type) {
+  const [workspaceId, packageName, suiteName, testId] = event.payload.context.testId;
+  if (event.payload.context.type) {
     await database.tests
       .findOne({ selector: { id: `${workspaceId}:${packageName}:${suiteName}:${testId}` } })
-      .update({ $set: { type: event.payload.type } });
+      .update({ $set: { type: event.payload.context.type } });
   }
   await upsertCoverage(database, [workspaceId, packageName], event.payload.coverage);
-  await createRounds(database, event.payload.id, event.payload.round);
+  await createRounds(database, event.payload.rounds);
 }
 
 export const handleTestRunFailed = async (database: Database, testRun: TestRun): Promise<void> => {

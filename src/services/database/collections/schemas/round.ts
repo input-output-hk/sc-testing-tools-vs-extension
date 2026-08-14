@@ -9,6 +9,7 @@ import {
 import {
   numberSchema,
   stringSchema,
+  testRoundSchema,
   testRoundIdSchema,
   workspaceIdSchema,
   packageNameSchema,
@@ -79,6 +80,48 @@ const txSchema = {
   required: ['fee', 'inputs', 'outputs'],
 } as const;
 
+const transitionSchema = {
+  type: 'object',
+  properties: {
+    action: stringSchema,
+    result: {
+      type: 'object',
+      properties: {
+        status: stringSchema,
+        txId: stringSchema,
+        error: stringSchema,
+      },
+      required: ['status'],
+    },
+    stepIndex: numberSchema,
+    tx: txSchema,
+  },
+  required: ['action', 'result', 'stepIndex'],
+} as const;
+
+const traceSchema = {
+  type: 'object',
+  properties: {
+    tx: txSchema,
+    modifiedTx: txSchema,
+    modifications: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+    outcome: {
+      type: 'object',
+      properties: {
+        status: stringSchema,
+        reason: stringSchema,
+        message: stringSchema,
+      },
+      required: ['status'],
+    },
+    targetTxIndex: numberSchema,
+  },
+  required: ['tx', 'modifications', 'outcome', 'targetTxIndex'],
+} as const;
+
 const roundSchemaLiteral = {
   title: 'round',
   version: 0,
@@ -94,7 +137,7 @@ const roundSchemaLiteral = {
     packageName: packageNameSchema,
     suiteName: suiteNameSchema,
     testId: testIdSchema,
-    roundId: testRoundIdSchema,
+    roundId: testRoundSchema,
     status: {
       type: 'object',
       properties: {
@@ -103,26 +146,19 @@ const roundSchemaLiteral = {
       },
       required: ['status'],
     },
+    type: stringSchema,
     transitions: {
       type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          action: stringSchema,
-          result: {
-            type: 'object',
-            properties: {
-              status: stringSchema,
-              txId: stringSchema,
-              error: stringSchema,
-            },
-            required: ['status'],
-          },
-          stepIndex: numberSchema,
-          tx: txSchema,
-        },
-        required: ['action', 'result', 'stepIndex'],
-      },
+      items: transitionSchema,
+    },
+    threatModelTestIds: {
+      type: 'array',
+      items: stringSchema,
+    },
+    parentTestId: stringSchema,
+    traces: {
+      type: 'array',
+      items: traceSchema,
     },
   },
   required: [
@@ -133,7 +169,6 @@ const roundSchemaLiteral = {
     'testId',
     'roundId',
     'status',
-    'transitions',
   ],
   indexes: [
     ['workspaceId', 'packageName', 'suiteName', 'testId'],
