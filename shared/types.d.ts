@@ -366,6 +366,7 @@ type WebviewToExtensionMessage =
   | { type: "open-folder" }
   | { type: "run-test" }
   | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "refresh-suite", payload: { suiteId: TestSuiteId } }
   | { type: "open-test-results", payload: { testId: TestId } }
   | { type: "select-test", payload: { testId: TestId } }
   | { type: "update-test-tree", payload: TestTreeUpdate }
