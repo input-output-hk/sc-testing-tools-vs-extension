@@ -38,12 +38,12 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
   }, [vscode]);
 
   const handleSelectTest = (testId: TestId) => {
-    vscode.postMessage({ type: 'select-test', payload: { testId } } as WebviewToExtensionMessage);
+    vscode.postMessage({ type: 'test-result-select-test', payload: { testId } } as WebviewToExtensionMessage);
   };
 
   const handleRecheck = () => {
     if (test !== null) {
-      vscode.postMessage({ type: 'run-test' } as WebviewToExtensionMessage);
+      vscode.postMessage({ type: 'test-result-run-test' } as WebviewToExtensionMessage);
     }
   };
 

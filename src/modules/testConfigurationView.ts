@@ -58,10 +58,10 @@ export default class TestConfigurationView {
             this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
             this.sendDependencyStatus();
             break;
-          case 'update-execution-mode':
+          case 'config-update-execution-mode':
             this.updateExecutionMode(message.payload.executionMode);
             break;
-          case 'update-test-rounds':
+          case 'config-update-test-rounds':
             this.updateTestRounds(message.payload.rounds);
             break;
         }
@@ -75,14 +75,14 @@ export default class TestConfigurationView {
   private sendExecutionModeConfig(): void {
     const executionMode = this.context.store.settingStore.getSettings().mode;
 
-    this.webview?.postMessage({ type: 'execution-mode-config', payload: { executionMode } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'config-execution-mode', payload: { executionMode } } as ExtensionToWebviewMessage);
   }
 
   // send the current test rounds to the webview
   private sendTestRoundsConfig(): void {
     const rounds = this.context.store.settingStore.getSettings().rounds;
 
-    this.webview?.postMessage({ type: 'test-rounds-config', payload: { rounds } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'config-test-rounds', payload: { rounds } } as ExtensionToWebviewMessage);
   }
 
   // update the execution mode in the setting store when the user changes it in the webview
@@ -106,7 +106,7 @@ export default class TestConfigurationView {
   private sendDependencyStatus(): void {
     const error = this.context.store.dependencyStore.getDependencyError();
 
-    this.webview?.postMessage({ type: 'dependency-status', payload: { error } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'status-missing-dependency', payload: { error } } as ExtensionToWebviewMessage);
   }
 
   private onDependencyError({ hasError, message, code }: DependencyError): void {

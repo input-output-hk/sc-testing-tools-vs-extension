@@ -4,39 +4,24 @@ import { VscodeProgressBar } from '@vscode-elements/react-elements';
 
 import type { WebviewApi } from 'vscode-webview';
 
-import CoverageSummary from './components/CoverageSummary';
+import CoverageTitle from './components/CoverageTitle';
 import CoverageTree from './components/CoverageTree';
 
 interface TestCoverageProps {
   vscode: WebviewApi<unknown>;
 }
 
-const upsertCoverageFile = (files: Array<FileCoverage>, file: FileCoverage): Array<FileCoverage> => {
-  const index = files.findIndex((existing) => existing.filePath === file.filePath);
-  if (index === -1) return [...files, file];
-  const next = [...files];
-  next[index] = file;
-  return next;
-};
-
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
-  const [files, setFiles] = useState<Array<FileCoverage> | null>(null);
-  const [collapseSignal, setCollapseSignal] = useState(0);
+  const [coverageTree, setCoverageTree] = useState<CoverageTree | null>(null);
+  const hasItems = coverageTree !== null && Object.keys(coverageTree).length > 0;
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'coverage') {
-        setFiles(message.payload.files);
-      }
-      if (message.type === 'coverage-update') {
-        console.log('---- message.payload.file---', message.payload.file);
-        setFiles((files) => upsertCoverageFile(files ?? [], message.payload.file));
-      }
-      if (message.type === 'collapse-all-coverage') {
-        setCollapseSignal((signal) => signal + 1);
+      if (message.type === 'coverage-tree') {
+        setCoverageTree(message.payload.coverageTree);
       }
     };
 
@@ -45,25 +30,36 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const onOpenFile = (filePath: string) => {
-    vscode.postMessage({ type: 'open-coverage-file', payload: { filePath } } as WebviewToExtensionMessage);
+  const onOpenFile = (filePath: string): void => {
+    vscode.postMessage({ type: 'coverage-open-file', payload: { filePath } } as WebviewToExtensionMessage);
   };
+
+  const onUpdateOpenCoverageNode = (isOpen: boolean, path: Array<string>): void => {
+    vscode.postMessage({ type: 'coverage-tree-update', payload: { isOpen, path } });
+  }
 
   return (
     <>
-      {files === null && (
+      {coverageTree === null &&
         <div className="h-full">
           <VscodeProgressBar />
         </div>
-      )}
-      {files !== null && (
+      }
+      {coverageTree !== null &&
         <div className="flex h-full flex-col">
-          {files.length > 0 && <CoverageSummary />}
+          <CoverageTitle
+            icon={hasItems}
+            text={hasItems ? 'Coverage: Entire Test Run' : 'No coverage detected'}
+          />
           <div className="min-h-0 flex-1">
-            <CoverageTree files={files} collapseSignal={collapseSignal} onOpenFile={onOpenFile} />
+            <CoverageTree
+              coverageTree={coverageTree}
+              onOpenFile={onOpenFile}
+              onUpdateOpenCoverageNode={onUpdateOpenCoverageNode}
+            />
           </div>
         </div>
-      )}
+      }
     </>
   );
 };

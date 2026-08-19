@@ -50,10 +50,10 @@ export default class TestResultView {
           case "webview-ready":
             this.sendTestResultWithGroupTests(testId);
             break;
-          case "select-test":
+          case "test-result-select-test":
             this.sendTestResult(message.payload.testId);
             break;
-          case "run-test":
+          case "test-result-run-test":
             this.runTest();
             break;
         }
