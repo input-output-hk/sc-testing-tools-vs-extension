@@ -111,9 +111,11 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {filteredNodes.map((childNode, index) => (
+      {filteredNodes.map((childNode) => (
         <TreeViewNode
-          key={index}
+          key={childNode.type === 'group'
+            ? (childNode as TestTreeGroupNode).name
+            : (childNode as TestTreeTestNode).test.id.join(':')}
           workspaceId={workspaceId}
           packageName={packageName}
           suiteName={suiteName}

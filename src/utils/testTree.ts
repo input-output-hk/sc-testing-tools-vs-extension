@@ -10,14 +10,14 @@ const createTestTreeNode = (
     return;
   }
 
-  const isOpen = openState[[...suiteId, ...test.group].join(':')] ?? false;
-
   let node: TestTreeGroupNode | null = null;
-  for (const group of test.group) {
+  for (let i = 0; i < test.group.length; i++) {
+    const isOpen = openState[[...suiteId, ...test.group.slice(0, i+1)].join(':')] ?? false;
+    
     if (node === null) {
-      node = getTestTreeGroupNode(nodes, group, isOpen);
+      node = getTestTreeGroupNode(nodes, test.group[i], isOpen);
     } else {
-      node = getTestTreeGroupNode(node.nodes, group, isOpen);
+      node = getTestTreeGroupNode(node.nodes, test.group[i], isOpen);
     }
   }
 
