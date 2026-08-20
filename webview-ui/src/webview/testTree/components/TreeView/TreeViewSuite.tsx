@@ -4,7 +4,7 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
-import useTreeItemState from './useTreeItemState';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {

@@ -29,22 +29,22 @@ export default class TestTreeView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-          case 'fetch-test-tree':
+          case 'test-tree-fetch':
             this.checkWorkspaceAndFetchTestTree();
             break;
-          case 'open-folder':
+          case 'test-tree-open-folder':
             this.openFolder();
             break;
-          case 'run-tests':
+          case 'test-tree-run-tests':
             this.runTests(message.payload.testIds);
             break;
           case 'refresh-suite':
             this.refreshSuite(message.payload.suiteId);
             break;
-          case 'open-test-results':
+          case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
-          case 'update-test-tree':
+          case 'test-tree-update':
             this.updateTestTree(message.payload);
             break;
         }
@@ -88,7 +88,7 @@ export default class TestTreeView {
 
   private noFoldersDetected(): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'empty-workspaces' } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'status-empty-workspaces' } as ExtensionToWebviewMessage);
     }
   }
 
@@ -136,19 +136,19 @@ export default class TestTreeView {
 
   private sendTestUpdateToWebview(test: Test): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-update', payload: { test } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-update', payload: { test } } as ExtensionToWebviewMessage);
     }
   }
 
   private sendTestSuiteUpdate({ packageId, suite }: TestSuiteUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-suite-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-suite-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
     }
   }
 
   private sendTestSuiteStatusUpdate({ suiteId, status }: TestSuiteStatusUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-suite-status-update', payload: { suiteId, status } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-suite-status-update', payload: { suiteId, status } } as ExtensionToWebviewMessage);
     }
   }
 

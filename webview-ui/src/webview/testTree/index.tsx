@@ -27,7 +27,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'empty-workspaces') {
+      if (message.type === 'status-empty-workspaces') {
         setActiveView('empty-workspaces');
       }
       if (message.type === 'test-tree-error') {
@@ -37,20 +37,20 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         setTestTree(message.payload.testTree);
         setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');
       }
-      if (message.type === 'test-suite-update') {
+      if (message.type === 'test-tree-suite-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
           return updateTestSuite({ ...testTree }, message.payload);
         });
         setTreeVersion(version => version + 1);
       }
-      if (message.type === 'test-update') {
+      if (message.type === 'test-tree-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
           return updateTest(testTree, message.payload);
         });
       }
-      if (message.type === 'test-suite-status-update') {
+      if (message.type === 'test-tree-suite-status-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
           return updateTestSuiteStatus(testTree, message.payload);
@@ -64,7 +64,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
   }, [vscode]);
 
   const onRunTests = (testIds: Array<RunTestId>) => {
-    vscode.postMessage({ type: 'run-tests', payload: { testIds } } as WebviewToExtensionMessage);
+    vscode.postMessage({ type: 'test-tree-run-tests', payload: { testIds } } as WebviewToExtensionMessage);
   };
 
   const onRefreshSuite = (suiteId:TestSuiteId) => {
@@ -91,13 +91,13 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     });
 
     vscode.postMessage({
-      type: 'update-test-tree',
+      type: 'test-tree-update',
       payload: { isOpen, workspaceId, packageName, suiteName, path }
     } as WebviewToExtensionMessage);
   };
 
   const onOpenTestResult = (testId: TestId) => {
-    vscode.postMessage({ type: 'open-test-results', payload: { testId } } as WebviewToExtensionMessage);
+    vscode.postMessage({ type: 'test-tree-open-results', payload: { testId } } as WebviewToExtensionMessage);
   };
 
   return (

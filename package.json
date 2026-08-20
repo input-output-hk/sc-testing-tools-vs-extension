@@ -97,17 +97,17 @@
           "icon": "images/pbt-icon.svg"
         },
         {
-          "id": "pbt-test-run-configuration",
-          "name": "Test Run Configuration",
-          "type": "webview",
-          "icon": "images/pbt-icon.svg"
-        },
-        {
           "id": "pbt-test-coverage",
           "name": "Plinth Script Coverage",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
-        }        
+        },       
+        {
+          "id": "pbt-test-run-configuration",
+          "name": "Test Run Configuration",
+          "type": "webview",
+          "icon": "images/pbt-icon.svg"
+        }
       ]
     }
   },
