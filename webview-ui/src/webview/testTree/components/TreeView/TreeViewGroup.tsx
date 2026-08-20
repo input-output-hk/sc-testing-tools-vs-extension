@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
-import useTreeItemState from './useTreeItemState';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import {
   getGroupTestIds,

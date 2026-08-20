@@ -3,7 +3,12 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor } from '../../utils/coverage';
+import {
+  renderCoverageForEditor,
+  clearCoverageForEditor,
+  buildCoverageTree,
+  updateCoverageTree
+} from '../../utils/coverage';
 import { PbtContext } from '../../extension';
 
 export default class TestStore {
@@ -13,7 +18,9 @@ export default class TestStore {
 
   private workspaces: Map<string, string>;
   private staticTestTree: TestTree | null = null;
-  private openState: Record<string, boolean> = {};
+  private coverageTree: CoverageTree | null = null;
+  private testOpenState: Record<string, boolean> = {};
+  private coverageOpenState: Record<string, boolean> = {};
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -90,13 +97,13 @@ export default class TestStore {
         workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
       });
       for (const packageId of Object.keys(this.staticTestTree.packages)) {
-        this.openState[packageId] = true;
+        this.testOpenState[packageId] = true;
       }
       await this.database!.handleTestTree(this.staticTestTree);
       return this.staticTestTree;
     }
     
-    return await this.database!.buildTestTree(this.staticTestTree, this.openState);
+    return await this.database!.buildTestTree(this.staticTestTree, this.testOpenState);
   }
 
   public updateOpenTestTreeNode(
@@ -109,7 +116,20 @@ export default class TestStore {
     const id = [workspaceId, packageName];
     if (suiteName) id.push(suiteName);
     if (suiteName && path) id.push(...path);
-    this.openState[id.join(':')] = isOpen;
+    this.testOpenState[id.join(':')] = isOpen;
+  }
+
+  public updateOpenCoverage(
+    isOpen: boolean,
+    path: Array<string>
+  ): void {
+    this.coverageOpenState[path.join(':')] = isOpen;
+  }
+
+  public collapseCoverage(): void {
+    for (const key of Object.keys(this.coverageOpenState)) {
+      this.coverageOpenState[key] = false;
+    }
   }
 
   public buildTestTree(suiteId: TestSuiteId): void {
@@ -172,12 +192,15 @@ export default class TestStore {
     return await this.database.getTestsByGroup(testId, group);
   }
   
-  public async getCoverage(): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverage();
+  public async getCoverage(): Promise<CoverageTree> {
+    const files = await this.database.getCoverage();
+    this.coverageTree = buildCoverageTree(files, this.coverageOpenState);
+    return this.coverageTree;
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverage>> {
-    return await this.database.getCoverageForTest(testId);
+  public async getCoverageForTest(testId: TestId): Promise<CoverageTree> {
+    const files = await this.database.getCoverageForTest(testId);
+    return buildCoverageTree(files, this.coverageOpenState);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
@@ -185,14 +208,21 @@ export default class TestStore {
   }
 
   public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    this.database.onTestSuiteUpdate(this.openState, callback);
+    this.database.onTestSuiteUpdate(this.testOpenState, callback);
   }
 
   public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
     this.database.onTestSuiteStatusUpdate(callback);
   }
 
-  public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {
-    this.database.onCoverageUpdate(callback);
+  public onCoverageUpdate(callback: (coverageTree: CoverageTree) => void): void {
+    this.database.onCoverageUpdate(async file => {
+      if (this.coverageTree === null) {
+        this.coverageTree = await this.getCoverage();
+      } else {
+        updateCoverageTree(this.coverageTree, file, this.coverageOpenState);
+      }
+      callback(this.coverageTree);
+    });
   }
 }

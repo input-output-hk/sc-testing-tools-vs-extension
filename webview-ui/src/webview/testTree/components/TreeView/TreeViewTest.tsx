@@ -2,7 +2,7 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import { isRunnableTestId } from '../../utils/treeUtils';
-import useTreeItemState from './useTreeItemState';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;

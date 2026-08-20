@@ -21,13 +21,13 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
 
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
-      if (message.type === 'execution-mode-config') {
+      if (message.type === 'config-execution-mode') {
         setExecutionMode(message.payload.executionMode);
       }
-      if (message.type === 'dependency-status') {
+      if (message.type === 'status-missing-dependency') {
         setError({ hasError: message.payload.error.hasError, message: message.payload.error.message, code: message.payload.error.code });
       }
-      if (message.type === 'test-rounds-config') {
+      if (message.type === 'config-test-rounds') {
         setRounds(String(message.payload.rounds));
       }
     };
@@ -39,7 +39,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
 
   const onExecutionModeChange = (mode: ExtensionMode) => {
     setExecutionMode(mode);
-    vscode.postMessage({ type: 'update-execution-mode', payload: { executionMode: mode } } as WebviewToExtensionMessage);
+    vscode.postMessage({ type: 'config-update-execution-mode', payload: { executionMode: mode } } as WebviewToExtensionMessage);
   };
 
   const onRoundsChange = (event: InputEvent) => {
@@ -49,7 +49,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
     const rounds = Number(value);
     if (Number.isNaN(rounds)) return;
 
-    vscode.postMessage({ type: 'update-test-rounds', payload: { rounds } } as WebviewToExtensionMessage);
+    vscode.postMessage({ type: 'config-update-test-rounds', payload: { rounds } } as WebviewToExtensionMessage);
   };
 
   return (

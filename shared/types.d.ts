@@ -316,6 +316,23 @@ type FileCoverageContext = {
   suiteName: string;
 };
 
+type CoverageTree = Record<string, CoverageTreeNode>;
+
+type CoverageTreeNode = {
+  name: string;
+  total: number;
+  covered: number;
+};
+
+type CoverageTreeFileNode = CoverageTreeNode & {
+  path: string;
+};
+
+type CoverageTreeFolderNode = CoverageTreeNode & {
+  isOpen: boolean;
+  nodes: CoverageTree;
+};
+
 // Webview message
 
 type TestSuiteUpdate = {
@@ -336,6 +353,11 @@ type TestTreeUpdate = {
   path?: Array<string>;
 };
 
+type CoverageTreeUpdate = {
+  isOpen: boolean;
+  path: Array<string>;
+};
+
 type TestResult = {
   test: Test;
   rounds: Array<TestRound>;
@@ -347,31 +369,30 @@ type TestResultWithGroupTests = TestResult & {
 
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
-  | { type: "test-update", payload: { test: Test } }
-  | { type: "test-suite-update", payload: TestSuiteUpdate }
-  | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
+  | { type: "test-tree-update", payload: { test: Test } }
+  | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
+  | { type: "test-tree-suite-status-update", payload: TestSuiteStatusUpdate }
+  | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResultWithGroupTests }
-  | { type: "coverage", payload: { files: Array<FileCoverage> } }
-  | { type: "coverage-update", payload: { file: FileCoverage } }
-  | { type: "collapse-all-coverage" }
-  | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "test-rounds-config", payload: { rounds: number } }
-  | { type: "dependency-status", payload: { error: DependencyError } }
-  | { type: "empty-workspaces" }
-  | { type: "test-tree-error" };
+  | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
+  | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "config-test-rounds", payload: { rounds: number } }
+  | { type: "status-missing-dependency", payload: { error: DependencyError } }
+  | { type: "status-empty-workspaces" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
-  | { type: "fetch-test-tree" }
-  | { type: "open-folder" }
-  | { type: "run-test" }
-  | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
-  | { type: "open-test-results", payload: { testId: TestId } }
-  | { type: "select-test", payload: { testId: TestId } }
-  | { type: "update-test-tree", payload: TestTreeUpdate }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "update-test-rounds", payload: { rounds: number } }
-  | { type: "open-coverage-file", payload: { filePath: string } };
+  | { type: "test-tree-fetch" }
+  | { type: "test-tree-open-folder" }
+  | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-tree-run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "test-tree-update", payload: TestTreeUpdate }
+  | { type: "test-result-run-test" }
+  | { type: "test-result-select-test", payload: { testId: TestId } }
+  | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
+  | { type: "coverage-open-file", payload: { filePath: string } }
+  | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "config-update-test-rounds", payload: { rounds: number } };
 
 // RPC message
 
