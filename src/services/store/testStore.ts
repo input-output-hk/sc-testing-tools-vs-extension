@@ -145,7 +145,8 @@ export default class TestStore {
     });
   }
 
-  public buildTestTrees(suiteIds: Array<TestSuiteId>): void {
+  public async buildAllTestSuites(): Promise<void> {
+    const suiteIds = await this.database!.getAllTestSuitesIds();
     for (const suiteId of suiteIds) {
       this.buildTestTree(suiteId);
     }

@@ -10,6 +10,7 @@ import {
 } from './methods/testTree';
 
 import {
+  getAllTestSuitesIds,
   handleTestSuiteUpdateEvent,
   onTestSuiteUpdate,
   onTestSuiteStatusUpdate
@@ -100,6 +101,10 @@ export default class Database {
 
   public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
     return await getTestsByGroup(this.database!, testId, group);
+  }
+
+  public async getAllTestSuitesIds(): Promise<Array<TestSuiteId>> {
+    return await getAllTestSuitesIds(this.database!);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

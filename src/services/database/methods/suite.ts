@@ -6,6 +6,11 @@ import { createTestTree } from '../../../utils/testTree';
 
 import type { Database, SuiteDocument, TestDocument } from '../collections';
 
+export const getAllTestSuitesIds = async (database: Database): Promise<Array<TestSuiteId>> => {
+  const suiteDocuments: Array<SuiteDocument> = await database.suites.find().exec();
+  return suiteDocuments.map(suite => [suite.workspaceId, suite.packageName, suite.suiteName]);
+}
+
 const computeSuiteStatus = async (database: Database, suite: SuiteDocument): Promise<RunStatus> => {
   const tests: Array<TestDocument> = await database.tests.find({
     selector: {
