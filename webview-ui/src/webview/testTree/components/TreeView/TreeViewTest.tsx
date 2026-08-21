@@ -27,7 +27,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onUpdateSelection,
   onOpenTestResult,
 }) => {
-  const isRunnable = isRunnableTestId(node.test.id);
+  const isRunnable = isRunnableTestId(node.test.id) && node.test.status !== 'running' && node.test.status !== 'waiting';
   const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
 
   const treeItemRef = useTreeItemState({
@@ -53,7 +53,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }
         </span>
 
-        {node.test.type && node.test.type !== 'unit-test' &&
+        {node.test.type !== undefined && node.test.type !== 'unit-test' &&
           <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"

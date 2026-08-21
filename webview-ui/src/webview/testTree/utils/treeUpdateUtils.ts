@@ -83,24 +83,20 @@ export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTr
   const updatedTestTreeNodeMap = updateTestNodeMap(suiteNode.tests, test.id.join(':'), test);
   if (!updatedTestTreeNodeMap.updated) return testTree;
 
-  const updatedSuiteNode: TestSuite = {
-    ...suiteNode,
-    tests: updatedTestTreeNodeMap.nodes,
-  };
-
-  const updatedPackageNode: TestPackage = {
-    ...packageNode,
-    suites: {
-      ...packageNode.suites,
-      [suiteName]: updatedSuiteNode,
-    },
-  };
-
   return {
     ...testTree,
     packages: {
       ...testTree.packages,
-      [packageId]: updatedPackageNode,
+      [packageId]: {
+        ...packageNode,
+        suites: {
+          ...packageNode.suites,
+          [suiteName]: {
+            ...suiteNode,
+            tests: updatedTestTreeNodeMap.nodes,
+          },
+        },
+      },
     },
   };
 };
@@ -118,24 +114,20 @@ export const updateTestSuiteStatus = (
   const suiteNode = packageNode.suites[suiteName];
   if (!suiteNode || suiteNode.status === status) return testTree;
 
-  const updatedSuiteNode: TestSuite = {
-    ...suiteNode,
-    status,
-  };
-
-  const updatedPackageNode: TestPackage = {
-    ...packageNode,
-    suites: {
-      ...packageNode.suites,
-      [suiteName]: updatedSuiteNode,
-    },
-  };
-
   return {
     ...testTree,
     packages: {
       ...testTree.packages,
-      [packageId]: updatedPackageNode,
+      [packageId]: {
+        ...packageNode,
+        suites: {
+          ...packageNode.suites,
+          [suiteName]: {
+            ...suiteNode,
+            status,
+          },
+        },
+      },
     },
   };
 };

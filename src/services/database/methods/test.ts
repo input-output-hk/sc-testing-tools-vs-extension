@@ -2,6 +2,7 @@ import { Range } from 'vscode';
 
 import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage } from './coverage';
+import { updateTestTreeSuiteStatus } from '../../../utils/testTree';
 
 import type { Database, SuiteDocument, TestDocument } from '../collections';
 
@@ -95,8 +96,12 @@ export const handleTestContextEvent = async (database: Database, event: TestCont
   await createRounds(database, event.payload.rounds);
 }
 
-export const handleTestRunFailed = async (database: Database, testRun: TestRun): Promise<void> => {
+export const handleTestRunFailed = async (database: Database, testRun: TestRun, prefetchTree: TestTree | null): Promise<void> => {
   const { workspaceId, packageName, suiteName, testIds } = testRun;
+
+  if (prefetchTree !== null) {
+    updateTestTreeSuiteStatus(prefetchTree, [workspaceId, packageName, suiteName], 'invalid');
+  }
 
   const suiteDocument: SuiteDocument | null = await database.suites.findOne({
     selector: { id: `${workspaceId}:${packageName}:${suiteName}` }

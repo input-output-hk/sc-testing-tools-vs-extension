@@ -64,11 +64,12 @@ export default class TestStore {
     });
 
     this.rpcClient.onBuildTestTreeError((error: BuildTestTreeErrorData) => {
-      //
+      const testSuiteId: TestSuiteId = [error.runParams.workspace.id, error.runParams.packageName, error.runParams.suiteName];
+      this.database.handleBuildTestTreeFailed(testSuiteId, this.staticTestTree);
     });
 
     this.rpcClient.onRunTestsError((error: RunTestsErrorData) => {
-      this.database.handleTestRunFailed(error.runParams.testRun);
+      this.database.handleTestRunFailed(error.runParams.testRun, this.staticTestTree);
     });
   }
 
@@ -132,7 +133,7 @@ export default class TestStore {
     }
   }
 
-  public buildTestTree(suiteId: TestSuiteId): void {
+  public async buildTestTree(suiteId: TestSuiteId): Promise<void> {
     const [workspaceId, packageName, suiteName] = suiteId;
     this.rpcClient.buildTestTree({
       mode: this.context!.store.settingStore.getSettings().mode,
@@ -143,12 +144,14 @@ export default class TestStore {
       packageName,
       suiteName
     });
+
+    await this.database!.handleBuildTestSuite(suiteId);
   }
 
   public async buildAllTestSuites(): Promise<void> {
     const suiteIds = await this.database!.getAllTestSuitesIds();
     for (const suiteId of suiteIds) {
-      this.buildTestTree(suiteId);
+      await this.buildTestTree(suiteId);
     }
   }
 
