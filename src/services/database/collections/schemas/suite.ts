@@ -29,6 +29,11 @@ const suiteSchemaLiteral = {
     packageName: packageNameSchema,
     suiteName: suiteNameSchema,
     status: stringSchema,
+    treeVersion: {
+      type: 'number',
+      minimum: 0,
+      default: 0,
+    }
   },
   required: [
     'id',
@@ -36,6 +41,7 @@ const suiteSchemaLiteral = {
     'packageName',
     'suiteName',
     'status',
+    'treeVersion',
   ],
   indexes: [
     'workspaceId',
