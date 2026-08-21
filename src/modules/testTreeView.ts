@@ -16,6 +16,9 @@ export default class TestTreeView {
     const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testTree', this.onWebviewResolved.bind(this));
     const disposable = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
     context.extension.subscriptions.push(disposable);
+
+    const buildAllTestSuitesCommand = vscode.commands.registerCommand('pbt-extension.buildAllTestSuites', this.buildAllTestSuites.bind(this));
+    context.extension.subscriptions.push(buildAllTestSuitesCommand);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -122,6 +125,12 @@ export default class TestTreeView {
     if (!await this.ensureDependenciesReady()) return;
     this.clearError();
     this.context.store.testStore.buildTestTree(suiteId);
+  }
+
+  private async buildAllTestSuites(): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    this.clearError();
+    await this.context.store.testStore.buildAllTestSuites();
   }
 
   private openTestResults(testId: TestId): void {

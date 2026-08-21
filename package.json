@@ -30,6 +30,11 @@
   "contributes": {
     "commands": [
       {
+        "command": "pbt-extension.buildAllTestSuites",
+        "title": "Refresh all test suites",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -47,6 +52,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "pbt-extension.buildAllTestSuites",
+          "when": "view == pbt-test-tree",
+          "group": "navigation"
+        },
         {
           "command": "pbt-extension.refreshTestConfiguration",
           "when": "view == pbt-test-run-configuration",
