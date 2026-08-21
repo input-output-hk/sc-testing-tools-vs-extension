@@ -24,7 +24,6 @@ export const handleTestTree = async (database: Database, testTree: TestTree): Pr
         packageName: testPackage.name,
         suiteName: suite.name,
         status: suite.status,
-        treeVersion: 0,
       });
     }
   }

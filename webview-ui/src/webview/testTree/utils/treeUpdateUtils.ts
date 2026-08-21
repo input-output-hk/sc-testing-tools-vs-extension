@@ -1,43 +1,8 @@
-/** Recursively carries over each group node's local `isOpen` onto the incoming node map, since the server has no way to know about a toggle still in flight. */
-const mergeTestTreeOpenState = (
-  existingNodes: TestTreeNodeMap,
-  incomingNodes: TestTreeNodeMap,
-): TestTreeNodeMap => {
-  const mergedNodes: TestTreeNodeMap = {};
-
-  for (const [key, incomingNode] of Object.entries(incomingNodes)) {
-    if (incomingNode.type === 'test') {
-      mergedNodes[key] = incomingNode;
-      continue;
-    }
-
-    const existingNode = existingNodes[key];
-    const existingGroupNode = existingNode && existingNode.type === 'group' ? existingNode as TestTreeGroupNode : undefined;
-    const incomingGroupNode = incomingNode as TestTreeGroupNode;
-
-    mergedNodes[key] = {
-      ...incomingGroupNode,
-      isOpen: existingGroupNode?.isOpen ?? incomingGroupNode.isOpen,
-      nodes: mergeTestTreeOpenState(existingGroupNode?.nodes ?? {}, incomingGroupNode.nodes),
-    } as TestTreeGroupNode;
-  }
-
-  return mergedNodes;
-};
-
-/** Merges an incoming suite update onto the existing one rather than replacing it outright, so a suite's open/closed state (client-owned) survives a data refresh (server-owned). */
 export const updateTestSuite = (testTree: TestTree, { packageId, suite }: TestSuiteUpdate): TestTree => {
   const packageNode = testTree.packages[packageId.join(':')];
   if (!packageNode) return testTree;
 
-  const existingSuite = packageNode.suites[suite.name];
-  packageNode.suites[suite.name] = existingSuite
-    ? {
-        ...suite,
-        isOpen: existingSuite.isOpen,
-        tests: mergeTestTreeOpenState(existingSuite.tests, suite.tests),
-      }
-    : suite;
+  packageNode.suites[suite.name] = { ...packageNode.suites[suite.name], ...suite };
 
   return testTree;
 };
