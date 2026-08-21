@@ -145,6 +145,12 @@ export default class TestStore {
     });
   }
 
+  public buildTestTrees(suiteIds: Array<TestSuiteId>): void {
+    for (const suiteId of suiteIds) {
+      this.buildTestTree(suiteId);
+    }
+  }
+
   public async runTests(testIds: Array<RunTestId>): Promise<void> {
     const testRuns: Map<string, Array<RunTestId>> = new Map();
     for (const [workspaceId, packageName, suiteName, testId] of testIds) {
