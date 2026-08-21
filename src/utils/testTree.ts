@@ -47,3 +47,29 @@ export const createTestTree = (
   for (const test of tests) createTestTreeNode(suiteId, openState, nodes, test);
   return nodes;
 };
+
+const updateTestTreeNodeStatus = (testTree: TestTreeNodeMap, status: RunStatus): void => {
+  for (const node of Object.values(testTree)) {
+    if (node.type === 'test') {
+      (node as TestTreeTestNode).test.status = status;
+    } else {
+      updateTestTreeNodeStatus((node as TestTreeGroupNode).nodes, status);
+    }
+  }
+}
+
+export const updateTestTreeSuiteStatus = (
+  testTree: TestTree,
+  testSuiteId: TestSuiteId,
+  status: RunStatus
+): void => {
+  const [workspaceId, packageName, suiteName] = testSuiteId;
+  if (Object.hasOwn(testTree.packages, `${workspaceId}:${packageName}`)) {
+    const packageNode = testTree.packages[`${workspaceId}:${packageName}`];
+    if (Object.hasOwn(packageNode.suites, suiteName)) {
+      const suiteNode = packageNode.suites[suiteName];
+      updateTestTreeNodeStatus(suiteNode.tests, status);
+      suiteNode.status = status;
+    }
+  }
+};

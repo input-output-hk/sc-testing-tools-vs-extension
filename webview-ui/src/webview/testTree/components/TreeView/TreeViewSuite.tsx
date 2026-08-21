@@ -14,6 +14,7 @@ interface TreeViewSuiteProps {
   filterText: string;
   statusFilter: RunStatus | null;
   onRunTests: (testIds: Array<RunTestId>) => void;
+  onBuildSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
@@ -32,6 +33,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   filterText,
   statusFilter,
   onRunTests,
+  onBuildSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
@@ -44,6 +46,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
       onUpdateSelection([[workspaceId, packageName, suite.name]], selected);
     },
   });
+
+  const isRunnable = suite.status !== 'running' && suite.status !== 'waiting';
 
   const effectiveFilterText =
     !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
@@ -58,6 +62,20 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
     [suite.tests, effectiveFilterText, statusFilter],
   );
 
+  const handleRunSuite = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onRunTests([[workspaceId, packageName, suite.name]]);
+  };
+
+  const handleBuildSuite = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onBuildSuite([workspaceId, packageName, suite.name]);
+  };
+
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
       <TestStatusIcon status={suite.status} />
@@ -67,13 +85,21 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
         </span>
         <button
           type="button"
-          className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-          onClickCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            event.nativeEvent.stopImmediatePropagation();
-            onRunTests([[workspaceId, packageName, suite.name]]);
-          }}
+          className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
+            isRunnable ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
+          }`}
+          disabled={!isRunnable}
+          onClickCapture={handleBuildSuite}
+        >
+          <i className="codicon codicon-refresh" />
+        </button>
+        <button
+          type="button"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
+            isRunnable ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
+          }`}
+          disabled={!isRunnable}
+          onClickCapture={handleRunSuite}
         >
           <i className="codicon codicon-run-all" />
         </button>

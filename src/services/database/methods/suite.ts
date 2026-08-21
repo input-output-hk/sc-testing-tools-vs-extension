@@ -2,9 +2,39 @@ import { Range } from 'vscode';
 
 import { upsertTests } from './test';
 import { upsertCoverage } from './coverage';
-import { createTestTree } from '../../../utils/testTree';
+import { createTestTree, updateTestTreeSuiteStatus } from '../../../utils/testTree';
 
 import type { Database, SuiteDocument, TestDocument } from '../collections';
+
+export const getAllTestSuitesIds = async (database: Database): Promise<Array<TestSuiteId>> => {
+  const suiteDocuments: Array<SuiteDocument> = await database.suites.find().exec();
+  return suiteDocuments.map(suite => [suite.workspaceId, suite.packageName, suite.suiteName]);
+}
+
+export const handleBuildTestSuite = async (database: Database, testSuiteId: TestSuiteId): Promise<void> => {
+  const [workspaceId, packageName, suiteName] = testSuiteId;
+  const suiteDocument: SuiteDocument | null = await database.suites.findOne({
+    selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
+  }).exec();
+
+  if (suiteDocument !== null) {
+    await suiteDocument.update({ $set: { status: 'running' } });
+  }
+}
+
+export const handleBuildTestTreeFailed = async (
+  database: Database,
+  testSuiteId: TestSuiteId,
+  prefetchTree: TestTree | null
+): Promise<void> => {
+  const [workspaceId, packageName, suiteName] = testSuiteId;
+  if (prefetchTree !== null) {
+    updateTestTreeSuiteStatus(prefetchTree, testSuiteId, 'invalid');
+  }
+  await database.suites
+    .findOne({ selector: { id: `${workspaceId}:${packageName}:${suiteName}` } })
+    .update({ $set: { status: 'invalid' } });
+}
 
 const computeSuiteStatus = async (database: Database, suite: SuiteDocument): Promise<RunStatus> => {
   const tests: Array<TestDocument> = await database.tests.find({
@@ -38,14 +68,17 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
   }).exec();
 
   if (suiteDocument !== null) {
-    const treeVersion = tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion;
-    
-    let status: RunStatus = runStatus === 'running' ? 'running' : 'undetermined';
-    if (runStatus === 'done') {
-      status = await computeSuiteStatus(database, suiteDocument);
+    const update: any = {
+      $set: {
+        treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion
+      }
+    };
+    if (runStatus === 'running') {
+      update['$set']['status'] = 'running';
+    } else if (runStatus === 'done' || runStatus === 'idle') {
+      update['$set']['status'] = await computeSuiteStatus(database, suiteDocument);
     }
-    
-    await suiteDocument.update({ $set: { status, treeVersion } });
+    await suiteDocument.update(update);
   }
 }
 

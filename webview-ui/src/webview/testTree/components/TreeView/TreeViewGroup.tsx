@@ -6,6 +6,7 @@ import TreeViewNode from './TreeViewNode';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import {
+  getGroupTests,
   getGroupTestIds,
   getGroupStatus,
   nodeMatchesFilter,
@@ -50,7 +51,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
-    () => getGroupTestIds(node).some(isRunnableTestId),
+    () => getGroupTests(node).some(test => isRunnableTestId(test.id) && test.status !== 'running' && test.status !== 'waiting'),
     [node],
   );
 
@@ -101,9 +102,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
         <button
           type="button"
           className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
-            isRunnable
-              ? 'opacity-60 hover:opacity-100 cursor-pointer'
-              : 'opacity-30 cursor-not-allowed'
+            isRunnable ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunGroup}

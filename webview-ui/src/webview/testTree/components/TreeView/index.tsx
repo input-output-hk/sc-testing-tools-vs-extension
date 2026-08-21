@@ -9,6 +9,7 @@ import { packageMatchesFilter, packageMatchesStatus, isRunnableTestId } from '..
 interface TreeViewProps {
   testTree: TestTree;
   onRunTests: (testIds: Array<RunTestId>) => void;
+  onBuildSuite: (suiteId: TestSuiteId) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -19,7 +20,7 @@ interface TreeViewProps {
   onOpenTestResult: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
@@ -135,6 +136,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
               filterText={filterText}
               statusFilter={statusFilter}
               onRunTests={handleRunTests}
+              onBuildSuite={onBuildSuite}
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
               onOpenTestResult={onOpenTestResult}

@@ -10,6 +10,9 @@ import {
 } from './methods/testTree';
 
 import {
+  getAllTestSuitesIds,
+  handleBuildTestSuite,
+  handleBuildTestTreeFailed,
   handleTestSuiteUpdateEvent,
   onTestSuiteUpdate,
   onTestSuiteStatusUpdate
@@ -61,8 +64,12 @@ export default class Database {
     return await handleTestContextEvent(this.database!, event);
   }
 
-  public async handleTestRunFailed(testRun: TestRun): Promise<void> {
-    return await handleTestRunFailed(this.database!, testRun);
+  public async handleTestRunFailed(testRun: TestRun, prefetchTree: TestTree | null): Promise<void> {
+    return await handleTestRunFailed(this.database!, testRun, prefetchTree);
+  }
+
+  public async handleBuildTestTreeFailed(testSuiteId: TestSuiteId, prefetchTree: TestTree | null): Promise<void> {
+    return await handleBuildTestTreeFailed(this.database!, testSuiteId, prefetchTree);
   }
 
   public async handleTestTree(testTree: TestTree): Promise<void> {
@@ -75,6 +82,10 @@ export default class Database {
 
   public async handleRunTests(testIds: Array<RunTestId>): Promise<void> {
     return await handleRunTests(this.database!, testIds);
+  }
+
+  public async handleBuildTestSuite(testSuiteId: TestSuiteId): Promise<void> {
+    return await handleBuildTestSuite(this.database!, testSuiteId);
   }
 
   public async getCoverage(): Promise<Array<FileCoverage>> {
@@ -95,6 +106,10 @@ export default class Database {
 
   public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
     return await getTestRounds(this.database!, id);
+  }
+
+  public async getAllTestSuitesIds(): Promise<Array<TestSuiteId>> {
+    return await getAllTestSuitesIds(this.database!);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {
