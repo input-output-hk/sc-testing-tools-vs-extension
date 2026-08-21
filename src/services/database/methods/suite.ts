@@ -38,14 +38,17 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
   }).exec();
 
   if (suiteDocument !== null) {
-    const treeVersion = tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion;
-    
-    let status: RunStatus = runStatus === 'running' ? 'running' : 'undetermined';
-    if (runStatus === 'done') {
-      status = await computeSuiteStatus(database, suiteDocument);
+    const update: any = {
+      $set: {
+        treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion
+      }
+    };
+    if (runStatus === 'running') {
+      update['$set']['status'] = 'running';
+    } else if (runStatus === 'done') {
+      update['$set']['status'] = await computeSuiteStatus(database, suiteDocument);
     }
-    
-    await suiteDocument.update({ $set: { status, treeVersion } });
+    await suiteDocument.update(update);
   }
 }
 
