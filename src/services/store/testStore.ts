@@ -175,21 +175,8 @@ export default class TestStore {
     };
   }
 
-  public async getTestResultWithGroupTests(testId: TestId): Promise<TestResultWithGroupTests> {
-    const test = await this.database.getTest(testId);
-    return {
-      test,
-      rounds: await this.database.getTestRounds(testId),
-      groupTests: await this.database.getTestsByGroup(testId, test.group),
-    };
-  }
-
   public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
     return await this.database.getTestRounds(testId);
-  }
-
-  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
-    return await this.database.getTestsByGroup(testId, group);
   }
   
   public async getCoverage(): Promise<CoverageTree> {

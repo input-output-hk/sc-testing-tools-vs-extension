@@ -21,7 +21,6 @@ import {
   handleTestRunFailed,
   handleRunTests,
   getTest,
-  getTestsByGroup,
   onTestUpdate
 } from './methods/test';
 
@@ -96,10 +95,6 @@ export default class Database {
 
   public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
     return await getTestRounds(this.database!, id);
-  }
-
-  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
-    return await getTestsByGroup(this.database!, testId, group);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

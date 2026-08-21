@@ -363,17 +363,13 @@ type TestResult = {
   rounds: Array<TestRound>;
 };
 
-type TestResultWithGroupTests = TestResult & {
-  groupTests: Array<Test>;
-};
-
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: { test: Test } }
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
   | { type: "test-tree-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-tree-error" }
-  | { type: "test-result", payload: TestResultWithGroupTests }
+  | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
@@ -387,8 +383,6 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-open-results", payload: { testId: TestId } }
   | { type: "test-tree-run-tests", payload: { testIds: Array<RunTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
-  | { type: "test-result-run-test" }
-  | { type: "test-result-select-test", payload: { testId: TestId } }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
   | { type: "coverage-open-file", payload: { filePath: string } }
   | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }

@@ -185,36 +185,6 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
   };
 }
 
-export const getTestsByGroup = async (database: Database, testId: TestId, group: Array<string>): Promise<Array<Test>> => {
-  const [workspaceId, packageName, suiteName] = testId;
-  
-  return await database.tests.find({
-    selector: { workspaceId, packageName, suiteName, group }
-  }).exec().then(documents => documents.map(test => ({
-    id: [
-      test.workspaceId,
-      test.packageName,
-      test.suiteName,
-      test.testId
-    ],
-    name: test.name,
-    group: test.group,
-    status: test.status as RunStatus,
-    location: test.location ? {
-      uri: test.location.uri,
-      range: new Range(
-        test.location.range.start.line,
-        test.location.range.start.character,
-        test.location.range.end.line,
-        test.location.range.end.character
-      )
-    } : undefined,
-    time: test.time,
-    percentage: test.percentage,
-    type: test.type ? test.type as TestType : undefined,
-  })));
-}
-
 export const onTestUpdate = (database: Database, callback: (test: Test) => void): void => {
   database.tests.update$.subscribe(changeEvent => {
     const document = changeEvent.documentData;
