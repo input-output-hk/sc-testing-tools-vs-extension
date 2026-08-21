@@ -96,9 +96,11 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {filteredNodes.map((node, index) => (
+      {filteredNodes.map((node) => (
         <TreeViewNode
-          key={index}
+          key={node.type === 'group'
+            ? (node as TestTreeGroupNode).name
+            : (node as TestTreeTestNode).test.id.join(':')}
           workspaceId={workspaceId}
           packageName={packageName}
           suiteName={suite.name}
