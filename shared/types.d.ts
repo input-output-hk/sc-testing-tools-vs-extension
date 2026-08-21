@@ -387,7 +387,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-open-results", payload: { testId: TestId } }
   | { type: "test-tree-run-tests", payload: { testIds: Array<RunTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
-  | { type: "refresh-suite", payload: { suiteId: TestSuiteId } }
+  | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
   | { type: "test-result-run-test" }
   | { type: "test-result-select-test", payload: { testId: TestId } }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }

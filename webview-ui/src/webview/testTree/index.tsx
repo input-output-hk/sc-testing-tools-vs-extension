@@ -67,8 +67,8 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     vscode.postMessage({ type: 'test-tree-run-tests', payload: { testIds } } as WebviewToExtensionMessage);
   };
 
-  const onRefreshSuite = (suiteId:TestSuiteId) => {
-    vscode.postMessage({ type: 'refresh-suite', payload: { suiteId } } as WebviewToExtensionMessage)
+  const onBuildSuite = (suiteId:TestSuiteId) => {
+    vscode.postMessage({ type: 'test-tree-build-suite', payload: { suiteId } } as WebviewToExtensionMessage)
   }
 
   const onUpdateOpenTestTreeNode = (
@@ -122,7 +122,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           key={treeVersion}
           testTree={testTree}
           onRunTests={onRunTests}
-          onRefreshSuite={onRefreshSuite}
+          onBuildSuite={onBuildSuite}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
         />

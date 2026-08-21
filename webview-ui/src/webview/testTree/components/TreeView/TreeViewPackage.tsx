@@ -12,7 +12,7 @@ interface TreeViewPackageProps {
   filterText: string;
   statusFilter: RunStatus | null;
   onRunTests: (testIds: Array<RunTestId>) => void;
-  onRefreshSuite: (suiteId: TestSuiteId) => void;
+  onBuildSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
@@ -29,7 +29,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   filterText,
   statusFilter,
   onRunTests,
-  onRefreshSuite,
+  onBuildSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
@@ -58,7 +58,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
     Object.values(testPackage.suites).forEach((suite) => {
-      onRefreshSuite([testPackage.workspace.id, testPackage.name, suite.name]);
+      onBuildSuite([testPackage.workspace.id, testPackage.name, suite.name]);
     });
   };
 
@@ -86,7 +86,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
           onRunTests={onRunTests}
-          onRefreshSuite={onRefreshSuite}
+          onBuildSuite={onBuildSuite}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
