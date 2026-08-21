@@ -67,7 +67,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
     onRunTests([[workspaceId, packageName, suite.name]]);
   };
 
-  const handleRefreshSuite = (event: React.MouseEvent): void => {
+  const handleBuildSuite = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
@@ -84,7 +84,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
         <button
           type="button"
           className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-          onClickCapture={handleRefreshSuite}
+          onClickCapture={handleBuildSuite}
         >
           <i className="codicon codicon-refresh" />
         </button>

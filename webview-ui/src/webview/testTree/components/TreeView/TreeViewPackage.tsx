@@ -53,7 +53,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     [testPackage.suites, effectiveFilterText, statusFilter],
   );
 
-  const handleRefreshPackage = (event: React.MouseEvent): void => {
+  const handleBuildPackage = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
@@ -72,7 +72,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
         <button
           type="button"
           className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
-          onClickCapture={handleRefreshPackage}
+          onClickCapture={handleBuildPackage}
         >
           <i className="codicon codicon-refresh" />
         </button>
