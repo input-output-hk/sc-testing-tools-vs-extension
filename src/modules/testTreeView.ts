@@ -38,6 +38,9 @@ export default class TestTreeView {
           case 'test-tree-run-tests':
             this.runTests(message.payload.testIds);
             break;
+          case 'test-tree-build-suite':
+            this.buildTestTree(message.payload.suiteId);
+            break;
           case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
@@ -113,6 +116,12 @@ export default class TestTreeView {
     if (!await this.ensureDependenciesReady()) return;
     this.clearError();
     this.context.store.testStore.runTests(testIds);
+  }
+
+  private async buildTestTree(suiteId: TestSuiteId): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    this.clearError();
+    this.context.store.testStore.buildTestTree(suiteId);
   }
 
   private openTestResults(testId: TestId): void {

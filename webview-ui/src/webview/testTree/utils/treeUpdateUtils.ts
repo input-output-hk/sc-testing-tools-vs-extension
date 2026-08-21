@@ -2,9 +2,22 @@ export const updateTestSuite = (testTree: TestTree, { packageId, suite }: TestSu
   const packageNode = testTree.packages[packageId.join(':')];
   if (!packageNode) return testTree;
 
-  packageNode.suites[suite.name] = suite;
-
-  return testTree;
+  return {
+    ...testTree,
+    packages: {
+      ...testTree.packages,
+      [packageId.join(':')]: {
+        ...packageNode,
+        suites: {
+          ...packageNode.suites,
+          [suite.name]: {
+            ...packageNode.suites[suite.name],
+            ...suite
+          },
+        },
+      },
+    },
+  };
 };
 
 const updateTestNodeMap = (

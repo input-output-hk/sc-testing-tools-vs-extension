@@ -12,6 +12,7 @@ interface TreeViewPackageProps {
   filterText: string;
   statusFilter: RunStatus | null;
   onRunTests: (testIds: Array<RunTestId>) => void;
+  onBuildSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
@@ -28,6 +29,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   filterText,
   statusFilter,
   onRunTests,
+  onBuildSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
@@ -51,6 +53,22 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     [testPackage.suites, effectiveFilterText, statusFilter],
   );
 
+  const handleBuildPackage = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    Object.values(testPackage.suites).forEach(suite => {
+      onBuildSuite([testPackage.workspace.id, testPackage.name, suite.name]);
+    });
+  };
+
+  const handleRunPackage = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onRunTests(Object.values(testPackage.suites).map(suite => [testPackage.workspace.id, testPackage.name, suite.name]));
+  };
+
   return (
     <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen}>
       <TestStatusIcon status={getPackageStatus(testPackage)} />
@@ -58,6 +76,20 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {testPackage.name}
         </span>
+        <button
+          type="button"
+          className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+          onClickCapture={handleBuildPackage}
+        >
+          <i className="codicon codicon-refresh" />
+        </button>
+        <button
+          type="button"
+          className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+          onClickCapture={handleRunPackage}
+        >
+          <i className="codicon codicon-run-all" />
+        </button>
       </span>
       {filteredSuites.map((suite) => (
         <TreeViewSuite
@@ -68,6 +100,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
           onRunTests={onRunTests}
+          onBuildSuite={onBuildSuite}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
