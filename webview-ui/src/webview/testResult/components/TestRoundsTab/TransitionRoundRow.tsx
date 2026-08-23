@@ -10,6 +10,7 @@ import TransitionRoundTable from './TransitionRoundTable';
 interface Props {
   index: number;
   round: TransitionTestRound;
+  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
 }
 
 type RoundCellProps = {
@@ -67,7 +68,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   </VscodeTableCell>
 );
 
-const TransitionRoundRow: React.FC<Props> = ({ index, round }) => {
+const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const { transactions, inputs, outputs, mints, roundHasError, txHasError } = getRoundStats(round);
 
@@ -75,7 +76,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round }) => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-
+    onOpenGraph(round);
   };
 
   return (
@@ -117,7 +118,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round }) => {
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
           <td colSpan={5} className="px-3 pb-3">
-            <TransitionRoundTable round={round} />
+            <TransitionRoundTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
       }

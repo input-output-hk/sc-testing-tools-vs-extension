@@ -172,6 +172,8 @@ type ThreatModelOutcome = {
   status: "error";
 };
 
+type TxType = 'original' | 'modified';
+
 type Tx = {
   id?: string;
   fee: number;

@@ -1,16 +1,23 @@
 import {
-  VscodeTable,
   VscodeTableHeader,
   VscodeTableHeaderCell,
   VscodeTableBody
 } from '@vscode-elements/react-elements';
 
+import ScrollableTable from '../../../../components/ScrollableTable';
 import TransitionRoundRow from './TransitionRoundRow';
 import ThreatModelRoundRow from './ThreatModelRoundRow';
 
 interface Props {
   test: Test;
   testRounds: Array<TestRound>;
+  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  isActive: boolean;
+}
+
+interface TableBodyProps {
+  testRounds: Array<TestRound>;
+  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
 }
 
 const TableHeader: React.FC = () => (
@@ -23,28 +30,40 @@ const TableHeader: React.FC = () => (
   </VscodeTableHeader>
 );
 
-const TableBody: React.FC<Props> = ({ testRounds }) => (
+const TableBody: React.FC<TableBodyProps> = ({ testRounds, onOpenGraph }) => (
   <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-base-14 border-x-base-14">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
       round.type !== 'threat-model' ? (
-        <TransitionRoundRow key={index} index={index} round={round as TransitionTestRound} />
+        <TransitionRoundRow
+          key={index}
+          index={index}
+          round={round as TransitionTestRound}
+          onOpenGraph={onOpenGraph}
+        />
       ) : (
-        <ThreatModelRoundRow key={index} index={index} round={round as ThreatModelTestRound} />
+        <ThreatModelRoundRow
+          key={index}
+          index={index}
+          round={round as ThreatModelTestRound}
+          onOpenGraph={onOpenGraph}
+        />
       )
     )}
   </VscodeTableBody>
 );
 
-const TestRoundsTab: React.FC<Props> = ({ test, testRounds }) => {
+const TestRoundsTab: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => {
   return (
-    <VscodeTable
-      key={`${test.id.join(':')}-${testRounds.length}`}
-      className="h-full flex flex-col"
-      responsive resizable
+    <ScrollableTable
+      key={test.id.join(':')}
+      isActive={isActive}
     >
       <TableHeader />
-      <TableBody test={test} testRounds={testRounds} />
-    </VscodeTable>
+      <TableBody
+        testRounds={testRounds}
+        onOpenGraph={onOpenGraph}
+      />
+    </ScrollableTable>
   );
 };
 

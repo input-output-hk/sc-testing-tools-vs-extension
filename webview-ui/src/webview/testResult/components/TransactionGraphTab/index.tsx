@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -17,29 +17,42 @@ import "@xyflow/react/dist/style.css";
 
 const INITIAL_VIEWPORT = { x: 20, y: 20, zoom: 1 };
 
+interface Handle {
+  selectRound: (round: TestRound) => void;
+  selectTx: (round: TestRound, txId: string, txType?: TxType) => void;
+}
+
 interface Props {
   test: Test;
   testRounds: Array<TestRound>;
 }
 
-const TransactionGraphTab: React.FC<Props> = ({ testRounds }) => {
+const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(({ testRounds }, ref) => {
+  const [txType, setTxType] = useState<TxType>('original');
   const [selectedRound, setSelectedRound] = useState<TestRound>(testRounds[0]);
   const reactFlowInstance = useReactFlow();
 
-  // const handleFocusNode = (id: string) => {
-  //   const instance = reactFlowInstance;
-  //   if (!instance) return;
-  //   if (instance.getNode(id)) {
-  //     instance.fitView({
-  //       nodes: [{ id }],
-  //       duration: 300,
-  //       maxZoom: instance.getZoom(),
-  //     });
-  //   }
-  // };
-
   const onSelectRound = (round: TestRound): void => {
+    setTxType('original');
     setSelectedRound(round);
+    reactFlowInstance.setViewport(INITIAL_VIEWPORT, { duration: 300 });
+  };
+
+  const onSelectTx = (round: TestRound, txId: string, txType?: TxType): void => {
+    setSelectedRound(round);
+    if (txType) setTxType(txType);
+    setTimeout(() =>
+      reactFlowInstance.fitView({
+        nodes: [{ id: `tx-${txId}` }],
+        duration: 300,
+        minZoom: 1.25,
+        maxZoom: 1.25,
+      })
+    , 0);
+  };
+
+  const onSelectTxType = (type: TxType): void => {
+    setTxType(type);
     reactFlowInstance.setViewport(INITIAL_VIEWPORT, { duration: 300 });
   };
 
@@ -47,7 +60,12 @@ const TransactionGraphTab: React.FC<Props> = ({ testRounds }) => {
     console.log(node);
   };
 
-  const { nodes, edges } = mapTestRoundToGraphData(selectedRound, onViewDetails);
+  useImperativeHandle(ref, () => ({
+    selectRound: onSelectRound,
+    selectTx: onSelectTx,
+  }));
+
+  const { nodes, edges } = mapTestRoundToGraphData(selectedRound, txType, onViewDetails);
 
   return (
     <div className="flex flex-col h-full border border-base-14">
@@ -55,6 +73,8 @@ const TransactionGraphTab: React.FC<Props> = ({ testRounds }) => {
         testRounds={testRounds}
         selectedRound={selectedRound}
         onRoundChange={onSelectRound}
+        txType={txType}
+        onSelectTxType={onSelectTxType}
       />
       <div className="flex-1 bg-base-19">
         <ReactFlow
@@ -77,9 +97,9 @@ const TransactionGraphTab: React.FC<Props> = ({ testRounds }) => {
       </div>
     </div>
   );
-};
+});
 
-const TransactionGraphTabWithProvider: React.FC<Props> = (props) => (
+const TransactionGraphTabWithProvider: React.FC<Props & React.RefAttributes<Handle>> = (props) => (
   <ReactFlowProvider>
     <TransactionGraphTab
       {...props}
@@ -88,4 +108,5 @@ const TransactionGraphTabWithProvider: React.FC<Props> = (props) => (
   </ReactFlowProvider>
 );
 
+export type { Handle as TransactionGraphTabRef };
 export default TransactionGraphTabWithProvider;

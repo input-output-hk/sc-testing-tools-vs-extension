@@ -21,7 +21,7 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
 
   for (let i = 0; i < txs.length; i++) {
     const tx = txs[i];
-    const txId = `tx-${i}`;
+    const txId = `tx-${tx.id}`;
     const iColN = i * 2;
     const tColN = iColN + 1;
     const oColN = tColN + 1;
@@ -133,7 +133,11 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
   };
 } 
 
-export const mapTestRoundToGraphData = (round: TestRound, onViewDetails: (node: GraphNode) => void): GraphData => {
+export const mapTestRoundToGraphData = (
+  round: TestRound,
+  selectedTx: TxType,
+  onViewDetails: (node: GraphNode) => void
+): GraphData => {
   let txs: Array<TxWithStatus> = [];
 
   if (round.type === 'positive' || round.type === 'negative') {
@@ -144,7 +148,8 @@ export const mapTestRoundToGraphData = (round: TestRound, onViewDetails: (node: 
 
   if (round.type === 'threat-model') {
     txs = (round as ThreatModelTestRound).traces
-      .map(t => ({ ...t.tx, success: t.outcome.status === 'passed' }));
+      .filter(t => selectedTx === 'original' || t.modifiedTx !== undefined)
+      .map(t => ({ ...(selectedTx === 'original' ? t.tx : t.modifiedTx!), success: t.outcome.status === 'passed' }));
   }
 
   const { nodes, edges } = mapTxsToGrapData(txs);

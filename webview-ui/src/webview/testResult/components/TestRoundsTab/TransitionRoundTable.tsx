@@ -10,20 +10,30 @@ import { txValueToString } from '../../utils/txUtils';
 
 interface Props {
   round: TransitionTestRound;
+  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
 }
 
-const TxTitle: React.FC<{ txId?: string, index: number }> = ({ txId, index }) => (
+interface TxTitleProps {
+  index: number;
+  txId?: string;
+  onClickTxId: () => void;
+}
+
+const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
     {`Transaction ${index + 1}`}
     {txId &&
-      <span className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer">
+      <span
+        onClick={onClickTxId}
+        className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
+      >
         {`#${txId}`}
       </span>
     }
   </h3>
 );
 
-const TransitionRoundTable: React.FC<Props> = ({ round }) => (
+const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
   <div className="relative z-1">
     <VscodeTabs className="px-3 pt-1 bg-base-20">
       <VscodeTabHeader slot="header">Inputs</VscodeTabHeader>
@@ -33,7 +43,11 @@ const TransitionRoundTable: React.FC<Props> = ({ round }) => (
       <VscodeTabPanel className="mt-3">
         {round.transitions.filter(transition => transition.tx).map((transition, index) => (
           <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle txId={transition.tx?.id} index={index} />
+            <TxTitle
+              index={index}
+              txId={transition.tx?.id}
+              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+            />
             <GenericTable
               columns={[
                 { key: 'utxo', label: 'UTxO' },
@@ -55,7 +69,11 @@ const TransitionRoundTable: React.FC<Props> = ({ round }) => (
       <VscodeTabPanel className="mt-3">
         {round.transitions.filter(transition => transition.tx).map((transition, index) => (
           <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle txId={transition.tx?.id} index={index} />
+            <TxTitle
+              index={index}
+              txId={transition.tx?.id}
+              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+            />
             <GenericTable
               columns={[
                 { key: 'utxo', label: 'UTxO' },
@@ -77,7 +95,11 @@ const TransitionRoundTable: React.FC<Props> = ({ round }) => (
       <VscodeTabPanel className="mt-3">
         {round.transitions.filter(transition => transition.tx).map((transition, index) => (
           <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle txId={transition.tx?.id} index={index} />
+            <TxTitle
+              index={index}
+              txId={transition.tx?.id}
+              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+            />
             <GenericTable
               columns={[
                 { key: 'quantity', label: 'Quantity' },
