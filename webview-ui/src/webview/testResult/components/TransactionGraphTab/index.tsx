@@ -10,6 +10,7 @@ import {
 
 import Toolbar from './Toolbar';
 import GraphNode from './GraphNode';
+import MiniMapNode from './MiniMapNode';
 
 import { mapTestRoundToGraphData } from '../../utils/reactFlowMapper';
 
@@ -87,12 +88,13 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
         >
           <MiniMap
             pannable={true}
-            bgColor="rgba(60, 60, 60, 0.95)"
-            maskColor="rgba(40, 40, 40, 0.8)"
-            nodeClassName={node => node.type === 'tx' ? 'bg-green-05' : 'bg-blue-09'}
+            bgColor="rgba(60, 60, 60, 0.9)"
+            maskColor="rgba(40, 40, 40, 0.6)"
+            nodeColor={node => node.type === 'tx' ? '#73C991' : '#569CD6'}
+            nodeComponent={MiniMapNode}
           />
           <Controls showInteractive={false} />
-          <Background bgColor="#1E1E1E" color="#252526" />
+          <Background bgColor="#1E1E1E" color="#333333" />
         </ReactFlow>
       </div>
     </div>

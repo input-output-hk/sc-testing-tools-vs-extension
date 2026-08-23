@@ -5,6 +5,10 @@ import type { Node, Edge } from '@xyflow/react';
 const COLUMN_WIDTH = 340;
 const ROW_HEIGHT = 320;
 
+const GRAPH_NODE_WIDTH = 240;
+const GRAPH_TX_NODE_HEIGHT = 120;
+const GRAPH_UTXO_NODE_HEIGHT = 240;
+
 export type GraphData = {
   nodes: Array<Node>;
   edges: Array<Edge>;
@@ -38,6 +42,8 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
         type: 'tx',
         hasSource: true
       },
+      initialWidth: GRAPH_NODE_WIDTH,
+      initialHeight: GRAPH_TX_NODE_HEIGHT,
       position: {
         x: tColN * COLUMN_WIDTH,
         y: columns[tColN].length * ROW_HEIGHT
@@ -59,6 +65,8 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
           id: utxoId,
           type: 'utxo',
           data: input,
+          initialWidth: GRAPH_NODE_WIDTH,
+          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
             x: iColN * COLUMN_WIDTH,
             y: columns[iColN].length * ROW_HEIGHT
@@ -94,6 +102,8 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
           id: utxoId,
           type: 'utxo',
           data: output,
+          initialWidth: GRAPH_NODE_WIDTH,
+          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
             x: oColN * COLUMN_WIDTH,
             y: columns[oColN].length * ROW_HEIGHT
