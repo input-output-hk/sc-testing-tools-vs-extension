@@ -96,8 +96,12 @@ export const handleTestContextEvent = async (database: Database, event: TestCont
   await createRounds(database, event.payload.rounds);
 }
 
-export const handleTestRunFailed = async (database: Database, testRun: TestRun, prefetchTree: TestTree | null): Promise<void> => {
-  const { workspaceId, packageName, suiteName, testIds } = testRun;
+export const handleTestRunErrorEvent = async (
+  database: Database,
+  event: TestRunErrorEvent,
+  prefetchTree: TestTree | null
+): Promise<void> => {
+  const { workspaceId, packageName, suiteName, testIds } = event.payload.runParams.testRun;
 
   if (prefetchTree !== null) {
     updateTestTreeSuiteStatus(prefetchTree, [workspaceId, packageName, suiteName], 'invalid');
@@ -128,7 +132,7 @@ export const handleTestRunFailed = async (database: Database, testRun: TestRun, 
   }
 }
 
-export const handleRunTests = async (database: Database, testIds: Array<RunTestId>): Promise<void> => {
+export const handleTestRun = async (database: Database, testIds: Array<RunnableTestId>): Promise<void> => {
   const suites: Set<string> = new Set();
   for (const [workspaceId, packageName, suiteName] of testIds) {
     suites.add(`${workspaceId}:${packageName}:${suiteName}`);

@@ -7,8 +7,8 @@ import useTreeItemState from '../../../../hooks/useTreeItemState';
 interface TreeViewTestProps {
   node: TestTreeTestNode;
   path: Array<string>;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
 }
 
@@ -23,7 +23,7 @@ const formatTestTime = (time: number): string => {
 const TreeViewTest: React.FC<TreeViewTestProps> = ({
   node,
   path,
-  onRunTests,
+  onRunTest,
   onUpdateSelection,
   onOpenTestResult,
 }) => {
@@ -70,7 +70,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={() => {
-            if (isRunnable) onRunTests([node.test.id]);
+            if (isRunnable) onRunTest([node.test.id]);
           }}
         >
           <i className="codicon codicon-play" />

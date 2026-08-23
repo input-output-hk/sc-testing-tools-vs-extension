@@ -3,18 +3,18 @@ import * as rpc from 'vscode-jsonrpc/node';
 import { runRunScript, ScriptExecutionError } from '../../utils/runScript';
 import { parseTestEvent, TestEventValidationError } from '../../utils/parseTestEvent';
 
-export default class RunTestsMethod {
+export default class TestRunMethod {
 
   private connection: rpc.MessageConnection;
 
   constructor(connection: rpc.MessageConnection) {
     this.connection = connection;
 
-    const runTestsNotification = new rpc.NotificationType<RunTestsParams>('runTests');
-    this.connection.onNotification(runTestsNotification, this.runTests.bind(this));
+    const testRunNotification = new rpc.NotificationType<TestRunParams>('testRun');
+    this.connection.onNotification(testRunNotification, this.testRun.bind(this));
   }
 
-  private getTestRuns(workspace: Workspace, testIds: Array<RunTestId>): Array<TestRun> {
+  private getTestRuns(workspace: Workspace, testIds: Array<RunnableTestId>): Array<TestRun> {
     const testRunsMap: Map<string, Array<string>> = new Map();
     for (const id of testIds) {
       const [_, packageName, suiteName, testId] = id;
@@ -35,7 +35,7 @@ export default class RunTestsMethod {
     return testRuns;
   }
 
-  private async runTests(params: RunTestsParams): Promise<void> {
+  private async testRun(params: TestRunParams): Promise<void> {
     for (const testRun of this.getTestRuns(params.workspace, params.testIds)) {
       try {
         for await (const output of runRunScript(params.mode, params.workspace.path, testRun.packageName, testRun.suiteName, testRun.testIds)) {
@@ -55,9 +55,7 @@ export default class RunTestsMethod {
           }
         }
       } catch (error) {
-        this.sendRunTestsError(
-          this.buildScriptExecutionError(error, { ...params, testRun })
-        );
+        this.sendTestEvent(this.buildErrorEvent(error, { ...params, testRun }));
       }
     }
   }
@@ -70,24 +68,26 @@ export default class RunTestsMethod {
     }
   }
 
-  private buildScriptExecutionError(error: unknown, params: RunTestsParams & { testRun: TestRun }): RunTestsErrorData {
+  private buildErrorEvent(error: unknown, params: TestRunParams & { testRun: TestRun }): TestRunErrorEvent {
     if (error instanceof ScriptExecutionError) {
-      return { ...error.data, runParams: params };
+      return {
+        eventType: 'test-run-error',
+        payload: { ...error.data, runParams: params }
+      };
     }
 
     return {
-      kind: 'script-execution-error',
-      scriptPath: '',
-      params: [],
-      exitCode: null,
-      stderr: error instanceof Error ? error.message : String(error),
-      stdout: '',
-      runParams: params,
+      eventType: 'test-run-error',
+      payload: {
+        kind: 'script-execution-error',
+        scriptPath: '',
+        params: [],
+        exitCode: null,
+        stderr: error instanceof Error ? error.message : String(error),
+        stdout: '',
+        runParams: params,
+      }
     };
-  }
-
-  private sendRunTestsError(data: RunTestsErrorData): void {
-    this.connection.sendNotification('runTestsError', data);
   }
 
   private sendTestEvent(event: TestEvent): void {

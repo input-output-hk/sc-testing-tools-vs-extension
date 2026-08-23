@@ -35,60 +35,50 @@ export default class RpcClient {
     this.connection.listen();
   }
 
-  public async prefetchTestTree(params: PrefetchTestTreeParams): Promise<TestTree> {
-    const request = new rpc.RequestType<PrefetchTestTreeParams, TestTree, void>('prefetchTestTree');
+  public async prefetch(params: PrefetchParams): Promise<TestTree> {
+    const request = new rpc.RequestType<PrefetchParams, TestTree, void>('prefetch');
     return await this.connection.sendRequest(request, params);
   }
 
-  public buildTestTree(params: BuildTestTreeParams): void {
-    const notification = new rpc.NotificationType<BuildTestTreeParams>('buildTestTree');
+  public testSuiteBuild(params: TestSuiteBuildParams): void {
+    const notification = new rpc.NotificationType<TestSuiteBuildParams>('testSuiteBuild');
     this.connection.sendNotification(notification, params);
     this.clearError();
   }
 
-  public runTests(params: RunTestsParams): void {
-    const notification = new rpc.NotificationType<RunTestsParams>('runTests');
+  public testRun(params: TestRunParams): void {
+    const notification = new rpc.NotificationType<TestRunParams>('testRun');
     this.connection.sendNotification(notification, params);
     this.clearError();
   }
 
   public onTestEvent(callback: (event: TestEvent) => void): void {
     this.connection.onNotification('testEvent', (event: TestEvent) => {
+      if (event.eventType === 'test-build-error') {
+        this.showError('Test suite build failed', this.buildTestBuildErrorLog(event as TestSuiteBuildErrorEvent));
+      }
+      if (event.eventType === 'test-run-error') {
+        this.showError('Test execution failed', this.buildTestRunErrorLog(event as TestRunErrorEvent));
+      }
       callback(event);
     });
   }
 
-  public onBuildTestTreeError(callback: (error: BuildTestTreeErrorData) => void): void {
-    const notification = new rpc.NotificationType<BuildTestTreeErrorData>('buildTestTreeError');
-    this.connection.onNotification(notification, (error: BuildTestTreeErrorData) => {
-      this.showError('Test suite build failed', this.buildBuildTestTreeErrorLog(error));
-      callback(error);
-    });
-  }
-
-  private buildBuildTestTreeErrorLog(error: BuildTestTreeErrorData): string {
-    const { packageName, suiteName } = error.runParams;
-    const exitCode = error.exitCode === null ? 'unknown' : String(error.exitCode);
-    const commandOutput = error.stderr.trim() || error.stdout.trim();
+  private buildTestBuildErrorLog(event: TestSuiteBuildErrorEvent): string {
+    const { packageName, suiteName } = event.payload.runParams;
+    const exitCode = event.payload.exitCode === null ? 'unknown' : String(event.payload.exitCode);
+    const commandOutput = event.payload.stderr.trim() || event.payload.stdout.trim();
     const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
-    return `Build test tree failed for ${packageName}/${suiteName} (exit code ${exitCode})${details}`;
+    return `Build test suite failed for ${packageName}/${suiteName} (exit code ${exitCode})${details}`;
   }
 
-  public onRunTestsError(callback: (error: RunTestsErrorData) => void): void {
-    const notification = new rpc.NotificationType<RunTestsErrorData>('runTestsError');
-    this.connection.onNotification(notification, (error: RunTestsErrorData) => {
-      this.showError('Test execution failed', this.buildRunTestsErrorLog(error));
-      callback(error);
-    });
-  }
-
-  private buildRunTestsErrorLog(error: RunTestsErrorData): string {
-    const { testRun: { packageName, suiteName, testIds } } = error.runParams;
-    const exitCode = error.exitCode === null ? 'unknown' : String(error.exitCode);
-    const commandOutput = error.stderr.trim() || error.stdout.trim();
+  private buildTestRunErrorLog(event: TestRunErrorEvent): string {
+    const { testRun: { packageName, suiteName, testIds } } = event.payload.runParams;
+    const exitCode = event.payload.exitCode === null ? 'unknown' : String(event.payload.exitCode);
+    const commandOutput = event.payload.stderr.trim() || event.payload.stdout.trim();
     const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
     const testIdLabel = testIds && testIds.length > 0 ? `[${testIds.join(',')}]` : '[all tests]';
-    return `Run tests failed for ${packageName}/${suiteName} ${testIdLabel} (exit code ${exitCode})${details}`;
+    return `Run test failed for ${packageName}/${suiteName} ${testIdLabel} (exit code ${exitCode})${details}`;
   }
 
   private showError(title: string, message: string): void {
@@ -99,6 +89,8 @@ export default class RpcClient {
     this.context!.statusBarItem.text = `$(error) ${title}`;
     this.context!.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
     this.context!.statusBarItem.show();
+
+    vscode.window.showErrorMessage(title);
   }
 
   private clearError(): void {

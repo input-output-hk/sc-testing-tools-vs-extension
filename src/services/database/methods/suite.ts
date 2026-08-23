@@ -11,7 +11,7 @@ export const getAllTestSuitesIds = async (database: Database): Promise<Array<Tes
   return suiteDocuments.map(suite => [suite.workspaceId, suite.packageName, suite.suiteName]);
 }
 
-export const handleBuildTestSuite = async (database: Database, testSuiteId: TestSuiteId): Promise<void> => {
+export const handleTestSuiteBuild = async (database: Database, testSuiteId: TestSuiteId): Promise<void> => {
   const [workspaceId, packageName, suiteName] = testSuiteId;
   const suiteDocument: SuiteDocument | null = await database.suites.findOne({
     selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
@@ -22,12 +22,13 @@ export const handleBuildTestSuite = async (database: Database, testSuiteId: Test
   }
 }
 
-export const handleBuildTestTreeFailed = async (
+export const handleTestSuiteBuildErrorEvent = async (
   database: Database,
-  testSuiteId: TestSuiteId,
+  event: TestSuiteBuildErrorEvent,
   prefetchTree: TestTree | null
 ): Promise<void> => {
-  const [workspaceId, packageName, suiteName] = testSuiteId;
+  const { workspace: { id: workspaceId }, packageName, suiteName } = event.payload.runParams
+  const testSuiteId: TestSuiteId = [workspaceId, packageName, suiteName];
   if (prefetchTree !== null) {
     updateTestTreeSuiteStatus(prefetchTree, testSuiteId, 'invalid');
   }
