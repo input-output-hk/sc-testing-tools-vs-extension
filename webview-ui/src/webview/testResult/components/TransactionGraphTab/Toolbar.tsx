@@ -11,8 +11,8 @@ interface Props {
 
 const Toolbar: React.FC<Props> = ({ selectedRound, testRounds, onRoundChange }) => (
   <div className="flex-none p-2 flex flex-row justify-between items-center bg-base-18">
-    <button>
-      <i className="codicon codicon-map text-[#FFFFFFCC]" />
+    <button className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer">
+      <i className="codicon codicon-map text-[#FFFFFFCC] active:text-white" />
     </button>
 
     <VscodeSingleSelect

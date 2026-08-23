@@ -6,20 +6,11 @@ import {
 
 import GenericTable from './GenericTable';
 
+import { txValueToString } from '../../utils/txUtils';
+
 interface Props {
   round: ThreatModelTestRound;
 }
-
-const txValueToString = (value: TxValue): string => {
-  const parts: string[] = [];
-  if (value.lovelace > 0) {
-    parts.push(`${value.lovelace} lovelace`);
-  }
-  for (const asset of value.assets) {
-    parts.push(`${asset.quantity} ${asset.name}`);
-  }
-  return parts.join(', ');
-};
 
 const TxTitle: React.FC<{ txId?: string, index: number, original?: boolean }> = ({ txId, index, original }) => (
   <h3 className="mb-3 text-base-10 font-bold">

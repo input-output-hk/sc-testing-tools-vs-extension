@@ -287,6 +287,15 @@ type TxMod = {
   type: "replaceTx";
 };
 
+// Test Graph
+
+type GraphNode = {
+  type: "tx" | "utxo";
+};
+
+type GraphNodeTx = GraphNode & { type: 'tx' } & Tx & { success: boolean };
+type GraphNodeUTxO = GraphNode & { type: 'utxo' } & TxInput & TxOutput;
+
 // Coverage
 
 type CoverageStatements = Record<string, Array<string>>;

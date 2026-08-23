@@ -37,7 +37,11 @@ const TableBody: React.FC<Props> = ({ testRounds }) => (
 
 const TestRoundsTab: React.FC<Props> = ({ test, testRounds }) => {
   return (
-    <VscodeTable className="h-full flex flex-col" responsive resizable>
+    <VscodeTable
+      key={`${test.id.join(':')}-${testRounds.length}`}
+      className="h-full flex flex-col"
+      responsive resizable
+    >
       <TableHeader />
       <TableBody test={test} testRounds={testRounds} />
     </VscodeTable>
