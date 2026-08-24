@@ -20,7 +20,7 @@ type TestId = [
   testId: string
 ];
 
-type RunTestId = TestSuiteId | TestId;
+type RunnableTestId = TestSuiteId | TestId;
 
 type TestType = "unit-test" | "positive" | "negative" | "threat-model";
 
@@ -392,7 +392,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
-  | { type: "test-tree-run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
@@ -404,24 +404,24 @@ type WebviewToExtensionMessage =
 
 type ExtensionMode = "docker" | "nix";
 
-type PrefetchTestTreeParams = {
+type PrefetchParams = {
   workspaces: Array<Workspace>;
 };
 
-type BuildTestTreeParams = {
+type TestSuiteBuildParams = {
   mode: ExtensionMode;
   workspace: Workspace;
   packageName: string;
   suiteName: string;
 };
 
-type RunTestsParams = {
+type TestRunParams = {
   mode: ExtensionMode;
   workspace: Workspace;
-  testIds: Array<RunTestId>;
+  testIds: Array<RunnableTestId>;
 };
 
-type TestEventType = "test-suite-update" | "test-update" | "test-context";
+type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-error" | "test-build-error";
 
 type TestEvent = {
   eventType: TestEventType;
@@ -463,6 +463,16 @@ type TestContextEvent = TestEvent & {
   };
 };
 
+type TestRunErrorEvent = TestEvent & {
+  eventType: "test-run-error";
+  payload: TestRunErrorData;
+};
+
+type TestSuiteBuildErrorEvent = TestEvent & {
+  eventType: "test-build-error";
+  payload: TestSuiteBuildErrorData;
+};
+
 // Errors
 
 type ScriptExecutionErrorData = {
@@ -474,12 +484,12 @@ type ScriptExecutionErrorData = {
   stdout: string;
 };
 
-type BuildTestTreeErrorData = ScriptExecutionErrorData & {
-  runParams: BuildTestTreeParams;
+type TestSuiteBuildErrorData = ScriptExecutionErrorData & {
+  runParams: TestSuiteBuildParams;
 };
 
-type RunTestsErrorData = ScriptExecutionErrorData & {
-  runParams: RunTestsParams & { testRun: TestRun };
+type TestRunErrorData = ScriptExecutionErrorData & {
+  runParams: TestRunParams & { testRun: TestRun };
 };
 
 type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';

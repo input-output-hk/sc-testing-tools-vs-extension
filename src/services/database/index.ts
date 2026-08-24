@@ -11,8 +11,8 @@ import {
 
 import {
   getAllTestSuitesIds,
-  handleBuildTestSuite,
-  handleBuildTestTreeFailed,
+  handleTestSuiteBuild,
+  handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
   onTestSuiteUpdate,
   onTestSuiteStatusUpdate
@@ -21,8 +21,8 @@ import {
 import {
   handleTestUpdateEvent,
   handleTestContextEvent,
-  handleTestRunFailed,
-  handleRunTests,
+  handleTestRunErrorEvent,
+  handleTestRun,
   getTest,
   onTestUpdate
 } from './methods/test';
@@ -64,12 +64,12 @@ export default class Database {
     return await handleTestContextEvent(this.database!, event);
   }
 
-  public async handleTestRunFailed(testRun: TestRun, prefetchTree: TestTree | null): Promise<void> {
-    return await handleTestRunFailed(this.database!, testRun, prefetchTree);
+  public async handleTestRunErrorEvent(event: TestRunErrorEvent, prefetchTree: TestTree | null): Promise<void> {
+    return await handleTestRunErrorEvent(this.database!, event, prefetchTree);
   }
 
-  public async handleBuildTestTreeFailed(testSuiteId: TestSuiteId, prefetchTree: TestTree | null): Promise<void> {
-    return await handleBuildTestTreeFailed(this.database!, testSuiteId, prefetchTree);
+  public async handleTestSuiteBuildErrorEvent(event: TestSuiteBuildErrorEvent, prefetchTree: TestTree | null): Promise<void> {
+    return await handleTestSuiteBuildErrorEvent(this.database!, event, prefetchTree);
   }
 
   public async handleTestTree(testTree: TestTree): Promise<void> {
@@ -80,12 +80,12 @@ export default class Database {
     return await buildTestTree(this.database!, prefetchTree, openState);
   }
 
-  public async handleRunTests(testIds: Array<RunTestId>): Promise<void> {
-    return await handleRunTests(this.database!, testIds);
+  public async handleTestRun(testIds: Array<RunnableTestId>): Promise<void> {
+    return await handleTestRun(this.database!, testIds);
   }
 
-  public async handleBuildTestSuite(testSuiteId: TestSuiteId): Promise<void> {
-    return await handleBuildTestSuite(this.database!, testSuiteId);
+  public async handleTestSuiteBuild(testSuiteId: TestSuiteId): Promise<void> {
+    return await handleTestSuiteBuild(this.database!, testSuiteId);
   }
 
   public async getCoverage(): Promise<Array<FileCoverage>> {

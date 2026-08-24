@@ -8,8 +8,8 @@ import { packageMatchesFilter, packageMatchesStatus, isRunnableTestId } from '..
 
 interface TreeViewProps {
   testTree: TestTree;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onBuildSuite: (suiteId: TestSuiteId) => void;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -20,7 +20,7 @@ interface TreeViewProps {
   onOpenTestResult: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
@@ -71,7 +71,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite,
     [testTree.packages, filterText, statusFilter],
   );
 
-  const handleUpdateSelection = (testIds: Array<RunTestId>, selected: boolean) => {
+  const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
     setSelected((prevSelected) => {
       const newSelected = new Set(prevSelected);
       for (const testId of testIds) {
@@ -87,7 +87,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite,
     });
   };
 
-  const handleRunTests = (testIds: Array<RunTestId>) => {
+  const handleRunTest = (testIds: Array<RunnableTestId>) => {
     const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
     const testRun: Set<string> = new Set(runnableIds);
     if (runnableIds.some(id => selected.has(id))) {
@@ -105,7 +105,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite,
           testRun.delete(testRunId);
         }
       }
-      onRunTests(Array.from(testRun).map(id => id.split(':') as RunTestId));
+      onRunTest(Array.from(testRun).map(id => id.split(':') as RunnableTestId));
     }
   };
 
@@ -135,8 +135,8 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onBuildSuite,
               testPackage={testPackage}
               filterText={filterText}
               statusFilter={statusFilter}
-              onRunTests={handleRunTests}
-              onBuildSuite={onBuildSuite}
+              onRunTest={handleRunTest}
+              onBuildTestSuite={onBuildTestSuite}
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
               onOpenTestResult={onOpenTestResult}
