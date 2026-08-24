@@ -100,7 +100,7 @@ export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
   return 'undetermined';
 };
 
-export const isRunnableTestId = (testId: RunTestId): boolean => {
+export const isRunnableTestId = (testId: RunnableTestId): boolean => {
   return testId[3] === undefined || !testId[3].startsWith('static');
 };
 

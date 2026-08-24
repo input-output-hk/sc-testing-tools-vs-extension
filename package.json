@@ -121,7 +121,7 @@
           "name": "Plinth Script Coverage",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
-        },       
+        },
         {
           "id": "pbt-test-run-configuration",
           "name": "Test Run Configuration",
@@ -139,6 +139,7 @@
     "compile:webview": "npm run build -w webview-ui"
   },
   "devDependencies": {
+    "@types/async": "^3.2.25",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
     "typescript": "^5.9.3"
@@ -146,6 +147,7 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
     "ajv": "^8.20.0",
+    "async": "^3.2.6",
     "rxdb": "^17.4.0",
     "tree-sitter-haskell": "^0.23.1",
     "vscode-jsonrpc": "^8.2.1",

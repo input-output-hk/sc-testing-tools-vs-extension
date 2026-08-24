@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   VscodeTabs,
   VscodeTabHeader,
@@ -6,20 +6,25 @@ import {
 } from '@vscode-elements/react-elements';
 
 import RunningIndicator from '../../components/RunningIndicator';
-import TestStatusBadge from '../../components/TestStatusBadge';
-import TestSelector from '../../components/TestSelector';
+import TestHeader from '../../components/TestHeader';
 import TestRoundsTab from './components/TestRoundsTab';
+import TransactionGraphTab from './components/TransactionGraphTab';
 
 import type { WebviewApi } from 'vscode-webview';
+import type { TransactionGraphTabRef } from './components/TransactionGraphTab';
+
+const RESULT_TAB = 0;
+const GRAPH_TAB = 1;
 
 interface Props {
   vscode: WebviewApi<unknown>;
 }
 
 const TestResultView: React.FC<Props> = ({ vscode }) => {
+  const graphRef = useRef<TransactionGraphTabRef>(null);
   const [test, setTest] = useState<Test|null>(null);
   const [testRounds, setTestRounds] = useState<Array<TestRound>>([]);
-  const [groupTests, setGroupTests] = useState<Array<Test>>([]);
+  const [selectedTab, setSelectedTab] = useState<number>(RESULT_TAB);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -29,7 +34,6 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-result') {
         setTest(message.payload.test);
         setTestRounds(message.payload.rounds);
-        setGroupTests(message.payload.groupTests);
       }
     };
 
@@ -37,13 +41,12 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const handleSelectTest = (testId: TestId) => {
-    vscode.postMessage({ type: 'test-result-select-test', payload: { testId } } as WebviewToExtensionMessage);
-  };
-
-  const handleRecheck = () => {
-    if (test !== null) {
-      vscode.postMessage({ type: 'test-result-run-test' } as WebviewToExtensionMessage);
+  const handleOpenGraph = (round: TestRound, txId?: string, txType?: TxType): void => {
+    setSelectedTab(GRAPH_TAB);
+    if (txId === undefined) {
+      graphRef.current?.selectRound(round);
+    } else {
+      graphRef.current?.selectTx(round, txId, txType);
     }
   };
 
@@ -51,22 +54,8 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
 
   return (
     <div className="flex flex-col h-full bg-base-20">
-      <div className="flex-none flex justify-between items-center pt-4 px-4">
-        <div className="flex-1">
-          <TestSelector
-            tests={groupTests}
-            selectedTestId={test.id}
-            onTestSelected={handleSelectTest}
-          />
-          <TestStatusBadge status={test.status} />
-        </div>
-        <button
-          className="flex-none py-1 px-2 text-base-06 bg-base-15 rounded cursor-pointer inline-flex items-center gap-1.5"
-          onClick={handleRecheck}
-        >
-          <i className="codicon codicon-refresh" />
-          <span>Recheck</span>
-        </button>
+      <div className="flex-none pt-4 px-4">
+        <TestHeader test={test} />
       </div>
 
       { test.status === 'running' && testRounds.length === 0 &&
@@ -80,10 +69,27 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
       }
 
       { testRounds.length > 0 &&
-        <VscodeTabs className="flex-1 min-h-0 flex flex-col p-4">
-          <VscodeTabHeader slot="header">Test rounds</VscodeTabHeader>
+        <VscodeTabs
+          selectedIndex={selectedTab}
+          onVscTabsSelect={event => setSelectedTab(event.detail.selectedIndex)}
+          className="flex-1 min-h-0 flex flex-col p-4"
+        >
+          <VscodeTabHeader slot="header">Test Rounds</VscodeTabHeader>
+          <VscodeTabHeader slot="header">Transaction Graph</VscodeTabHeader>
           <VscodeTabPanel className="flex-1 min-h-0 pt-4">
-            <TestRoundsTab test={test} testRounds={testRounds} />
+            <TestRoundsTab
+              test={test}
+              testRounds={testRounds}
+              onOpenGraph={handleOpenGraph}
+              isActive={selectedTab === RESULT_TAB}
+            />
+          </VscodeTabPanel>
+          <VscodeTabPanel className="flex-1 min-h-0 pt-4">
+            <TransactionGraphTab
+              test={test}
+              testRounds={testRounds}
+              ref={graphRef}
+            />
           </VscodeTabPanel>
         </VscodeTabs>
       }

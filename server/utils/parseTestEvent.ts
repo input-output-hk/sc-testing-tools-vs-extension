@@ -276,7 +276,7 @@ const parseTestTraceEvent = (
   };
 };
 
-export const parseBuildTestTreeEvent = (
+export const parseTestSuiteBuildEvent = (
   workspaceId: string,
   packageName: string,
   suiteName: string,

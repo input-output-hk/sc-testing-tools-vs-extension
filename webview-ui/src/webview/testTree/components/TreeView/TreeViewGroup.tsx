@@ -23,8 +23,8 @@ interface TreeViewGroupProps {
   path: Array<string>;
   filterText: string;
   statusFilter: RunStatus | null;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -43,7 +43,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   path,
   filterText,
   statusFilter,
-  onRunTests,
+  onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
@@ -84,7 +84,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTests(getGroupTestIds(node));
+    onRunTest(getGroupTestIds(node));
   };
 
   return (
@@ -122,7 +122,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           path={[...path, node.name]}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
-          onRunTests={onRunTests}
+          onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}

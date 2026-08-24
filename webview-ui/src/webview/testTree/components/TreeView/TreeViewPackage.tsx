@@ -11,9 +11,9 @@ interface TreeViewPackageProps {
   testPackage: TestPackage;
   filterText: string;
   statusFilter: RunStatus | null;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onBuildSuite: (suiteId: TestSuiteId) => void;
-  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onBuildTestSuite: (suiteId: TestSuiteId) => void;
+  onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -28,8 +28,8 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
   filterText,
   statusFilter,
-  onRunTests,
-  onBuildSuite,
+  onRunTest,
+  onBuildTestSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
@@ -61,7 +61,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
     Object.values(testPackage.suites).forEach(suite => {
-      onBuildSuite([testPackage.workspace.id, testPackage.name, suite.name]);
+      onBuildTestSuite([testPackage.workspace.id, testPackage.name, suite.name]);
     });
   };
 
@@ -69,7 +69,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTests(Object.values(testPackage.suites).map(suite => [testPackage.workspace.id, testPackage.name, suite.name]));
+    onRunTest(Object.values(testPackage.suites).map(suite => [testPackage.workspace.id, testPackage.name, suite.name]));
   };
 
   return (
@@ -108,8 +108,8 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           suite={suite}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
-          onRunTests={onRunTests}
-          onBuildSuite={onBuildSuite}
+          onRunTest={onRunTest}
+          onBuildTestSuite={onBuildTestSuite}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}

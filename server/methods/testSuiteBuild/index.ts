@@ -1,24 +1,24 @@
 import * as rpc from 'vscode-jsonrpc/node';
 
 import { runBuildScript, ScriptExecutionError } from '../../utils/runScript';
-import { parseBuildTestTreeEvent, TestEventValidationError } from '../../utils/parseTestEvent';
+import { parseTestSuiteBuildEvent, TestEventValidationError } from '../../utils/parseTestEvent';
 
-export default class BuildTestTreeMethod {
+export default class TestSuiteBuildMethod {
 
   private connection: rpc.MessageConnection;
 
   constructor(connection: rpc.MessageConnection) {
     this.connection = connection;
 
-    const buildTestTreeNotification = new rpc.NotificationType<BuildTestTreeParams>('buildTestTree');
-    this.connection.onNotification(buildTestTreeNotification, this.buildTestTree.bind(this));
+    const testSuiteBuildNotification = new rpc.NotificationType<TestSuiteBuildParams>('testSuiteBuild');
+    this.connection.onNotification(testSuiteBuildNotification, this.testSuiteBuild.bind(this));
   }
 
-  private async buildTestTree(params: BuildTestTreeParams): Promise<void> {
+  private async testSuiteBuild(params: TestSuiteBuildParams): Promise<void> {
     try {
       for await (const output of runBuildScript(params.mode, params.workspace.path, params.packageName, params.suiteName)) {
         try {
-          const testEvent = parseBuildTestTreeEvent(
+          const testEvent = parseTestSuiteBuildEvent(
             params.workspace.id,
             params.packageName,
             params.suiteName,
@@ -32,7 +32,7 @@ export default class BuildTestTreeMethod {
         }
       }
     } catch (error) {
-      this.sendBuildTestTreeError(this.buildScriptExecutionError(error, params));
+      this.sendTestEvent(this.buildErrorEvent(error, params));
     }
   }
 
@@ -44,24 +44,26 @@ export default class BuildTestTreeMethod {
     }
   }
 
-  private buildScriptExecutionError(error: unknown, params: BuildTestTreeParams): BuildTestTreeErrorData {
+  private buildErrorEvent(error: unknown, params: TestSuiteBuildParams): TestSuiteBuildErrorEvent {
     if (error instanceof ScriptExecutionError) {
-      return { ...error.data, runParams: params };
+      return {
+        eventType: 'test-build-error',
+        payload: { ...error.data, runParams: params }
+      };
     }
 
     return {
-      kind: 'script-execution-error',
-      scriptPath: '',
-      params: [],
-      exitCode: null,
-      stderr: error instanceof Error ? error.message : String(error),
-      stdout: '',
-      runParams: params,
+      eventType: 'test-build-error',
+      payload: {
+        kind: 'script-execution-error',
+        scriptPath: '',
+        params: [],
+        exitCode: null,
+        stderr: error instanceof Error ? error.message : String(error),
+        stdout: '',
+        runParams: params,
+      }
     };
-  }
-
-  private sendBuildTestTreeError(data: BuildTestTreeErrorData): void {
-    this.connection.sendNotification('buildTestTreeError', data);
   }
 
   private sendTestEvent(event: TestEvent): void {

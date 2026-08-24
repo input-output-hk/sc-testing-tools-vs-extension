@@ -20,7 +20,7 @@ type TestId = [
   testId: string
 ];
 
-type RunTestId = TestSuiteId | TestId;
+type RunnableTestId = TestSuiteId | TestId;
 
 type TestType = "unit-test" | "positive" | "negative" | "threat-model";
 
@@ -172,6 +172,8 @@ type ThreatModelOutcome = {
   status: "error";
 };
 
+type TxType = 'original' | 'modified';
+
 type Tx = {
   id?: string;
   fee: number;
@@ -287,6 +289,15 @@ type TxMod = {
   type: "replaceTx";
 };
 
+// Test Graph
+
+type GraphNode = {
+  type: "tx" | "utxo";
+};
+
+type GraphNodeTx = GraphNode & { type: 'tx' } & Tx & { success: boolean };
+type GraphNodeUTxO = GraphNode & { type: 'utxo' } & TxInput & TxOutput;
+
 // Coverage
 
 type CoverageStatements = Record<string, Array<string>>;
@@ -363,17 +374,13 @@ type TestResult = {
   rounds: Array<TestRound>;
 };
 
-type TestResultWithGroupTests = TestResult & {
-  groupTests: Array<Test>;
-};
-
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: { test: Test } }
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
   | { type: "test-tree-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-tree-error" }
-  | { type: "test-result", payload: TestResultWithGroupTests }
+  | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
@@ -385,11 +392,9 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
-  | { type: "test-tree-run-tests", payload: { testIds: Array<RunTestId> } }
+  | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
-  | { type: "test-result-run-test" }
-  | { type: "test-result-select-test", payload: { testId: TestId } }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
   | { type: "coverage-open-file", payload: { filePath: string } }
   | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }
@@ -399,24 +404,24 @@ type WebviewToExtensionMessage =
 
 type ExtensionMode = "docker" | "nix";
 
-type PrefetchTestTreeParams = {
+type PrefetchParams = {
   workspaces: Array<Workspace>;
 };
 
-type BuildTestTreeParams = {
+type TestSuiteBuildParams = {
   mode: ExtensionMode;
   workspace: Workspace;
   packageName: string;
   suiteName: string;
 };
 
-type RunTestsParams = {
+type TestRunParams = {
   mode: ExtensionMode;
   workspace: Workspace;
-  testIds: Array<RunTestId>;
+  testIds: Array<RunnableTestId>;
 };
 
-type TestEventType = "test-suite-update" | "test-update" | "test-context";
+type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-error" | "test-build-error";
 
 type TestEvent = {
   eventType: TestEventType;
@@ -458,6 +463,16 @@ type TestContextEvent = TestEvent & {
   };
 };
 
+type TestRunErrorEvent = TestEvent & {
+  eventType: "test-run-error";
+  payload: TestRunErrorData;
+};
+
+type TestSuiteBuildErrorEvent = TestEvent & {
+  eventType: "test-build-error";
+  payload: TestSuiteBuildErrorData;
+};
+
 // Errors
 
 type ScriptExecutionErrorData = {
@@ -469,12 +484,12 @@ type ScriptExecutionErrorData = {
   stdout: string;
 };
 
-type BuildTestTreeErrorData = ScriptExecutionErrorData & {
-  runParams: BuildTestTreeParams;
+type TestSuiteBuildErrorData = ScriptExecutionErrorData & {
+  runParams: TestSuiteBuildParams;
 };
 
-type RunTestsErrorData = ScriptExecutionErrorData & {
-  runParams: RunTestsParams & { testRun: TestRun };
+type TestRunErrorData = ScriptExecutionErrorData & {
+  runParams: TestRunParams & { testRun: TestRun };
 };
 
 type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';

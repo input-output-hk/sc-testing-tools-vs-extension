@@ -6,7 +6,7 @@ import type { PbtContext } from '../extension';
 export default class TestResultView {
   private context: PbtContext;
   private panel: vscode.WebviewPanel | null = null;
-  private testResult: TestResultWithGroupTests | null = null;
+  private testResult: TestResult | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -21,7 +21,7 @@ export default class TestResultView {
     // If webview panel is already open
     if (this.panel !== null) {
       this.panel.reveal();
-      this.sendTestResultWithGroupTests(testId);
+      this.sendTestResult(testId);
       return;
     }
 
@@ -48,13 +48,7 @@ export default class TestResultView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case "webview-ready":
-            this.sendTestResultWithGroupTests(testId);
-            break;
-          case "test-result-select-test":
-            this.sendTestResult(message.payload.testId);
-            break;
-          case "test-result-run-test":
-            this.runTest();
+            this.sendTestResult(testId);
             break;
         }
       },
@@ -75,24 +69,11 @@ export default class TestResultView {
     );
   }
 
-  private sendTestResultWithGroupTests(testId: TestId): void {
-    this.context.store.testStore.getTestResultWithGroupTests(testId).then(testResult => {
+  private sendTestResult(testId: TestId): void {
+    this.context.store.testStore.getTestResult(testId).then(testResult => {
       this.testResult = testResult;
       this.sendTestResultToWebview();
     });
-  }
-
-  private sendTestResult(testId: TestId): void {
-    this.context.store.testStore.getTestResult(testId).then(testResult => {
-      this.testResult = { ...testResult, groupTests: this.testResult?.groupTests || [] };
-      this.sendTestResultToWebview();
-    });
-  }
-
-  private runTest(): void {
-    if (this.testResult !== null) {
-      this.context.store.testStore.runTests([this.testResult.test.id]);
-    }
   }
 
   private onTestUpdate(test: Test): void {

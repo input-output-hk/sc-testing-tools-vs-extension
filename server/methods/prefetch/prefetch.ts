@@ -1,7 +1,7 @@
 import { buildWorkspacePackages } from './buildTree';
 import { discoverPackagesForWorkspace } from './discover';
 
-export async function prefetchTestTree(workspaces: Array<Workspace>): Promise<TestTree> {
+export async function prefetch(workspaces: Array<Workspace>): Promise<TestTree> {
   const packages: TestPackageMap = {};
 
   for (const workspace of workspaces) {
