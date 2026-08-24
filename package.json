@@ -5,7 +5,7 @@
   "displayName": "PBT",
   "description": "",
   "icon": "images/pbt-logo.png",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension.git"
@@ -35,6 +35,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "pbt-extension.runAllTests",
+        "title": "Run All",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -55,12 +60,17 @@
         {
           "command": "pbt-extension.buildAllTestSuites",
           "when": "view == pbt-test-tree",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "pbt-extension.runAllTests",
+          "when": "view == pbt-test-tree",
+          "group": "navigation@2"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",
           "when": "view == pbt-test-run-configuration",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "pbt-extension.collapseAllTestCoverage",

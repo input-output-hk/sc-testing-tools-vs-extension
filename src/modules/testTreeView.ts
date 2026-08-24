@@ -19,6 +19,9 @@ export default class TestTreeView {
 
     const buildAllTestSuitesCommand = vscode.commands.registerCommand('pbt-extension.buildAllTestSuites', this.buildAllTestSuites.bind(this));
     context.extension.subscriptions.push(buildAllTestSuitesCommand);
+
+    const runAllTestsCommand = vscode.commands.registerCommand('pbt-extension.runAllTests', this.runAllTests.bind(this));
+    context.extension.subscriptions.push(runAllTestsCommand);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -131,6 +134,12 @@ export default class TestTreeView {
     if (!await this.ensureDependenciesReady()) return;
     this.clearError();
     await this.context.store.testStore.buildAllTestSuites();
+  }
+
+  private async runAllTests(): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    this.clearError();
+    await this.context.store.testStore.runAllTests();
   }
 
   private openTestResults(testId: TestId): void {

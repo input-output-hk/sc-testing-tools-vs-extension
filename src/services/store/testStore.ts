@@ -180,6 +180,11 @@ export default class TestStore {
 
     await this.database!.handleTestRun(testIds);
   }
+  
+  public async runAllTests(): Promise<void> {
+    const suiteIds = await this.database!.getAllTestSuitesIds();
+    await this.runTest(suiteIds);
+  }
 
   public async getTestResult(testId: TestId): Promise<TestResult> {
     return {
