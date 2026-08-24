@@ -155,6 +155,11 @@ export default class TestStore {
     }
   }
 
+  public async runAllTests(): Promise<void> {
+    const suiteIds = await this.database!.getAllTestSuitesIds();
+    await this.runTests(suiteIds);
+  }
+
   public async runTests(testIds: Array<RunTestId>): Promise<void> {
     const testRuns: Map<string, Array<RunTestId>> = new Map();
     for (const [workspaceId, packageName, suiteName, testId] of testIds) {
