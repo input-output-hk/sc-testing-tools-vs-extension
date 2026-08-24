@@ -35,6 +35,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "pbt-extension.runAllTests",
+        "title": "Run All",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -53,9 +58,14 @@
     "menus": {
       "view/title": [
         {
+          "command": "pbt-extension.runAllTests",
+          "when": "view == pbt-test-tree",
+          "group": "navigation@1"
+        },
+        {
           "command": "pbt-extension.buildAllTestSuites",
           "when": "view == pbt-test-tree",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",

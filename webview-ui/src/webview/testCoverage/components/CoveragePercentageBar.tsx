@@ -4,14 +4,14 @@ interface Props {
 
 const getBarBackgroundClass = (percentage: number): string => {
   if (percentage === 0) return 'bg-base-12';
-  if (percentage > 80) return 'bg-green-01';
+  if (percentage > 90) return 'bg-green-01';
   if (percentage >= 50) return 'bg-yellow-02';
   return 'bg-red-01';
 };
 
 const getBarBorderClass = (percentage: number): string => {
   if (percentage === 0) return 'border-base-12';
-  if (percentage >= 90) return 'border-green-01';
+  if (percentage > 90) return 'border-green-01';
   if (percentage >= 50) return 'border-yellow-02';
   return 'border-red-01';
 };
