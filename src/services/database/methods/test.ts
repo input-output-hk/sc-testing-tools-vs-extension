@@ -1,10 +1,44 @@
-import { Range } from 'vscode';
+import * as path from 'path';
+import { Range, Uri } from 'vscode';
 
 import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage } from './coverage';
 import { updateTestTreeSuiteStatus } from '../../../utils/testTree';
 
-import type { Database, SuiteDocument, TestDocument } from '../collections';
+import type { Database, PackageDocument, SuiteDocument, TestDocument } from '../collections';
+
+// location.uri is sometimes already absolute, sometimes relative 
+// resolve it against packagePath when it isn't absolute yet
+// same logic as the coverage open file
+const resolveTestLocation = async (
+  database: Database,
+  workspaceId: string,
+  packageName: string,
+  location: TestDocument['location'] | undefined
+): Promise<Test['location']> => {
+  if (!location) return undefined;
+
+  const range = new Range(
+    location.range.start.line,
+    location.range.start.character,
+    location.range.end.line,
+    location.range.end.character
+  );
+
+  if (path.isAbsolute(location.uri)) {
+    return { uri: location.uri, range };
+  }
+
+  const packageDocument: PackageDocument | null = await database.packages.findOne({
+    selector: { id: [workspaceId, packageName].join(':') }
+  }).exec();
+
+  const uri = packageDocument !== null
+    ? Uri.joinPath(Uri.file(packageDocument.packagePath), location.uri).fsPath
+    : location.uri;
+
+  return { uri, range };
+};
 
 export const upsertTests = async (
   database: Database,
@@ -173,21 +207,15 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
   }).exec();
 
   if (testDocument === null) throw new Error(`Test not found for id: ${testId.join(':')}`);
-  
+
+  const [workspaceId, packageName] = testId;
+
   return {
     id: testId,
     name: testDocument.name,
     group: testDocument.group,
     status: testDocument.status as RunStatus,
-    location: testDocument.location ? {
-      uri: testDocument.location.uri,
-      range: new Range(
-        testDocument.location.range.start.line,
-        testDocument.location.range.start.character,
-        testDocument.location.range.end.line,
-        testDocument.location.range.end.character
-      )
-    } : undefined,
+    location: await resolveTestLocation(database, workspaceId, packageName, testDocument.location),
     time: testDocument.time,
     percentage: testDocument.percentage,
     type: testDocument.type ? testDocument.type as TestType : undefined,
@@ -195,7 +223,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
 }
 
 export const onTestUpdate = (database: Database, callback: (test: Test) => void): void => {
-  database.tests.update$.subscribe(changeEvent => {
+  database.tests.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
     callback({
       id: [
@@ -207,15 +235,7 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       name: document.name,
       group: document.group,
       status: document.status as RunStatus,
-      location: document.location ? {
-        uri: document.location.uri,
-        range: new Range(
-          document.location.range.start.line,
-          document.location.range.start.character,
-          document.location.range.end.line,
-          document.location.range.end.character
-        )
-      } : undefined,
+      location: await resolveTestLocation(database, document.workspaceId, document.packageName, document.location),
       time: document.time,
       percentage: document.percentage,
       type: document.type ? document.type as TestType : undefined,

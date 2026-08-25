@@ -24,6 +24,7 @@ interface TreeViewSuiteProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onGotoLocation: (testId: TestId) => void;
 }
 
 const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
@@ -37,6 +38,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onGotoLocation,
 }) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -120,6 +122,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onGotoLocation={onGotoLocation}
         />
       ))}
     </VscodeTreeItem>

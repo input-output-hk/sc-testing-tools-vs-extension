@@ -186,6 +186,11 @@ export default class TestStore {
     await this.runTest(suiteIds);
   }
 
+  public async getTestLocation(testId: TestId): Promise<TestLocation | undefined> {
+    const test = await this.database.getTest(testId);
+    return test.location;
+  }
+
   public async getTestResult(testId: TestId): Promise<TestResult> {
     return {
       test: await this.database.getTest(testId),
