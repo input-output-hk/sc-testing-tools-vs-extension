@@ -10,8 +10,8 @@ const GRAPH_TX_NODE_HEIGHT = 120;
 const GRAPH_UTXO_NODE_HEIGHT = 240;
 
 export type GraphData = {
-  nodes: Array<Node>;
-  edges: Array<Edge>;
+  nodes: Record<string, Node>;
+  edges: Record<string, Edge>;
 };
 
 type TxWithStatus = Tx & {
@@ -20,7 +20,7 @@ type TxWithStatus = Tx & {
 
 const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
   const nodes: Record<string, Node> = {};
-  const edges: Array<Edge> = [];
+  const edges: Record<string, Edge> = {};
   const columns: Array<Array<Node>> = [];
 
   for (let i = 0; i < txs.length; i++) {
@@ -42,6 +42,7 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
         type: 'tx',
         hasSource: true
       },
+      zIndex: 10,
       initialWidth: GRAPH_NODE_WIDTH,
       initialHeight: GRAPH_TX_NODE_HEIGHT,
       position: {
@@ -65,6 +66,7 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
           id: utxoId,
           type: 'utxo',
           data: input,
+          zIndex: 10,
           initialWidth: GRAPH_NODE_WIDTH,
           initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
@@ -74,19 +76,21 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
         };
         columns[iColN].push(nodes[utxoId]);
       }
-      edges.push({
-        id: `edge-${utxoId}-to-${txId}`,
+      const edgeId = `edge-${utxoId}-to-${txId}`;
+      edges[edgeId] = {
+        id: edgeId,
         type: 'smoothstep',
         source: utxoId,
         target: txId,
+        selectable: true,
         pathOptions: {
           borderRadius: 40
         },
         markerEnd: {
           type: MarkerType.Arrow,
           height: 20, width: 20
-        }
-      } as Edge);
+        },
+      } as Edge;
     }
 
     for (let j = 0; j < tx.outputs.length; j++) {
@@ -102,6 +106,7 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
           id: utxoId,
           type: 'utxo',
           data: output,
+          zIndex: 10,
           initialWidth: GRAPH_NODE_WIDTH,
           initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
@@ -111,19 +116,21 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
         };
         columns[oColN].push(nodes[utxoId]);
       }
-      edges.push({
-        id: `edge-${txId}-to-${utxoId}`,
+      const edgeId = `edge-${txId}-to-${utxoId}`;
+      edges[edgeId] = {
+        id: edgeId,
         type: 'smoothstep',
         source: txId,
         target: utxoId,
+        selectable: true,
         pathOptions: {
           borderRadius: 40
         },
         markerEnd: {
           type: MarkerType.Arrow,
           height: 20, width: 20
-        }
-      } as Edge);
+        },
+      } as Edge;
     }
   }
 
@@ -137,15 +144,11 @@ const mapTxsToGrapData = (txs: Array<TxWithStatus>): GraphData => {
     }
   }
 
-  return {
-    edges,
-    nodes: Object.values(nodes)
-  };
+  return { edges, nodes };
 } 
 
 export const mapTestRoundToGraphData = (
   round: TestRound,
-  selectedTx: TxType,
   onViewDetails: (node: GraphNode) => void
 ): GraphData => {
   let txs: Array<TxWithStatus> = [];
@@ -158,12 +161,11 @@ export const mapTestRoundToGraphData = (
 
   if (round.type === 'threat-model') {
     txs = (round as ThreatModelTestRound).traces
-      .filter(t => selectedTx === 'original' || t.modifiedTx !== undefined)
-      .map(t => ({ ...(selectedTx === 'original' ? t.tx : t.modifiedTx!), success: t.outcome.status === 'passed' }));
+      .map(t => ({ ...t.tx, success: t.outcome.status === 'passed' }));
   }
 
   const { nodes, edges } = mapTxsToGrapData(txs);
-  for (const node of nodes) {
+  for (const node of Object.values(nodes)) {
     node.data = {
       ...node.data,
       onViewDetails,

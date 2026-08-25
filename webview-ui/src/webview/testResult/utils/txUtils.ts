@@ -1,3 +1,4 @@
+
 export const txValueToString = (value: TxValue): string => {
   const parts: string[] = [];
   if (value.lovelace > 0) {

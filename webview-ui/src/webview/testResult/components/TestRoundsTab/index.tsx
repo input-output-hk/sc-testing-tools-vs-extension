@@ -11,17 +11,17 @@ import ThreatModelRoundRow from './ThreatModelRoundRow';
 interface Props {
   test: Test;
   testRounds: Array<TestRound>;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
   isActive: boolean;
 }
 
 interface TableBodyProps {
   testRounds: Array<TestRound>;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
 const TableHeader: React.FC = () => (
-  <VscodeTableHeader slot="header" className="bg-base-20">
+  <VscodeTableHeader slot="header" className="bg-base-20 min-w-24">
     {['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'].map(column => (
       <VscodeTableHeaderCell key={column} className="p-3 border border-base-14 text-center">
         {column}

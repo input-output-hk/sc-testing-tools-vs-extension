@@ -10,7 +10,7 @@ import ThreatModelRoundTable from './ThreatModelRoundTable';
 interface Props {
   index: number;
   round: ThreatModelTestRound;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
 type RoundCellProps = {

@@ -172,8 +172,6 @@ type ThreatModelOutcome = {
   status: "error";
 };
 
-type TxType = 'original' | 'modified';
-
 type Tx = {
   id?: string;
   fee: number;
@@ -290,6 +288,8 @@ type TxMod = {
 };
 
 // Test Graph
+
+type GraphMode = 'result-graph' | 'attack-timeline';
 
 type GraphNode = {
   type: "tx" | "utxo";

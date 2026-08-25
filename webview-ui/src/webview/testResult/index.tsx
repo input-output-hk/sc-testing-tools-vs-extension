@@ -13,7 +13,7 @@ import TransactionGraphTab from './components/TransactionGraphTab';
 import type { WebviewApi } from 'vscode-webview';
 import type { TransactionGraphTabRef } from './components/TransactionGraphTab';
 
-const RESULT_TAB = 0;
+const TABLE_TAB = 0;
 const GRAPH_TAB = 1;
 
 interface Props {
@@ -24,7 +24,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
   const graphRef = useRef<TransactionGraphTabRef>(null);
   const [test, setTest] = useState<Test|null>(null);
   const [testRounds, setTestRounds] = useState<Array<TestRound>>([]);
-  const [selectedTab, setSelectedTab] = useState<number>(RESULT_TAB);
+  const [selectedTab, setSelectedTab] = useState<number>(TABLE_TAB);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -41,13 +41,9 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const handleOpenGraph = (round: TestRound, txId?: string, txType?: TxType): void => {
+  const handleOpenGraph = (round: TestRound, nodeId?: string): void => {
     setSelectedTab(GRAPH_TAB);
-    if (txId === undefined) {
-      graphRef.current?.selectRound(round);
-    } else {
-      graphRef.current?.selectTx(round, txId, txType);
-    }
+    graphRef.current?.showRoundNode(round, nodeId);
   };
 
   if (!test) return <></>;
@@ -81,7 +77,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
               test={test}
               testRounds={testRounds}
               onOpenGraph={handleOpenGraph}
-              isActive={selectedTab === RESULT_TAB}
+              isActive={selectedTab === TABLE_TAB}
             />
           </VscodeTabPanel>
           <VscodeTabPanel className="flex-1 min-h-0 pt-4">
