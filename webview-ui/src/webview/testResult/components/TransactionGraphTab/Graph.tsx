@@ -26,29 +26,35 @@ interface Props {
   onViewNodeDetails: (node: GraphNode) => void;
 }
 
-const Graph: React.FC<Props> = ({ round, nodeId, onViewNodeDetails }) => {
-  const graphData = mapTestRoundToGraphData(round, onViewNodeDetails);
-  const [nodes] = useState<Record<string, Node>>(graphData.nodes);
-  const [edges, setEdges] = useState<Record<string, Edge>>(graphData.edges);
+const Graph: React.FC<Props> = (props) => {
+  const [round, setRound] = useState<TestRound | null>(null);
+  const [nodes, setNodes] = useState<Record<string, Node>>({});
+  const [edges, setEdges] = useState<Record<string, Edge>>({});
   const reactFlowInstance = useRef<ReactFlowInstance>(useReactFlow());
 
+  if (round === null || round !== props.round) {
+    const graphData = mapTestRoundToGraphData(props.round, props.onViewNodeDetails);
+    setNodes(graphData.nodes);
+    setEdges(graphData.edges);
+    setRound(props.round);
+  }
+
   useEffect(() => {
-    if (nodeId === undefined) {
+    if (props.nodeId === undefined) {
       reactFlowInstance.current?.setViewport(
-        INITIAL_VIEWPORT,
-        { duration: 300 }
+        INITIAL_VIEWPORT, { duration: 300 }
       );
     } else {
       setTimeout(() =>
         reactFlowInstance.current?.fitView({
-          nodes: [{ id: nodeId }],
+          nodes: [{ id: props.nodeId! }],
           duration: 300,
           minZoom: 1.25,
           maxZoom: 1.25,
         })
       , 0);
     }
-  }, [nodeId]);
+  }, [props.nodeId]);
 
   const onActiveEdge = (edgeId: string): void => {
     setEdges(oldEdges => ({
@@ -97,10 +103,7 @@ const Graph: React.FC<Props> = ({ round, nodeId, onViewNodeDetails }) => {
 
 const GraphWithProvider: React.FC<Props> = (props) => (
   <ReactFlowProvider>
-    <Graph
-      {...props}
-      key={props.round.testId.join(':')}
-    />
+    <Graph {...props} />
   </ReactFlowProvider>
 );
 

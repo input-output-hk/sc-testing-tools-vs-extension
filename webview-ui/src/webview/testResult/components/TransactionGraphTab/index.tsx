@@ -1,24 +1,7 @@
 import { useState, forwardRef, useImperativeHandle } from 'react';
-import {
-  ReactFlow,
-  ReactFlowProvider,
-  MiniMap,
-  Controls,
-  Background,
-  useReactFlow,
-  type Node,
-  type Edge
-} from '@xyflow/react';
 
+import Graph from './Graph';
 import Toolbar from './Toolbar';
-import GraphNode from './GraphNode';
-import MiniMapNode from './MiniMapNode';
-
-import { mapTestRoundToGraphData } from '../../utils/reactFlowMapper';
-
-import "@xyflow/react/dist/style.css";
-
-const INITIAL_VIEWPORT = { x: 20, y: 20, zoom: 1 };
 
 interface Handle {
   showRoundNode: (round: TestRound, nodeId?: string) => void;
@@ -29,115 +12,54 @@ interface Props {
   testRounds: Array<TestRound>;
 }
 
-const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(({ testRounds }, ref) => {
+const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
   const [mode, setMode] = useState<GraphMode>('result-graph');
-  const [selectedRound, setSelectedRound] = useState<TestRound>(testRounds[0]);
-  const reactFlowInstance = useReactFlow();
+  const [test, setTest] = useState<Test|null>(null);
+  const [testRoundIndex, setTestRoundIndex] = useState<number>(0);
+  const [nodeId, setNodeId] = useState<string|null>(null);
 
-  const onViewDetails = (node: GraphNode): void => {
-    console.log(node);
-  };
-
-  const graphData = mapTestRoundToGraphData(selectedRound, onViewDetails);
-  const [nodes, setNodes] = useState<Record<string, Node>>(graphData.nodes);
-  const [edges, setEdges] = useState<Record<string, Edge>>(graphData.edges);
-
-  const onSelectRound = (round: TestRound): void => {
+  if (test === null || test.id.join(':') != props.test.id.join(':')) {
     setMode('result-graph');
-    setSelectedRound(round);
+    setTest(props.test);
+    setTestRoundIndex(0);
+    setNodeId(null);
+  }
 
-    const graphData = mapTestRoundToGraphData(round, onViewDetails);
-    setNodes(graphData.nodes);
-    setEdges(graphData.edges);
-  };
-
-  const onActiveEdge = (edgeId: string): void => {
-    setEdges(oldEdges => ({
-      ...oldEdges,
-      [edgeId]: {
-        ...oldEdges[edgeId],
-        zIndex: 1,
-        style: { stroke: '#BBB' }
-      }
-    }));
-  };
-
-  const onInactiveEdge = (edgeId: string): void => {
-    setEdges(oldEdges => ({
-      ...oldEdges,
-      [edgeId]: {
-        ...oldEdges[edgeId],
-        zIndex: undefined,
-        style: {}
-      }
-    }));
-  };
-
-  const onShowRoundNode = (round: TestRound, nodeId?: string): void => {
-    onSelectRound(round);
-    if (nodeId === undefined) {
-      reactFlowInstance.setViewport(
-        INITIAL_VIEWPORT,
-        { duration: 300 }
-      );
-    } else {
-      setTimeout(() =>
-        reactFlowInstance.fitView({
-          nodes: [{ id: nodeId }],
-          duration: 300,
-          minZoom: 1.25,
-          maxZoom: 1.25,
-        })
-      , 0);
-    }
+  const onSelectRound = (index: number, nodeId?: string): void => {
+    setMode('result-graph');
+    setTestRoundIndex(index);
+    setNodeId(nodeId ? nodeId : null);
   };
 
   useImperativeHandle(ref, () => ({
-    showRoundNode: onShowRoundNode
-  }));
+    showRoundNode: (round: TestRound, nodeId?: string): void =>
+      onSelectRound(
+        props.testRounds.findIndex(r => r.id === round.id),
+        nodeId
+      )
+    }
+  ));
 
   return (
     <div className="flex flex-col h-full border border-base-14">
       <Toolbar
         mode={mode}
-        testRounds={testRounds}
-        selectedRound={selectedRound}
-        onRoundChange={onSelectRound}
+        testRoundIndex={testRoundIndex}
+        testRounds={props.testRounds}
+        onSelectRound={onSelectRound}
         onSelectMode={setMode}
       />
       <div className="flex-1 relative bg-base-19">
-        <ReactFlow
-          colorMode="dark"
-          nodes={Object.values(nodes)}
-          edges={Object.values(edges)}
-          defaultViewport={INITIAL_VIEWPORT}
-          nodeTypes={{ tx: GraphNode, utxo: GraphNode }}
-          onEdgeMouseEnter={(_, edge) => onActiveEdge(edge.id)}
-          onEdgeMouseLeave={(_, edge) => onInactiveEdge(edge.id)}
-        >
-          <MiniMap
-            pannable={true}
-            bgColor="rgba(60, 60, 60, 0.9)"
-            maskColor="rgba(40, 40, 40, 0.6)"
-            nodeColor={node => node.type === 'tx' ? '#73C991' : '#569CD6'}
-            nodeComponent={MiniMapNode}
-          />
-          <Controls showInteractive={false} />
-          <Background bgColor="#1E1E1E" color="#333333" />
-        </ReactFlow>
+        <Graph
+          mode={mode}
+          round={props.testRounds[testRoundIndex]}
+          nodeId={nodeId || undefined}
+          onViewNodeDetails={console.log}
+        />
       </div>
     </div>
   );
 });
 
-const TransactionGraphTabWithProvider: React.FC<Props & React.RefAttributes<Handle>> = (props) => (
-  <ReactFlowProvider>
-    <TransactionGraphTab
-      {...props}
-      key={props.test.id.join(':')}
-    />
-  </ReactFlowProvider>
-);
-
 export type { Handle as TransactionGraphTabRef };
-export default TransactionGraphTabWithProvider;
+export default TransactionGraphTab;
