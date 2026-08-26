@@ -24,6 +24,17 @@ export const nodeMatchesStatus = (node: TestTreeNode, statusFilter: RunStatus | 
   return Object.values(group.nodes).some((child) => nodeMatchesStatus(child, statusFilter));
 };
 
+/** Returns true if the node or any of its descendants match the type filter. */
+export const nodeMatchesType = (node: TestTreeNode, typeFilter: TestType | null): boolean => {
+  if (node.type === 'test') {
+    const test = (node as TestTreeTestNode).test;
+    if (test === undefined) return false;
+    return typeFilter === null || test.type === typeFilter;
+  }
+  const group = node as TestTreeGroupNode;
+  return Object.values(group.nodes).some((child) => nodeMatchesType(child, typeFilter));
+};
+
 /** Returns true if the suite name or any of its descendants match the filter string. */
 export const suiteMatchesFilter = (suite: TestSuite, filter: string): boolean => {
   const lowerFilter = filter.toLowerCase();
@@ -41,6 +52,14 @@ export const suiteMatchesStatus = (suite: TestSuite, statusFilter: RunStatus | n
   return Object.values(suite.tests).some((node) => nodeMatchesStatus(node, statusFilter));
 };
 
+/** Returns true if the suite matches the type filter. */
+export const suiteMatchesType = (suite: TestSuite, typeFilter: TestType | null): boolean => {
+  if (typeFilter === null) {
+    return true;
+  }
+  return Object.values(suite.tests).some((node) => nodeMatchesType(node, typeFilter));
+};
+
 /** Returns true if the package name or any of its suites match the filter string. */
 export const packageMatchesFilter = (testPackage: TestPackage, filter: string): boolean => {
   if (testPackage.name.toLowerCase().includes(filter.toLowerCase())) {
@@ -52,6 +71,11 @@ export const packageMatchesFilter = (testPackage: TestPackage, filter: string): 
 /** Returns true if any of the package's suites match the status filter. */
 export const packageMatchesStatus = (testPackage: TestPackage, statusFilter: RunStatus | null): boolean => {
   return Object.values(testPackage.suites).some((suite) => suiteMatchesStatus(suite, statusFilter));
+};
+
+/** Returns true if any of the package's suites match the type filter. */
+export const packageMatchesType = (testPackage: TestPackage, typeFilter: TestType | null): boolean => {
+  return Object.values(testPackage.suites).some((suite) => suiteMatchesType(suite, typeFilter));
 };
 
 export const getPackageStatus = (testPackage: TestPackage): RunStatus => {

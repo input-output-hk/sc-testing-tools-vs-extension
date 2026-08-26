@@ -9,6 +9,7 @@ interface TreeViewNodeProps {
   path: Array<string>;
   filterText: string;
   statusFilter: RunStatus | null;
+  typeFilter: TestType | null;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -29,6 +30,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   path,
   filterText,
   statusFilter,
+  typeFilter,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -43,6 +45,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       suiteName={suiteName}
       filterText={filterText}
       statusFilter={statusFilter}
+      typeFilter={typeFilter}
       onRunTest={onRunTest}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
