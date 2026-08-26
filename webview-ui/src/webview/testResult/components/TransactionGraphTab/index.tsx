@@ -1,7 +1,8 @@
 import { useState, forwardRef, useImperativeHandle } from 'react';
 
-import Graph from './Graph';
 import Toolbar from './Toolbar';
+import GraphTimeline from './GraphTimeline';
+import Graph from './Graph';
 
 interface Handle {
   showRoundNode: (round: TestRound, nodeId?: string) => void;
@@ -10,6 +11,7 @@ interface Handle {
 interface Props {
   test: Test;
   testRounds: Array<TestRound>;
+  isActive: boolean;
 }
 
 const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
@@ -17,18 +19,24 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
   const [test, setTest] = useState<Test|null>(null);
   const [testRoundIndex, setTestRoundIndex] = useState<number>(0);
   const [nodeId, setNodeId] = useState<string|null>(null);
+  const [trace, setTrace] = useState<number>(0);
 
   if (test === null || test.id.join(':') != props.test.id.join(':')) {
     setMode('result-graph');
     setTest(props.test);
     setTestRoundIndex(0);
     setNodeId(null);
+    setTrace(0);
   }
 
   const onSelectRound = (index: number, nodeId?: string): void => {
-    setMode('result-graph');
     setTestRoundIndex(index);
     setNodeId(nodeId ? nodeId : null);
+    setTrace(0);
+  };
+
+  const onSelectMode = (newMode: GraphMode): void => {
+    setMode(newMode);
   };
 
   useImperativeHandle(ref, () => ({
@@ -47,14 +55,23 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
         testRoundIndex={testRoundIndex}
         testRounds={props.testRounds}
         onSelectRound={onSelectRound}
-        onSelectMode={setMode}
+        onSelectMode={onSelectMode}
       />
       <div className="flex-1 relative bg-base-19">
+        {mode === 'attack-timeline' &&
+          <GraphTimeline
+            trace={trace}
+            round={props.testRounds[testRoundIndex] as ThreatModelTestRound}
+            onSelectTrace={setTrace}
+          />
+        }
         <Graph
           mode={mode}
+          trace={trace}
           round={props.testRounds[testRoundIndex]}
           nodeId={nodeId || undefined}
           onViewNodeDetails={console.log}
+          isActive={props.isActive}
         />
       </div>
     </div>

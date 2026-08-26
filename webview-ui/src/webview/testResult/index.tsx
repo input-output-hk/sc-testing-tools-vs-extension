@@ -82,9 +82,10 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
           </VscodeTabPanel>
           <VscodeTabPanel className="flex-1 min-h-0 pt-4">
             <TransactionGraphTab
+              ref={graphRef}
               test={test}
               testRounds={testRounds}
-              ref={graphRef}
+              isActive={selectedTab === GRAPH_TAB}
             />
           </VscodeTabPanel>
         </VscodeTabs>

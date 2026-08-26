@@ -17,44 +17,65 @@ import type { Node, Edge, ReactFlowInstance } from '@xyflow/react';
 
 import "@xyflow/react/dist/style.css";
 
-const INITIAL_VIEWPORT = { x: 20, y: 20, zoom: 1 };
-
 interface Props {
   mode: GraphMode;
+  trace: number;
   round: TestRound;
   nodeId?: string;
   onViewNodeDetails: (node: GraphNode) => void;
+  isActive: boolean;
 }
 
 const Graph: React.FC<Props> = (props) => {
+  const [mode, setMode] = useState<GraphMode | null>(null);
+  const [trace, setTrace] = useState<number | null>(null);
   const [round, setRound] = useState<TestRound | null>(null);
+
   const [nodes, setNodes] = useState<Record<string, Node>>({});
   const [edges, setEdges] = useState<Record<string, Edge>>({});
+  const [diff, setDiff] = useState<Array<string> | null>(null);
   const reactFlowInstance = useRef<ReactFlowInstance>(useReactFlow());
 
-  if (round === null || round !== props.round) {
-    const graphData = mapTestRoundToGraphData(props.round, props.onViewNodeDetails);
+  if (round === null || round !== props.round || mode !== props.mode || trace !== props.trace) {
+    const graphData = mapTestRoundToGraphData(
+      props.mode,
+      props.trace,
+      props.round,
+      props.onViewNodeDetails
+    );
     setNodes(graphData.nodes);
     setEdges(graphData.edges);
+    setDiff(graphData.diff || null);
+    setMode(props.mode);
     setRound(props.round);
+    setTrace(props.trace);
   }
 
   useEffect(() => {
-    if (props.nodeId === undefined) {
-      reactFlowInstance.current?.setViewport(
-        INITIAL_VIEWPORT, { duration: 300 }
-      );
-    } else {
+    if (props.isActive && props.nodeId !== undefined) {
       setTimeout(() =>
         reactFlowInstance.current?.fitView({
           nodes: [{ id: props.nodeId! }],
           duration: 300,
-          minZoom: 1.25,
-          maxZoom: 1.25,
+          minZoom: 0.5,
+          maxZoom: 1.0,
         })
       , 0);
     }
-  }, [props.nodeId]);
+  }, [props.nodeId, props.isActive]);
+
+  useEffect(() => {
+    if (props.isActive && diff !== null && diff.length > 0) {
+      setTimeout(() =>
+        reactFlowInstance.current?.fitView({
+          nodes: diff.map(id => ({ id })),
+          duration: 300,
+          minZoom: 0.5,
+          maxZoom: 1.0,
+        })
+      , 0);
+    }
+  }, [diff, props.isActive]);
 
   const onActiveEdge = (edgeId: string): void => {
     setEdges(oldEdges => ({
@@ -83,7 +104,6 @@ const Graph: React.FC<Props> = (props) => {
       colorMode="dark"
       nodes={Object.values(nodes)}
       edges={Object.values(edges)}
-      defaultViewport={INITIAL_VIEWPORT}
       nodeTypes={{ tx: GraphNode, utxo: GraphNode }}
       onEdgeMouseEnter={(_, edge) => onActiveEdge(edge.id)}
       onEdgeMouseLeave={(_, edge) => onInactiveEdge(edge.id)}

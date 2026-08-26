@@ -27,13 +27,13 @@ interface TxTitleProps {
 
 const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
-    {`Transaction ${index + 1}`}
+    {`Transaction #${index + 1}`}
     {txId &&
       <span
         onClick={onClickTxId}
         className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
       >
-        {`#${txId}`}
+        {txId}
       </span>
     }
   </h3>
@@ -73,12 +73,14 @@ const OutputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
     />
     <GenericTable
       columns={[
+        { key: 'index', label: '#' },
         { key: 'utxo', label: 'UTxO', clickeable: true },
         { key: 'address', label: 'Address' },
         { key: 'amount', label: 'Amount' },
         { key: 'datum', label: 'Datum' }
       ]}
       rows={tx.outputs.map(output => ({
+        index: output.index,
         utxo: output.utxo,
         address: output.address,
         amount: txValueToString(output.value),

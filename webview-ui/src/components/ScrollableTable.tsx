@@ -6,11 +6,10 @@ import type { VscodeScrollable as VscodeScrollableElement } from '@vscode-elemen
 
 interface Props {
   isActive: boolean;
-  resetKey?: string;
   children: React.ReactNode;
 }
 
-const ScrollableTable: React.FC<Props> = ({ isActive, resetKey, children }) => {
+const ScrollableTable: React.FC<Props> = ({ isActive, children }) => {
   const tableRef = useRef<VscodeTableElement | null>(null);
   const scrollTopRef = useRef(0);
 
@@ -25,15 +24,6 @@ const ScrollableTable: React.FC<Props> = ({ isActive, resetKey, children }) => {
     scrollable.addEventListener('vsc-scrollable-scroll', handleScroll);
     return () => scrollable.removeEventListener('vsc-scrollable-scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    scrollTopRef.current = 0;
-
-    requestAnimationFrame(() => {
-      const scrollable = tableRef.current?.shadowRoot?.querySelector('vscode-scrollable') as VscodeScrollableElement | null;
-      if (scrollable) scrollable.scrollPos = 0;
-    });
-  }, [resetKey]);
 
   useEffect(() => {
     if (!isActive) return;

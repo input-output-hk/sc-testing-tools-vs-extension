@@ -110,7 +110,7 @@ type TestTreeTestNode = TestTreeNode & {
 type TestRound = {
   id: number;
   testId: TestId;
-  type?: 'positive' | 'negative' | 'threat-model';
+  type?: "positive" | "negative" | "threat-model";
   status: TestRoundStatus;
 };
 
@@ -125,13 +125,13 @@ type TestRoundStatus = {
 };
 
 type TransitionTestRound = TestRound & {
-  type?: 'positive' | 'negative';
+  type?: "positive" | "negative";
   threatModelTestIds: Array<TestId>;
   transitions: Array<TestTransition>;
 };
 
 type ThreatModelTestRound = TestRound & {
-  type: 'threat-model';
+  type: "threat-model";
   parentTestId: TestId;
   traces: Array<ThreatModelTrace>;
 };
@@ -192,6 +192,7 @@ type TxInput = {
 };
 
 type TxOutput = {
+  index: number;
   address: string;
   utxo: string;
   value: TxValue;
@@ -289,14 +290,54 @@ type TxMod = {
 
 // Test Graph
 
-type GraphMode = 'result-graph' | 'attack-timeline';
+type GraphMode = "result-graph" | "attack-timeline";
 
 type GraphNode = {
   type: "tx" | "utxo";
 };
 
-type GraphNodeTx = GraphNode & { type: 'tx' } & Tx & { success: boolean };
-type GraphNodeUTxO = GraphNode & { type: 'utxo' } & TxInput & TxOutput;
+type TxWithContext = Tx & {
+  type: "tx";
+  context: {
+    index: number;
+    origin: "transition" | "threat-model";
+  };
+};
+
+type TxWithTransition = TxWithContext & {
+  type: "tx";
+  context: {
+    origin: "transition";
+    status: TestRoundStatus;
+  };
+};
+
+type ModifiedField = {
+  field: string;
+  value: string;
+};
+
+type TxWithThreatModel = TxWithContext & {
+  type: "tx";
+  context: {
+    origin: "threat-model";
+    outcome: ThreatModelOutcome;
+    modifications: Array<TxMod>;
+    originalTx?: Tx;
+    originalFields: Record<string, ModifiedField>;
+  };
+};
+
+type UTxOWithContext = TxInput & TxOutput & {
+  type: "utxo";
+  context: {
+    origin: "transition" | "threat-model";
+    originalFields: Record<string, ModifiedField>;
+  };
+};
+
+type GraphNodeTx = GraphNode & TxWithContext;
+type GraphNodeUTxO = GraphNode & UTxOWithContext;
 
 // Coverage
 
@@ -476,7 +517,7 @@ type TestSuiteBuildErrorEvent = TestEvent & {
 // Errors
 
 type ScriptExecutionErrorData = {
-  kind: 'script-execution-error';
+  kind: "script-execution-error";
   scriptPath: string;
   params: Array<string>;
   exitCode: number | null;
@@ -492,7 +533,7 @@ type TestRunErrorData = ScriptExecutionErrorData & {
   runParams: TestRunParams & { testRun: TestRun };
 };
 
-type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
+type DependencyErrorCode = "no-dependencies" | "nix-not-detected" | "docker-not-detected" | "docker-connection";
 
 type DependencyError = {
   hasError: boolean;
