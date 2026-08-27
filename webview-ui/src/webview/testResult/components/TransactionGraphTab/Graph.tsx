@@ -52,30 +52,20 @@ const Graph: React.FC<Props> = (props) => {
   }
 
   useEffect(() => {
-    if (props.isActive && props.nodeId !== undefined) {
-      setTimeout(() =>
-        reactFlowInstance.current?.fitView({
-          nodes: [{ id: props.nodeId! }],
-          duration: 300,
-          minZoom: 0.5,
-          maxZoom: 1.0,
-        })
-      , 0);
+    if (props.isActive) {
+      const nodes: Array<string> | null = props.nodeId ? [props.nodeId] : diff; 
+      if (nodes !== null && nodes.length > 0) {
+        requestAnimationFrame(() =>
+          reactFlowInstance.current?.fitView({
+            nodes: nodes.map(id => ({ id })),
+            duration: 300,
+            minZoom: 0.5,
+            maxZoom: 1.0,
+          })
+        );
+      }
     }
-  }, [props.nodeId, props.isActive]);
-
-  useEffect(() => {
-    if (props.isActive && diff !== null && diff.length > 0) {
-      setTimeout(() =>
-        reactFlowInstance.current?.fitView({
-          nodes: diff.map(id => ({ id })),
-          duration: 300,
-          minZoom: 0.5,
-          maxZoom: 1.0,
-        })
-      , 0);
-    }
-  }, [diff, props.isActive]);
+  }, [props.isActive, props.nodeId, diff]);
 
   const onActiveEdge = (edgeId: string): void => {
     setEdges(oldEdges => ({

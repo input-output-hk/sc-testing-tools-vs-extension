@@ -43,7 +43,9 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
 
   const handleOpenGraph = (round: TestRound, nodeId?: string): void => {
     setSelectedTab(GRAPH_TAB);
-    graphRef.current?.showRoundNode(round, nodeId);
+    requestAnimationFrame(() =>
+      graphRef.current?.showRoundNode(round, nodeId)
+    );
   };
 
   if (!test) return <></>;
