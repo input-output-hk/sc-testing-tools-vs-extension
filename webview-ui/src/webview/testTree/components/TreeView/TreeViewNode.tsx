@@ -1,5 +1,6 @@
 import TreeViewGroup from './TreeViewGroup';
 import TreeViewTest from './TreeViewTest';
+import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewNodeProps {
   workspaceId: string;
@@ -20,6 +21,7 @@ interface TreeViewNodeProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
@@ -35,6 +37,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) =>
   node.type === 'group' ? (
     <TreeViewGroup
@@ -50,6 +53,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
       onShowTestLocation={onShowTestLocation}
+      onContextMenu={onContextMenu}
     />
   ) : (
     <TreeViewTest
@@ -59,6 +63,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
       onShowTestLocation={onShowTestLocation}
+      onContextMenu={onContextMenu}
     />
   );
 

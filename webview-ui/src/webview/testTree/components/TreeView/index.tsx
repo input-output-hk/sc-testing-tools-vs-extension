@@ -4,7 +4,18 @@ import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TreeViewPackage from './TreeViewPackage';
 import FilterMenu from './FilterMenu';
-import { packageMatchesFilter, packageMatchesStatus, isRunnableTestId } from '../../utils/treeUtils';
+import ContextMenu, { type ContextMenuTarget } from './ContextMenu';
+import {
+  packageMatchesFilter,
+  packageMatchesStatus,
+  isRunnableTestId,
+  isRunnableStatus,
+  isTestRunnable,
+  isSelectionEntryRunnable,
+  getPackageStatus,
+  getGroupTests,
+  getGroupTestIds,
+} from '../../utils/treeUtils';
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -26,7 +37,9 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: ContextMenuTarget } | null>(null);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
 
   const handleFilterInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilterText(e.target.value);
@@ -47,17 +60,24 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
       if (wrapper && !wrapper.contains(event.target as Node)) {
         setIsFilterMenuOpen(false);
       }
+      const menu = contextMenuRef.current;
+      if (menu && !menu.contains(event.target as Node)) {
+        setContextMenu(null);
+      }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsFilterMenuOpen(false);
+        setContextMenu(null);
       }
     };
 
     document.addEventListener('click', handleDocumentClick, true);
+    document.addEventListener('contextmenu', handleDocumentClick, true);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
+      document.removeEventListener('contextmenu', handleDocumentClick, true);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
@@ -110,6 +130,99 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
     }
   };
 
+  const handleContextMenu = (event: React.MouseEvent, target: ContextMenuTarget): void => {
+    setContextMenu({ x: event.clientX, y: event.clientY, target });
+  };
+
+  const closeContextMenu = (): void => setContextMenu(null);
+
+  const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId> => {
+    switch (target.kind) {
+      case 'package':
+        return Object.values(target.testPackage.suites).map(
+          (suite): TestSuiteId => [target.testPackage.workspace.id, target.testPackage.name, suite.name]
+        );
+      case 'suite':
+        return [[target.workspaceId, target.packageName, target.suite.name]];
+      case 'group':
+        return getGroupTestIds(target.node);
+      case 'test':
+        return [target.node.test.id];
+    }
+  };
+
+  const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
+    switch (target.kind) {
+      case 'suite':
+        return [target.workspaceId, target.packageName, target.suite.name].join(':');
+      case 'test':
+        return target.node.test.id.join(':');
+      default:
+        return null;
+    }
+  };
+
+  const isTargetRunnable = (target: ContextMenuTarget): boolean => {
+    switch (target.kind) {
+      case 'package':
+        return isRunnableStatus(getPackageStatus(target.testPackage));
+      case 'suite':
+        return isRunnableStatus(target.suite.status);
+      case 'group':
+        return getGroupTests(target.node).some(isTestRunnable);
+      case 'test':
+        return isTestRunnable(target.node.test);
+    }
+  };
+
+  const isContextMenuRunDisabled = (target: ContextMenuTarget): boolean => {
+    const key = getTargetSelectionKey(target);
+    if (key !== null && selected.has(key) && selected.size > 1) {
+      return Array.from(selected).some(id => !isSelectionEntryRunnable(testTree, id));
+    }
+    return !isTargetRunnable(target);
+  };
+
+  const isContextMenuRefreshDisabled = (target: ContextMenuTarget): boolean =>
+    target.kind === 'package'
+      ? !isRunnableStatus(getPackageStatus(target.testPackage))
+      : target.kind === 'suite' && !isRunnableStatus(target.suite.status);
+
+  const isContextMenuViewLocationVisible = (target: ContextMenuTarget): boolean => {
+    if (target.kind !== 'test') return false;
+    const key = target.node.test.id.join(':');
+    const effectiveSize = selected.has(key) ? selected.size : 1;
+    return effectiveSize === 1 && target.node.test.location !== undefined;
+  };
+
+  const isContextMenuRefreshVisible = (target: ContextMenuTarget): boolean =>
+    target.kind === 'suite' || target.kind === 'package';
+
+  const handleContextMenuRun = (): void => {
+    if (!contextMenu) return;
+    handleRunTest(getRunTargetIds(contextMenu.target));
+    closeContextMenu();
+  };
+
+  const handleContextMenuRefresh = (): void => {
+    if (!contextMenu) return;
+    const { target } = contextMenu;
+    if (target.kind === 'suite') {
+      onBuildTestSuite([target.workspaceId, target.packageName, target.suite.name]);
+    } else if (target.kind === 'package') {
+      Object.values(target.testPackage.suites).forEach(suite =>
+        onBuildTestSuite([target.testPackage.workspace.id, target.testPackage.name, suite.name])
+      );
+    }
+    closeContextMenu();
+  };
+
+  const handleContextMenuViewLocation = (): void => {
+    if (!contextMenu || contextMenu.target.kind !== 'test') return;
+    onShowTestLocation(contextMenu.target.node.test.id);
+    closeContextMenu();
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="relative flex items-center w-full px-2 py-2">
@@ -142,10 +255,26 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
               onOpenTestResult={onOpenTestResult}
               onShowTestLocation={onShowTestLocation}
+              onContextMenu={handleContextMenu}
             />
           ))}
         </VscodeTree>
       </div>
+      {contextMenu &&
+        <ContextMenu
+          ref={contextMenuRef}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          showRun
+          runDisabled={isContextMenuRunDisabled(contextMenu.target)}
+          onRun={handleContextMenuRun}
+          showRefresh={isContextMenuRefreshVisible(contextMenu.target)}
+          refreshDisabled={isContextMenuRefreshDisabled(contextMenu.target)}
+          onRefresh={handleContextMenuRefresh}
+          showViewLocation={isContextMenuViewLocationVisible(contextMenu.target)}
+          onViewLocation={handleContextMenuViewLocation}
+        />
+      }
     </div>
   );
 };

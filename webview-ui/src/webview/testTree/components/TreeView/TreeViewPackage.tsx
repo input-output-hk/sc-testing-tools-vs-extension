@@ -5,7 +5,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewSuite from './TreeViewSuite';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus } from '../../utils/treeUtils';
+import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus, isRunnableStatus } from '../../utils/treeUtils';
+import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
@@ -23,6 +24,7 @@ interface TreeViewPackageProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
 }
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
@@ -35,6 +37,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -43,7 +46,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   });
 
   const status = getPackageStatus(testPackage);
-  const isRunnable = status !== 'running' && status !== 'waiting';
+  const isRunnable = isRunnableStatus(status);
 
   const effectiveFilterText =
     !filterText || testPackage.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
@@ -74,8 +77,14 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     onRunTest(Object.values(testPackage.suites).map(suite => [testPackage.workspace.id, testPackage.name, suite.name]));
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { kind: 'package', testPackage });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen}>
+    <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
@@ -116,6 +125,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

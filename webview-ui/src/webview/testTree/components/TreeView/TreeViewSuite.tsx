@@ -5,7 +5,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import { isRunnableStatus, nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewSuiteProps {
   workspaceId: string;
@@ -25,6 +26,7 @@ interface TreeViewSuiteProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
 }
 
 const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
@@ -39,6 +41,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -49,7 +52,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
     },
   });
 
-  const isRunnable = suite.status !== 'running' && suite.status !== 'waiting';
+  const isRunnable = isRunnableStatus(suite.status);
 
   const effectiveFilterText =
     !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
@@ -78,8 +81,14 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
     onBuildTestSuite([workspaceId, packageName, suite.name]);
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { kind: 'suite', workspaceId, packageName, suite });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
+    <VscodeTreeItem ref={treeItemRef} open={suite.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={suite.status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
@@ -123,6 +132,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

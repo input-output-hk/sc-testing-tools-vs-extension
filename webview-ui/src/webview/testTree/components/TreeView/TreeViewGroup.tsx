@@ -11,9 +11,10 @@ import {
   getGroupStatus,
   nodeMatchesFilter,
   nodeMatchesStatus,
-  isRunnableTestId,
+  isTestRunnable,
   sortTreeNodes,
 } from '../../utils/treeUtils';
+import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewGroupProps {
   workspaceId: string;
@@ -34,6 +35,7 @@ interface TreeViewGroupProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
 }
 
 const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
@@ -49,11 +51,12 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
-    () => getGroupTests(node).some(test => isRunnableTestId(test.id) && test.status !== 'running' && test.status !== 'waiting'),
+    () => getGroupTests(node).some(isTestRunnable),
     [node],
   );
 
@@ -89,8 +92,14 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     onRunTest(getGroupTestIds(node));
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { kind: 'group', workspaceId, packageName, suiteName, node });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
+    <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={getGroupStatus(node)} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
@@ -129,6 +138,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>
