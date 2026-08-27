@@ -28,7 +28,7 @@ export default class TestResultView {
     // Register the test result view
     this.panel = vscode.window.createWebviewPanel(
       "pbt-test-result",
-      "PBT Testing interface",
+      "PBT Test Results View",
       vscode.ViewColumn.Two,
       {
         enableScripts: true,

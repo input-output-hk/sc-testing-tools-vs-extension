@@ -28,7 +28,7 @@ interface Props {
   testRounds: Array<TestRound>;
 }
 
-const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(({ testRounds }, ref) => {
+const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(({ testRounds }, ref) => {
   const [txType, setTxType] = useState<TxType>('original');
   const [selectedRound, setSelectedRound] = useState<TestRound>(testRounds[0]);
   const reactFlowInstance = useReactFlow();
@@ -101,14 +101,14 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
   );
 });
 
-const TransactionGraphTabWithProvider: React.FC<Props & React.RefAttributes<Handle>> = (props) => (
+const TransactionGraphViewWithProvider: React.FC<Props & React.RefAttributes<Handle>> = (props) => (
   <ReactFlowProvider>
-    <TransactionGraphTab
+    <TransactionGraphView
       {...props}
       key={props.test.id.join(':')}
     />
   </ReactFlowProvider>
 );
 
-export type { Handle as TransactionGraphTabRef };
-export default TransactionGraphTabWithProvider;
+export type { Handle as TransactionGraphViewRef };
+export default TransactionGraphViewWithProvider;

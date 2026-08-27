@@ -52,7 +52,7 @@ const TableBody: React.FC<TableBodyProps> = ({ testRounds, onOpenGraph }) => (
   </VscodeTableBody>
 );
 
-const TestRoundsTab: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => {
+const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => {
   return (
     <ScrollableTable
       key={test.id.join(':')}
@@ -67,4 +67,4 @@ const TestRoundsTab: React.FC<Props> = ({ test, testRounds, isActive, onOpenGrap
   );
 };
 
-export default TestRoundsTab;
+export default TestRoundsView;
