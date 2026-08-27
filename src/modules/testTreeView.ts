@@ -35,6 +35,11 @@ export default class TestTreeView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
+            // surface the dependency check here too, so it's shown as soon as the extension
+            // container is open even if the user leaves the Test Run Configuration view collapsed
+            this.context.testConfigurationView.surfaceDependencyStatus();
+            this.checkWorkspaceAndFetchTestTree();
+            break;
           case 'test-tree-fetch':
             this.checkWorkspaceAndFetchTestTree();
             break;
