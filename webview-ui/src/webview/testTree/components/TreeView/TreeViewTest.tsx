@@ -52,13 +52,13 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     if (isRunnable) onRunTest([node.test.id]);
   };
 
-  const handleGotoLocation = (event: React.MouseEvent): void => {
+  const handleShowTestLocation = (event: React.MouseEvent): void => {
     if ((event.target as HTMLElement).closest('button')) return;
     if (node.test.location !== undefined) onShowTestLocation(node.test.id);
   };
 
   return (
-    <VscodeTreeItem ref={treeItemRef} onClickCapture={handleGotoLocation}>
+    <VscodeTreeItem ref={treeItemRef} onClickCapture={handleShowTestLocation}>
       <TestStatusIcon status={node.test.status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
