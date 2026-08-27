@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import RpcClient from '../rpcClient';
 import Database from '../database';
 import { PbtContext } from '../../extension';
+import { buildStaticTestList } from '../../utils/testTree';
 import {
   renderCoverageForEditor,
   clearCoverageForEditor,
@@ -22,6 +23,7 @@ export default class TestStore {
 
   private workspaces: Map<string, string>;
   private staticTestTree: TestTree | null = null;
+  private staticTestList: Record<string, Test> = {};
   private coverageTree: CoverageTree | null = null;
   private testOpenState: Record<string, boolean> = {};
   private coverageOpenState: Record<string, boolean> = {};
@@ -100,6 +102,7 @@ export default class TestStore {
       this.staticTestTree = await this.rpcClient.prefetch({
         workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
       });
+      this.staticTestList = buildStaticTestList(this.staticTestTree);
       for (const packageId of Object.keys(this.staticTestTree.packages)) {
         this.testOpenState[packageId] = true;
       }
@@ -184,6 +187,36 @@ export default class TestStore {
   public async runAllTests(): Promise<void> {
     const suiteIds = await this.database!.getAllTestSuitesIds();
     await this.runTest(suiteIds);
+  }
+
+  public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {
+    try {
+      const packageId: TestPackageId = [testId[0], testId[1]];
+      const { packagePath } = await this.database.getPackage(packageId);
+      
+      let location: TestLocation | null = null;
+      if (!testId[3].startsWith('static')) {
+        const test = await this.database.getTest(testId);
+        location = test.location ?? null;
+      } else {
+        const test = Object.hasOwn(this.staticTestList, testId.join(':')) ? this.staticTestList[testId.join(':')] : undefined;
+        location = test?.location ?? null;
+      }
+
+      if (location === null) return;
+
+      return {
+        path: vscode.Uri.joinPath(vscode.Uri.file(packagePath), location.uri).fsPath,
+        range: new vscode.Range(
+          location.range.start.line,
+          location.range.start.character,
+          location.range.end.line,
+          location.range.end.character
+        )
+      };
+    } catch (_) {
+      return;
+    }
   }
 
   public async getTestResult(testId: TestId): Promise<TestResult> {

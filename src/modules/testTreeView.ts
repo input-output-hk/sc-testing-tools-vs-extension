@@ -50,6 +50,9 @@ export default class TestTreeView {
           case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
+          case 'test-tree-show-location':
+            this.showTestLocation(message.payload.testId);
+            break;
           case 'test-tree-update':
             this.updateTestTree(message.payload);
             break;
@@ -144,6 +147,16 @@ export default class TestTreeView {
 
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
+  }
+
+  private async showTestLocation(testId: TestId): Promise<void> {
+    const location = await this.context.store.testStore.getTestLocation(testId);
+    if (location !== undefined) {
+      const document = await vscode.workspace.openTextDocument(location.path);
+      const editor = await vscode.window.showTextDocument(document);
+      editor.selection = new vscode.Selection(location.range.start, location.range.end);
+      editor.revealRange(location.range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    }
   }
 
   private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {
