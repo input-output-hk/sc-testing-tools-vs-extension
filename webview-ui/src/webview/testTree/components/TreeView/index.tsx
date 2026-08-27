@@ -18,10 +18,10 @@ interface TreeViewProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onGotoLocation: (testId: TestId) => void;
+  onShowTestLocation: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult, onGotoLocation }) => {
+const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult, onShowTestLocation }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
@@ -141,7 +141,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
               onOpenTestResult={onOpenTestResult}
-              onGotoLocation={onGotoLocation}
+              onShowTestLocation={onShowTestLocation}
             />
           ))}
         </VscodeTree>

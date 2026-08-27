@@ -33,7 +33,7 @@ interface TreeViewGroupProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onGotoLocation: (testId: TestId) => void;
+  onShowTestLocation: (testId: TestId) => void;
 }
 
 const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
@@ -48,7 +48,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
-  onGotoLocation,
+  onShowTestLocation,
 }) => {
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
@@ -128,7 +128,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
-          onGotoLocation={onGotoLocation}
+          onShowTestLocation={onShowTestLocation}
         />
       ))}
     </VscodeTreeItem>

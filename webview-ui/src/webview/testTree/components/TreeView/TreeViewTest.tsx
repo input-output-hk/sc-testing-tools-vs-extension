@@ -10,7 +10,7 @@ interface TreeViewTestProps {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onGotoLocation: (testId: TestId) => void;
+  onShowTestLocation: (testId: TestId) => void;
 }
 
 const formatTestTime = (time: number): string => {
@@ -27,7 +27,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onRunTest,
   onUpdateSelection,
   onOpenTestResult,
-  onGotoLocation,
+  onShowTestLocation,
 }) => {
   const isRunnable = isRunnableTestId(node.test.id) && node.test.status !== 'running' && node.test.status !== 'waiting';
   const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
@@ -54,7 +54,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
 
   const handleGotoLocation = (event: React.MouseEvent): void => {
     if ((event.target as HTMLElement).closest('button')) return;
-    if (node.test.location) onGotoLocation(node.test.id);
+    if (node.test.location !== undefined) onShowTestLocation(node.test.id);
   };
 
   return (
