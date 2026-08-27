@@ -22,6 +22,7 @@ interface TreeViewPackageProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowTestLocation: (testId: TestId) => void;
 }
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
@@ -33,6 +34,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowTestLocation,
 }) => {
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -113,6 +115,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowTestLocation={onShowTestLocation}
         />
       ))}
     </VscodeTreeItem>

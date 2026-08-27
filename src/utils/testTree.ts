@@ -1,3 +1,33 @@
+const getTestListFromTreeNodes = (nodes: Array<TestTreeNode>): Record<string, Test> => {
+  let testList: Record<string, Test> = {};
+  for (const node of nodes) {
+    if (node.type === 'test') {
+      const test = (node as TestTreeTestNode).test;
+      testList[test.id.join(':')] = test;
+    }
+    if (node.type === 'group') {
+      const children = Object.values((node as TestTreeGroupNode).nodes);
+      testList = {
+        ...testList,
+        ...getTestListFromTreeNodes(children)
+      };
+    }
+  }
+  return testList;
+};
+
+export const buildStaticTestList = (testTree: TestTree): Record<string, Test> => {
+  let testList: Record<string, Test> = {};
+  for (const packageNode of Object.values(testTree.packages)) {
+    for (const suiteNode of Object.values(packageNode.suites)) {
+      testList = {
+        ...testList,
+        ...getTestListFromTreeNodes(Object.values(suiteNode.tests))
+      }
+    }
+  }
+  return testList;
+};
 
 const createTestTreeNode = (
   suiteId: TestSuiteId,

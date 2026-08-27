@@ -91,6 +91,7 @@ function buildSuite(
   const staticTree = buildStaticSuiteTree(
     workspace,
     discoveredPackage.name,
+    discoveredPackage.packagePath,
     suiteDefinition.name,
     extractedSuite,
   );
@@ -106,6 +107,7 @@ function buildSuite(
 function buildStaticSuiteTree(
   workspace: Workspace,
   packageName: string,
+  packagePath: string,
   suiteName: string,
   extractedSuite: ExtractedSuite,
 ): StaticTreeBuildResult {
@@ -122,6 +124,7 @@ function buildStaticSuiteTree(
       idState,
       workspace,
       packageName,
+      packagePath,
       suiteName,
       fallbackEntryFile: extractedSuite.entryFile,
     });
@@ -147,6 +150,7 @@ function appendExtractedNode(options: {
   idState: { counter: number };
   workspace: Workspace;
   packageName: string;
+  packagePath: string;
   suiteName: string;
   fallbackEntryFile: string | null;
 }): void {
@@ -157,6 +161,7 @@ function appendExtractedNode(options: {
     idState,
     workspace,
     packageName,
+    packagePath,
     suiteName,
     fallbackEntryFile,
   } = options;
@@ -182,6 +187,7 @@ function appendExtractedNode(options: {
         idState,
         workspace,
         packageName,
+        packagePath,
         suiteName,
         fallbackEntryFile,
       });
@@ -199,7 +205,7 @@ function appendExtractedNode(options: {
     name: testName,
     group: parentGroups,
     status: 'undetermined',
-    location: buildStaticLocation(node, workspace.path, fallbackEntryFile),
+    location: buildStaticLocation(node, workspace.path, packagePath, fallbackEntryFile),
   };
 
   parentTree[testKey] = {
@@ -211,6 +217,7 @@ function appendExtractedNode(options: {
 function buildStaticLocation(
   node: ExtractedNode,
   workspacePath: string,
+  packagePath: string,
   fallbackEntryFile: string | null,
 ): TestLocation | undefined {
   const line = node.line ?? 1;
@@ -227,7 +234,7 @@ function buildStaticLocation(
   }
 
   return {
-    uri: filePath,
+    uri: path.relative(packagePath, filePath),
     range: {
       start: {
         line: line - 1,
