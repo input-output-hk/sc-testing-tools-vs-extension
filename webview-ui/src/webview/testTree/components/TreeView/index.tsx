@@ -71,14 +71,19 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
         setContextMenu(null);
       }
     };
+    const handleWindowBlur = () => {
+      setContextMenu(null);
+    };
 
     document.addEventListener('click', handleDocumentClick, true);
     document.addEventListener('contextmenu', handleDocumentClick, true);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('blur', handleWindowBlur);
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
       document.removeEventListener('contextmenu', handleDocumentClick, true);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('blur', handleWindowBlur);
     };
   }, []);
 
@@ -114,6 +119,11 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
     if (runnableIds.some(id => selected.has(id))) {
       for (const selectedId of selected) {
         testRun.add(selectedId);
+      }
+    }
+    for (const id of Array.from(testRun)) {
+      if (!isSelectionEntryRunnable(testTree, id)) {
+        testRun.delete(id);
       }
     }
     if (testRun.size > 0) {
@@ -178,7 +188,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   const isContextMenuRunDisabled = (target: ContextMenuTarget): boolean => {
     const key = getTargetSelectionKey(target);
     if (key !== null && selected.has(key) && selected.size > 1) {
-      return Array.from(selected).some(id => !isSelectionEntryRunnable(testTree, id));
+      return Array.from(selected).every(id => !isSelectionEntryRunnable(testTree, id));
     }
     return !isTargetRunnable(target);
   };
@@ -189,9 +199,13 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
       : target.type === 'suite' && !isRunnableStatus(target.suite.status);
 
   const isContextMenuViewLocationVisible = (target: ContextMenuTarget): boolean => {
+    console.log('isContextMenuViewLocationVisible target', target);
     if (target.type !== 'test') return false;
+    console.log('isContextMenuViewLocationVisible test node', target.node);
     const key = target.node.test.id.join(':');
+    console.log('isContextMenuViewLocationVisible key', key, 'selected', selected);
     const effectiveSize = selected.has(key) ? selected.size : 1;
+    console.log('isContextMenuViewLocationVisible effectiveSize', effectiveSize, 'location', target.node.test.location);
     return effectiveSize === 1 && target.node.test.location !== undefined;
   };
 
