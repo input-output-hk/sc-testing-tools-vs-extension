@@ -9,13 +9,15 @@ import {
   packageMatchesFilter,
   packageMatchesStatus,
   isRunnableTestId,
-  isRunnableStatus,
-  isTestRunnable,
   isSelectionEntryRunnable,
-  getPackageStatus,
-  getGroupTests,
-  getGroupTestIds,
 } from '../../utils/treeUtils';
+import {
+  getRunTargetIds,
+  isContextMenuRunDisabled,
+  isContextMenuRefreshDisabled,
+  isContextMenuViewLocationVisible,
+  isContextMenuRefreshVisible,
+} from '../../utils/contextMenuUtils';
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -146,72 +148,6 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
 
   const closeContextMenu = (): void => setContextMenu(null);
 
-  const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId> => {
-    switch (target.type) {
-      case 'package':
-        return Object.values(target.testPackage.suites).map(
-          (suite): TestSuiteId => [target.testPackage.workspace.id, target.testPackage.name, suite.name]
-        );
-      case 'suite':
-        return [[target.workspaceId, target.packageName, target.suite.name]];
-      case 'group':
-        return getGroupTestIds(target.node);
-      case 'test':
-        return [target.node.test.id];
-    }
-  };
-
-  const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
-    switch (target.type) {
-      case 'suite':
-        return [target.workspaceId, target.packageName, target.suite.name].join(':');
-      case 'test':
-        return target.node.test.id.join(':');
-      default:
-        return null;
-    }
-  };
-
-  const isTargetRunnable = (target: ContextMenuTarget): boolean => {
-    switch (target.type) {
-      case 'package':
-        return isRunnableStatus(getPackageStatus(target.testPackage));
-      case 'suite':
-        return isRunnableStatus(target.suite.status);
-      case 'group':
-        return getGroupTests(target.node).some(isTestRunnable);
-      case 'test':
-        return isTestRunnable(target.node.test);
-    }
-  };
-
-  const isContextMenuRunDisabled = (target: ContextMenuTarget): boolean => {
-    const key = getTargetSelectionKey(target);
-    if (key !== null && selected.has(key) && selected.size > 1) {
-      return Array.from(selected).every(id => !isSelectionEntryRunnable(testTree, id));
-    }
-    return !isTargetRunnable(target);
-  };
-
-  const isContextMenuRefreshDisabled = (target: ContextMenuTarget): boolean =>
-    target.type === 'package'
-      ? !isRunnableStatus(getPackageStatus(target.testPackage))
-      : target.type === 'suite' && !isRunnableStatus(target.suite.status);
-
-  const isContextMenuViewLocationVisible = (target: ContextMenuTarget): boolean => {
-    console.log('isContextMenuViewLocationVisible target', target);
-    if (target.type !== 'test') return false;
-    console.log('isContextMenuViewLocationVisible test node', target.node);
-    const key = target.node.test.id.join(':');
-    console.log('isContextMenuViewLocationVisible key', key, 'selected', selected);
-    const effectiveSize = selected.has(key) ? selected.size : 1;
-    console.log('isContextMenuViewLocationVisible effectiveSize', effectiveSize, 'location', target.node.test.location);
-    return effectiveSize === 1 && target.node.test.location !== undefined;
-  };
-
-  const isContextMenuRefreshVisible = (target: ContextMenuTarget): boolean =>
-    target.type === 'suite' || target.type === 'package';
-
   const handleContextMenuRun = (): void => {
     if (!contextMenu) return;
     handleRunTest(getRunTargetIds(contextMenu.target));
@@ -280,12 +216,12 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
           x={contextMenu.x}
           y={contextMenu.y}
           showRun
-          runDisabled={isContextMenuRunDisabled(contextMenu.target)}
+          runDisabled={isContextMenuRunDisabled(contextMenu.target, selected, testTree)}
           onRun={handleContextMenuRun}
           showRefresh={isContextMenuRefreshVisible(contextMenu.target)}
           refreshDisabled={isContextMenuRefreshDisabled(contextMenu.target)}
           onRefresh={handleContextMenuRefresh}
-          showViewLocation={isContextMenuViewLocationVisible(contextMenu.target)}
+          showViewLocation={isContextMenuViewLocationVisible(contextMenu.target, selected)}
           onViewLocation={handleContextMenuViewLocation}
         />
       }
