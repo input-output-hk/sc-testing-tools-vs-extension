@@ -63,7 +63,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { kind: 'test', node });
+    onContextMenu(event, { type: 'test', node });
   };
 
   return (

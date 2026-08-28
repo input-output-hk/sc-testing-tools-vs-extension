@@ -137,7 +137,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   const closeContextMenu = (): void => setContextMenu(null);
 
   const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId> => {
-    switch (target.kind) {
+    switch (target.type) {
       case 'package':
         return Object.values(target.testPackage.suites).map(
           (suite): TestSuiteId => [target.testPackage.workspace.id, target.testPackage.name, suite.name]
@@ -152,7 +152,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   };
 
   const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
-    switch (target.kind) {
+    switch (target.type) {
       case 'suite':
         return [target.workspaceId, target.packageName, target.suite.name].join(':');
       case 'test':
@@ -163,7 +163,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   };
 
   const isTargetRunnable = (target: ContextMenuTarget): boolean => {
-    switch (target.kind) {
+    switch (target.type) {
       case 'package':
         return isRunnableStatus(getPackageStatus(target.testPackage));
       case 'suite':
@@ -184,19 +184,19 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   };
 
   const isContextMenuRefreshDisabled = (target: ContextMenuTarget): boolean =>
-    target.kind === 'package'
+    target.type === 'package'
       ? !isRunnableStatus(getPackageStatus(target.testPackage))
-      : target.kind === 'suite' && !isRunnableStatus(target.suite.status);
+      : target.type === 'suite' && !isRunnableStatus(target.suite.status);
 
   const isContextMenuViewLocationVisible = (target: ContextMenuTarget): boolean => {
-    if (target.kind !== 'test') return false;
+    if (target.type !== 'test') return false;
     const key = target.node.test.id.join(':');
     const effectiveSize = selected.has(key) ? selected.size : 1;
     return effectiveSize === 1 && target.node.test.location !== undefined;
   };
 
   const isContextMenuRefreshVisible = (target: ContextMenuTarget): boolean =>
-    target.kind === 'suite' || target.kind === 'package';
+    target.type === 'suite' || target.type === 'package';
 
   const handleContextMenuRun = (): void => {
     if (!contextMenu) return;
@@ -207,9 +207,9 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   const handleContextMenuRefresh = (): void => {
     if (!contextMenu) return;
     const { target } = contextMenu;
-    if (target.kind === 'suite') {
+    if (target.type === 'suite') {
       onBuildTestSuite([target.workspaceId, target.packageName, target.suite.name]);
-    } else if (target.kind === 'package') {
+    } else if (target.type === 'package') {
       Object.values(target.testPackage.suites).forEach(suite =>
         onBuildTestSuite([target.testPackage.workspace.id, target.testPackage.name, suite.name])
       );
@@ -218,7 +218,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
   };
 
   const handleContextMenuViewLocation = (): void => {
-    if (!contextMenu || contextMenu.target.kind !== 'test') return;
+    if (!contextMenu || contextMenu.target.type !== 'test') return;
     onShowTestLocation(contextMenu.target.node.test.id);
     closeContextMenu();
   };

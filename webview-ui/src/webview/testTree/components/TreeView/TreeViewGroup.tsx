@@ -95,7 +95,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { kind: 'group', workspaceId, packageName, suiteName, node });
+    onContextMenu(event, { type: 'group', workspaceId, packageName, suiteName, node });
   };
 
   return (

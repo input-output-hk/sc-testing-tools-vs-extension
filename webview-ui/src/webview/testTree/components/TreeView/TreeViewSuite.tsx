@@ -84,7 +84,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { kind: 'suite', workspaceId, packageName, suite });
+    onContextMenu(event, { type: 'suite', workspaceId, packageName, suite });
   };
 
   return (

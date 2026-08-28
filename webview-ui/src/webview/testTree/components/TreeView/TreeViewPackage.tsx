@@ -80,7 +80,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { kind: 'package', testPackage });
+    onContextMenu(event, { type: 'package', testPackage });
   };
 
   return (
