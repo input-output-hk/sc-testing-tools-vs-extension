@@ -63,12 +63,13 @@ const txSchema = {
       items: {
         type: 'object',
         properties: {
+          index: numberSchema,
           address: stringSchema,
           utxo: stringSchema,
           value: valueSchema,
           datum: stringSchema,
         },
-        required: ['address', 'utxo', 'value'],
+        required: ['index', 'address', 'utxo', 'value'],
       },
     },
     mint: valueSchema,
