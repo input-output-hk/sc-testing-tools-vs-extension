@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-
 import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TreeViewPackage from './TreeViewPackage';
@@ -23,10 +22,10 @@ interface TreeViewProps {
 
 const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult, onShowTestLocation }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filterText, setFilterText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
+  const [filterText, setFilterText] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<TestType | null>(null);
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState<boolean>(false);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
 
   const handleFilterInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,17 +126,20 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
           value={filterText}
           onChange={handleFilterInput}
         />
-        <span ref={filterWrapperRef} className="absolute right-3 inline-flex items-center">
+        <span
+          ref={filterWrapperRef}
+          className="absolute right-3 inline-flex items-center"
+        >
           <i
             className={`codicon cursor-pointer hover:opacity-100 ${statusFilter !== null || typeFilter !== null ? 'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70'}`}
             onClick={handleFilterToggle}
           />
           <FilterMenu
             isOpen={isFilterMenuOpen}
-            statusFilter={statusFilter}
-            onChange={handleStatusFilterChange}
             typeFilter={typeFilter}
-            onTypeChange={handleTypeFilterChange}
+            statusFilter={statusFilter}
+            onChangeStatus={handleStatusFilterChange}
+            onChangeType={handleTypeFilterChange}
           />
         </span>
       </div>
