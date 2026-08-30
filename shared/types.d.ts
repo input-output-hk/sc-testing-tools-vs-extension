@@ -110,7 +110,7 @@ type TestTreeTestNode = TestTreeNode & {
 type TestRound = {
   id: number;
   testId: TestId;
-  type?: 'positive' | 'negative' | 'threat-model';
+  type?: "positive" | "negative" | "threat-model";
   status: TestRoundStatus;
 };
 
@@ -125,13 +125,13 @@ type TestRoundStatus = {
 };
 
 type TransitionTestRound = TestRound & {
-  type?: 'positive' | 'negative';
+  type?: "positive" | "negative";
   threatModelTestIds: Array<TestId>;
   transitions: Array<TestTransition>;
 };
 
 type ThreatModelTestRound = TestRound & {
-  type: 'threat-model';
+  type: "threat-model";
   parentTestId: TestId;
   traces: Array<ThreatModelTrace>;
 };
@@ -172,8 +172,6 @@ type ThreatModelOutcome = {
   status: "error";
 };
 
-type TxType = 'original' | 'modified';
-
 type Tx = {
   id?: string;
   fee: number;
@@ -194,6 +192,7 @@ type TxInput = {
 };
 
 type TxOutput = {
+  index: number;
   address: string;
   utxo: string;
   value: TxValue;
@@ -291,12 +290,48 @@ type TxMod = {
 
 // Test Graph
 
+type GraphMode = "result-graph" | "attack-timeline";
+type GraphStatus = "success" | "failure";
+
 type GraphNode = {
   type: "tx" | "utxo";
 };
 
-type GraphNodeTx = GraphNode & { type: 'tx' } & Tx & { success: boolean };
-type GraphNodeUTxO = GraphNode & { type: 'utxo' } & TxInput & TxOutput;
+type GraphNodeValue<T> = {
+  current: T;
+  previous?: T;
+};
+
+type GraphNodeTx = GraphNode & {
+  type: "tx";
+  index: number;
+  mode: GraphMode;
+  status: GraphStatus;
+  inputCount: number;
+  outputCount: number;
+  id: GraphNodeValue<string>;
+  mint: GraphNodeValue<TxValue|undefined>;
+  fee: GraphNodeValue<number>;
+  signers: GraphNodeValue<Array<string>|undefined>;
+};
+
+type GraphNodeUTxO = GraphNode & {
+  type: "utxo";
+  index: number;
+  mode: GraphMode;
+  consumed: boolean;
+  address: GraphNodeValue<string>;
+  utxo: GraphNodeValue<string>;
+  value: GraphNodeValue<TxValue>;
+  redeemer?: GraphNodeValue<string|undefined>;
+  datum?: GraphNodeValue<string|undefined>;
+};
+
+type GraphTx = {
+  tx: GraphNodeTx;
+  inputs: Array<GraphNodeUTxO>;
+  outputs: Array<GraphNodeUTxO>;
+};
 
 // Coverage
 
@@ -392,6 +427,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
@@ -476,7 +512,7 @@ type TestSuiteBuildErrorEvent = TestEvent & {
 // Errors
 
 type ScriptExecutionErrorData = {
-  kind: 'script-execution-error';
+  kind: "script-execution-error";
   scriptPath: string;
   params: Array<string>;
   exitCode: number | null;
@@ -492,7 +528,7 @@ type TestRunErrorData = ScriptExecutionErrorData & {
   runParams: TestRunParams & { testRun: TestRun };
 };
 
-type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
+type DependencyErrorCode = "no-dependencies" | "nix-not-detected" | "docker-not-detected" | "docker-connection";
 
 type DependencyError = {
   hasError: boolean;

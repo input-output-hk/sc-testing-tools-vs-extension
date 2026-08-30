@@ -10,48 +10,45 @@ import { txValueToString } from '../../utils/txUtils';
 
 interface Props {
   round: ThreatModelTestRound;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
 interface TableProps {
   index: number;
   tx: Tx;
-  txType: TxType;
-  onClickTxId: () => void;
+  onClickNode: (nodeId: string) => void;
 }
 
 interface TxTitleProps {
   index: number;
   txId?: string;
-  txType: TxType;
   onClickTxId: () => void;
 }
 
-const TxTitle: React.FC<TxTitleProps> = ({ index, txId, txType, onClickTxId }) => (
+const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
-    {`Transaction ${index + 1}${txType === 'original' ? '' : ' (Modified)'}`}
+    {`Transaction #${index + 1}`}
     {txId &&
       <span
         onClick={onClickTxId}
         className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
       >
-        {`#${txId}`}
+        {txId}
       </span>
     }
   </h3>
 );
 
-const InputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
+const InputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
-      txType={txType}
-      onClickTxId={onClickTxId}
+      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
       columns={[
-        { key: 'utxo', label: 'UTxO' },
+        { key: 'utxo', label: 'UTxO', clickable: true },
         { key: 'address', label: 'Address' },
         { key: 'amount', label: 'Amount' },
         { key: 'redeemer', label: 'Redeemer' }
@@ -62,42 +59,44 @@ const InputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) =>
         amount: txValueToString(input.value),
         redeemer: input.redeemerRaw || ''
       })) ?? []}
+      onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
     />
   </div>
 );
 
-const OutputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
+const OutputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
-      txType={txType}
-      onClickTxId={onClickTxId}
+      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
       columns={[
-        { key: 'utxo', label: 'UTxO' },
+        { key: 'index', label: '#' },
+        { key: 'utxo', label: 'UTxO', clickable: true },
         { key: 'address', label: 'Address' },
         { key: 'amount', label: 'Amount' },
         { key: 'datum', label: 'Datum' }
       ]}
       rows={tx.outputs.map(output => ({
+        index: output.index,
         utxo: output.utxo,
         address: output.address,
         amount: txValueToString(output.value),
         datum: output.datum || ''
       })) ?? []}
+      onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
     />
   </div>
 );
 
-const MintTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
+const MintTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
-      txType={txType}
-      onClickTxId={onClickTxId}
+      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
       columns={[
@@ -125,19 +124,9 @@ const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
         {round.traces.filter(trace => trace.tx).map((trace, index) => (
           <div key={index}>
             <InputTable
-              index={index}
-              tx={trace.tx}
-              txType="original"
-              onClickTxId={() => onOpenGraph(round, trace.tx.id, "original")}
+              index={index} tx={trace.tx}
+              onClickNode={nodeId => onOpenGraph(round, nodeId)}
             />
-            {trace.modifiedTx &&
-              <InputTable
-                index={index}
-                tx={trace.modifiedTx}
-                txType="modified"
-                onClickTxId={() => onOpenGraph(round, trace.modifiedTx?.id, "modified")}
-              />
-            }
           </div>
         ))}
       </VscodeTabPanel>
@@ -146,19 +135,9 @@ const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
         {round.traces.filter(trace => trace.tx).map((trace, index) => (
           <div key={index}>
             <OutputTable
-              index={index}
-              tx={trace.tx}
-              txType="original"
-              onClickTxId={() => onOpenGraph(round, trace.tx.id, "original")}
+              index={index} tx={trace.tx}
+              onClickNode={nodeId => onOpenGraph(round, nodeId)}
             />
-            {trace.modifiedTx &&
-              <OutputTable
-                index={index}
-                tx={trace.modifiedTx}
-                txType="modified"
-                onClickTxId={() => onOpenGraph(round, trace.modifiedTx?.id, "modified")}
-              />
-            }
           </div>
         ))}
       </VscodeTabPanel>
@@ -167,19 +146,9 @@ const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
         {round.traces.filter(trace => trace.tx).map((trace, index) => (
           <div key={index}>
             <MintTable
-              index={index}
-              tx={trace.tx}
-              txType="original"
-              onClickTxId={() => onOpenGraph(round, trace.tx.id, "original")}
+              index={index} tx={trace.tx}
+              onClickNode={nodeId => onOpenGraph(round, nodeId)}
             />
-            {trace.modifiedTx &&
-              <MintTable
-                index={index}
-                tx={trace.modifiedTx}
-                txType="modified"
-                onClickTxId={() => onOpenGraph(round, trace.modifiedTx?.id, "modified")}
-              />
-            }
           </div>
         ))}
       </VscodeTabPanel>

@@ -179,7 +179,8 @@ const mapScTx = (tx: ScTx | null): Tx | undefined => {
       redeemerPayload: input.redeemerPayload || undefined,
       redeemerRaw: input.redeemerRaw || undefined,
     })),
-    outputs: tx.outputs.map(output => ({
+    outputs: tx.outputs.map((output, index) => ({
+      index,
       address: output.address,
       utxo: output.utxo,
       value: output.value,

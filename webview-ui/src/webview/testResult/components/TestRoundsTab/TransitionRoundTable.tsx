@@ -10,7 +10,7 @@ import { txValueToString } from '../../utils/txUtils';
 
 interface Props {
   round: TransitionTestRound;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
 interface TxTitleProps {
@@ -21,13 +21,13 @@ interface TxTitleProps {
 
 const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
-    {`Transaction ${index + 1}`}
+    {`Transaction #${index + 1}`}
     {txId &&
       <span
         onClick={onClickTxId}
         className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
       >
-        {`#${txId}`}
+        {txId}
       </span>
     }
   </h3>
@@ -46,11 +46,11 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
             <TxTitle
               index={index}
               txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
             />
             <GenericTable
               columns={[
-                { key: 'utxo', label: 'UTxO' },
+                { key: 'utxo', label: 'UTxO', clickable: true },
                 { key: 'address', label: 'Address' },
                 { key: 'amount', label: 'Amount' },
                 { key: 'redeemer', label: 'Redeemer' }
@@ -61,6 +61,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
                 amount: txValueToString(input.value),
                 redeemer: input.redeemerRaw || ''
               })) ?? []}
+              onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
             />
           </div>
         ))}
@@ -72,21 +73,24 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
             <TxTitle
               index={index}
               txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
             />
             <GenericTable
               columns={[
-                { key: 'utxo', label: 'UTxO' },
+                { key: 'index', label: '#' },
+                { key: 'utxo', label: 'UTxO', clickable: true },
                 { key: 'address', label: 'Address' },
                 { key: 'amount', label: 'Amount' },
                 { key: 'datum', label: 'Datum' }
               ]}
               rows={transition.tx?.outputs.map(output => ({
+                index: output.index,
                 utxo: output.utxo,
                 address: output.address,
                 amount: txValueToString(output.value),
                 datum: output.datum || ''
               })) ?? []}
+              onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
             />
           </div>
         ))}
@@ -98,7 +102,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
             <TxTitle
               index={index}
               txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, transition.tx?.id)}
+              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
             />
             <GenericTable
               columns={[

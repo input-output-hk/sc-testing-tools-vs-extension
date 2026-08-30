@@ -173,7 +173,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
   }).exec();
 
   if (testDocument === null) throw new Error(`Test not found for id: ${testId.join(':')}`);
-  
+
   return {
     id: testId,
     name: testDocument.name,

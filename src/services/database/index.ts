@@ -10,6 +10,10 @@ import {
 } from './methods/testTree';
 
 import {
+  getPackage
+} from './methods/package';
+
+import {
   getAllTestSuitesIds,
   handleTestSuiteBuild,
   handleTestSuiteBuildErrorEvent,
@@ -98,6 +102,10 @@ export default class Database {
 
   public async getCoverageForTest(id: TestId): Promise<Array<FileCoverage>> {
     return await getCoverageForTest(this.database!, id);
+  }
+
+  public async getPackage(packageId: TestPackageId): Promise<TestPackage> {
+    return await getPackage(this.database!, packageId);
   }
 
   public async getTest(testId: TestId): Promise<Test> {
