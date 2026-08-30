@@ -291,53 +291,47 @@ type TxMod = {
 // Test Graph
 
 type GraphMode = "result-graph" | "attack-timeline";
+type GraphStatus = "success" | "failure";
 
 type GraphNode = {
   type: "tx" | "utxo";
 };
 
-type TxWithContext = Tx & {
+type GraphNodeValue<T> = {
+  current: T;
+  previous?: T;
+};
+
+type GraphNodeTx = GraphNode & {
   type: "tx";
-  context: {
-    index: number;
-    origin: "transition" | "threat-model";
-  };
+  index: number;
+  mode: GraphMode;
+  status: GraphStatus;
+  inputCount: number;
+  outputCount: number;
+  id: GraphNodeValue<string>;
+  mint: GraphNodeValue<TxValue|undefined>;
+  fee: GraphNodeValue<number>;
+  signers: GraphNodeValue<Array<string>|undefined>;
 };
 
-type TxWithTransition = TxWithContext & {
-  type: "tx";
-  context: {
-    origin: "transition";
-    status: TestRoundStatus;
-  };
-};
-
-type ModifiedField = {
-  field: string;
-  value: string;
-};
-
-type TxWithThreatModel = TxWithContext & {
-  type: "tx";
-  context: {
-    origin: "threat-model";
-    outcome: ThreatModelOutcome;
-    modifications: Array<TxMod>;
-    originalTx?: Tx;
-    originalFields: Record<string, ModifiedField>;
-  };
-};
-
-type UTxOWithContext = TxInput & TxOutput & {
+type GraphNodeUTxO = GraphNode & {
   type: "utxo";
-  context: {
-    origin: "transition" | "threat-model";
-    originalFields: Record<string, ModifiedField>;
-  };
+  index: number;
+  mode: GraphMode;
+  consumed: boolean;
+  address: GraphNodeValue<string>;
+  utxo: GraphNodeValue<string>;
+  value: GraphNodeValue<TxValue>;
+  redeemer?: GraphNodeValue<string|undefined>;
+  datum?: GraphNodeValue<string|undefined>;
 };
 
-type GraphNodeTx = GraphNode & TxWithContext;
-type GraphNodeUTxO = GraphNode & UTxOWithContext;
+type GraphTx = {
+  tx: GraphNodeTx;
+  inputs: Array<GraphNodeUTxO>;
+  outputs: Array<GraphNodeUTxO>;
+};
 
 // Coverage
 

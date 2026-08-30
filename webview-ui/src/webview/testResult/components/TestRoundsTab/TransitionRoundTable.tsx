@@ -50,7 +50,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
             />
             <GenericTable
               columns={[
-                { key: 'utxo', label: 'UTxO', clickeable: true },
+                { key: 'utxo', label: 'UTxO', clickable: true },
                 { key: 'address', label: 'Address' },
                 { key: 'amount', label: 'Amount' },
                 { key: 'redeemer', label: 'Redeemer' }
@@ -78,7 +78,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
             <GenericTable
               columns={[
                 { key: 'index', label: '#' },
-                { key: 'utxo', label: 'UTxO', clickeable: true },
+                { key: 'utxo', label: 'UTxO', clickable: true },
                 { key: 'address', label: 'Address' },
                 { key: 'amount', label: 'Amount' },
                 { key: 'datum', label: 'Datum' }

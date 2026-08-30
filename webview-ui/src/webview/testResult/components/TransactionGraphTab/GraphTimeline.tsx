@@ -1,9 +1,9 @@
 import { VscodeButton } from '@vscode-elements/react-elements';
 
 interface Props {
-  trace: number | null;
+  stepIndex: number;
   round: ThreatModelTestRound;
-  onSelectTrace: (trace: number) => void;
+  onSelectStep: (stepIndex: number) => void;
 }
 
 interface SliderProps {
@@ -31,26 +31,24 @@ const TimelineSlider: React.FC<SliderProps> = ({ current, total, onSelect }) => 
   </div>
 );
 
-const GraphTimeline: React.FC<Props> = ({ trace, round, onSelectTrace }) => {
-  if (trace === null) return null;
+const GraphTimeline: React.FC<Props> = ({ stepIndex, round, onSelectStep }) => {
+  const isFirstStep = stepIndex <= 0;
+  const isLastStep = stepIndex >= round.traces.length - 1;
 
-  const isFirstTrace = trace <= 0;
-  const isLastTrace = trace >= round.traces.length - 1;
-
-  const handlePrevTrace = () => {
-    if (!isFirstTrace) onSelectTrace(trace - 1);
+  const handlePrevStep = () => {
+    if (!isFirstStep) onSelectStep(stepIndex - 1);
   };
 
-  const handleNextTrace = () => {
-    if (!isLastTrace) onSelectTrace(trace + 1);
+  const handleNextStep = () => {
+    if (!isLastStep) onSelectStep(stepIndex + 1);
   };
 
   return (
     <div className="absolute left-0 top-0 w-full z-1">
       <div className="p-2 flex flex-row justify-between items-center gap-4 backdrop-blur-xs bg-[#252526CC]">
         <VscodeButton secondary
-          disabled={isFirstTrace}
-          onClick={handlePrevTrace}
+          disabled={isFirstStep}
+          onClick={handlePrevStep}
           style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
           className="flex flex-row items-center gap-1"
         >
@@ -59,14 +57,14 @@ const GraphTimeline: React.FC<Props> = ({ trace, round, onSelectTrace }) => {
         </VscodeButton>
 
         <TimelineSlider
-          current={trace}
+          current={stepIndex}
           total={round.traces.length}
-          onSelect={onSelectTrace}
+          onSelect={onSelectStep}
         />
 
         <VscodeButton secondary
-          disabled={isLastTrace}
-          onClick={handleNextTrace}
+          disabled={isLastStep}
+          onClick={handleNextStep}
           style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
           className="flex flex-row items-center gap-1"
         >

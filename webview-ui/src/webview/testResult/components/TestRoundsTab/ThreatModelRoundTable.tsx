@@ -48,7 +48,7 @@ const InputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
     />
     <GenericTable
       columns={[
-        { key: 'utxo', label: 'UTxO', clickeable: true },
+        { key: 'utxo', label: 'UTxO', clickable: true },
         { key: 'address', label: 'Address' },
         { key: 'amount', label: 'Amount' },
         { key: 'redeemer', label: 'Redeemer' }
@@ -74,7 +74,7 @@ const OutputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
     <GenericTable
       columns={[
         { key: 'index', label: '#' },
-        { key: 'utxo', label: 'UTxO', clickeable: true },
+        { key: 'utxo', label: 'UTxO', clickable: true },
         { key: 'address', label: 'Address' },
         { key: 'amount', label: 'Amount' },
         { key: 'datum', label: 'Datum' }

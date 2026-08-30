@@ -10,7 +10,7 @@ import {
 interface Column {
   key: string;
   label: string;
-  clickeable?: boolean;
+  clickable?: boolean;
 }
 
 interface Props {
@@ -37,8 +37,8 @@ const GenericTable: React.FC<Props> = ({ rows, columns, onClick }) => (
           {columns.map((column, colIndex) => (
             <VscodeTableCell
               key={colIndex}
-              className={`p-2 text-center border border-base-13 ${column.clickeable ? 'cursor-pointer text-blue-05' : ''}`}
-              onClick={column.clickeable && onClick ? () => onClick(index, column.key) : undefined}
+              className={`p-2 text-center border border-base-13 ${column.clickable ? 'cursor-pointer text-blue-05' : ''}`}
+              onClick={column.clickable && onClick ? () => onClick(index, column.key) : undefined}
             >
               {Object.hasOwn(row, column.key) ? String(row[column.key]) : ''}
             </VscodeTableCell>

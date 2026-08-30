@@ -19,41 +19,41 @@ import "@xyflow/react/dist/style.css";
 
 interface Props {
   mode: GraphMode;
-  trace: number;
   round: TestRound;
   nodeId?: string;
+  stepIndex: number;
   onViewNodeDetails: (node: GraphNode) => void;
   isActive: boolean;
 }
 
 const Graph: React.FC<Props> = (props) => {
   const [mode, setMode] = useState<GraphMode | null>(null);
-  const [trace, setTrace] = useState<number | null>(null);
+  const [stepIndex, setStepIndex] = useState<number | null>(null);
   const [round, setRound] = useState<TestRound | null>(null);
 
   const [nodes, setNodes] = useState<Record<string, Node>>({});
   const [edges, setEdges] = useState<Record<string, Edge>>({});
-  const [diff, setDiff] = useState<Array<string> | null>(null);
+  const [stepNodes, setStepNodes] = useState<Array<string> | null>(null);
   const reactFlowInstance = useRef<ReactFlowInstance>(useReactFlow());
 
-  if (round === null || round !== props.round || mode !== props.mode || trace !== props.trace) {
+  if (round === null || round !== props.round || mode !== props.mode || stepIndex !== props.stepIndex) {
     const graphData = mapTestRoundToGraphData(
       props.mode,
-      props.trace,
       props.round,
+      props.stepIndex,
       props.onViewNodeDetails
     );
     setNodes(graphData.nodes);
     setEdges(graphData.edges);
-    setDiff(graphData.diff || null);
+    setStepNodes(graphData.stepNodes);
     setMode(props.mode);
     setRound(props.round);
-    setTrace(props.trace);
+    setStepIndex(props.stepIndex);
   }
 
   useEffect(() => {
     if (props.isActive) {
-      const nodes: Array<string> | null = props.nodeId ? [props.nodeId] : diff; 
+      const nodes: Array<string> | null = props.nodeId ? [props.nodeId] : stepNodes; 
       if (nodes !== null && nodes.length > 0) {
         requestAnimationFrame(() =>
           reactFlowInstance.current?.fitView({
@@ -65,7 +65,7 @@ const Graph: React.FC<Props> = (props) => {
         );
       }
     }
-  }, [props.isActive, props.nodeId, diff]);
+  }, [props.isActive, props.nodeId, stepNodes]);
 
   const onActiveEdge = (edgeId: string): void => {
     setEdges(oldEdges => ({

@@ -19,20 +19,20 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
   const [test, setTest] = useState<Test|null>(null);
   const [testRoundIndex, setTestRoundIndex] = useState<number>(0);
   const [nodeId, setNodeId] = useState<string|null>(null);
-  const [trace, setTrace] = useState<number>(0);
+  const [stepIndex, setStepIndex] = useState<number>(0);
 
   if (test === null || test.id.join(':') != props.test.id.join(':')) {
     setMode('result-graph');
     setTest(props.test);
     setTestRoundIndex(0);
     setNodeId(null);
-    setTrace(0);
+    setStepIndex(0);
   }
 
   const onSelectRound = (index: number, nodeId?: string): void => {
     setTestRoundIndex(index);
     setNodeId(nodeId ? nodeId : null);
-    setTrace(0);
+    setStepIndex(0);
   };
 
   const onSelectMode = (newMode: GraphMode): void => {
@@ -60,16 +60,16 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
       <div className="flex-1 relative bg-base-19">
         {mode === 'attack-timeline' &&
           <GraphTimeline
-            trace={trace}
+            stepIndex={stepIndex}
             round={props.testRounds[testRoundIndex] as ThreatModelTestRound}
-            onSelectTrace={setTrace}
+            onSelectStep={setStepIndex}
           />
         }
         <Graph
           mode={mode}
-          trace={trace}
           round={props.testRounds[testRoundIndex]}
           nodeId={nodeId || undefined}
+          stepIndex={stepIndex}
           onViewNodeDetails={console.log}
           isActive={props.isActive}
         />
