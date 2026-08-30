@@ -53,6 +53,18 @@ const computeSuiteStatus = async (database: Database, suite: SuiteDocument): Pro
   return 'undetermined';
 }
 
+const computeSuiteTime = async (database: Database, suite: SuiteDocument): Promise<number> => {
+  const tests: Array<TestDocument> = await database.tests.find({
+    selector: {
+      workspaceId: suite.workspaceId,
+      packageName: suite.packageName,
+      suiteName: suite.suiteName,
+    }
+  }).exec();
+
+  return tests.map(t => t.time ?? 0).reduce((sum, time) => sum + time, 0);
+}
+
 export const handleTestSuiteUpdateEvent = async (database: Database, event: TestSuiteUpdateEvent): Promise<void> => {
   const { workspaceId, packageName, suiteName, runStatus, tests, coverageIndex } = event.payload;
 
@@ -71,22 +83,27 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
   if (suiteDocument !== null) {
     const update: any = {
       $set: {
-        treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion
+        treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion,
+        time: undefined,
       }
     };
     if (runStatus === 'running') {
       update['$set']['status'] = 'running';
     } else if (runStatus === 'done' || runStatus === 'idle') {
       update['$set']['status'] = await computeSuiteStatus(database, suiteDocument);
+
+      if (runStatus === 'done') {
+        update['$set']['time'] = await computeSuiteTime(database, suiteDocument);
+      }
     }
     await suiteDocument.update(update);
   }
 }
 
-export const onTestSuiteUpdate = (
+export const onTestSuiteTreeUpdate = (
   database: Database,
   openState: Record<string, boolean>,
-  callback: ({ packageId, suite }: TestSuiteUpdate) => void
+  callback: (params: TestSuiteTreeUpdate) => void
 ): void => {
   database.suites.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
@@ -129,6 +146,7 @@ export const onTestSuiteUpdate = (
       const suite: TestSuite = {
         name: document.suiteName,
         status: document.status as RunStatus,
+        time: document.time,
         tests: testTree,
         isOpen: openState[suiteId.join(':')] ?? false,
       };
@@ -138,9 +156,9 @@ export const onTestSuiteUpdate = (
   });
 }
 
-export const onTestSuiteStatusUpdate = (
+export const onTestSuiteUpdate = (
   database: Database,
-  callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void
+  callback: (params: TestSuiteUpdate) => void
 ): void => {
   database.suites.update$.subscribe(changeEvent => {
     const document = changeEvent.documentData;
@@ -152,7 +170,8 @@ export const onTestSuiteStatusUpdate = (
           document.packageName,
           document.suiteName
         ], 
-        status: document.status as RunStatus 
+        status: document.status as RunStatus,
+        time: document.time,
       });
     }
   });

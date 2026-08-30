@@ -5,7 +5,14 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewSuite from './TreeViewSuite';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus, suiteMatchesType, getPackageStatus } from '../../utils/treeUtils';
+import {
+  suiteMatchesFilter,
+  suiteMatchesStatus,
+  suiteMatchesType,
+  getPackageTime,
+  getPackageStatus,
+  formatTestTime
+} from '../../utils/treeUtils';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
@@ -44,6 +51,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     },
   });
 
+  const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
   const isRunnable = status !== 'running' && status !== 'waiting';
 
@@ -83,6 +91,11 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {testPackage.name}
+          {time > 0 &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
+            </span>
+          }
         </span>
         <button
           type="button"

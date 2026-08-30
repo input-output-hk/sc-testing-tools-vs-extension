@@ -19,7 +19,7 @@ import {
   handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
   onTestSuiteUpdate,
-  onTestSuiteStatusUpdate
+  onTestSuiteTreeUpdate,
 } from './methods/suite';
 
 import {
@@ -124,12 +124,12 @@ export default class Database {
     onTestUpdate(this.database!, callback);
   }
 
-  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    onTestSuiteUpdate(this.database!, openState, callback);
+  public onTestSuiteTreeUpdate(openState: Record<string, boolean>, callback: (params: TestSuiteTreeUpdate) => void): void {
+    onTestSuiteTreeUpdate(this.database!, openState, callback);
   }
 
-  public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
-    onTestSuiteStatusUpdate(this.database!, callback);
+  public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
+    onTestSuiteUpdate(this.database!, callback);
   }
 
   public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {

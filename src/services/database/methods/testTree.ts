@@ -24,6 +24,7 @@ export const handleTestTree = async (database: Database, testTree: TestTree): Pr
         packageName: testPackage.name,
         suiteName: suite.name,
         status: suite.status,
+        time: suite.time,
         treeVersion: 0,
       });
     }
@@ -68,6 +69,7 @@ export const buildTestTree = async (database: Database, prefetchTree: TestTree, 
       const suiteNode: TestSuite = {
         name: suiteDocument.suiteName,
         status: suiteDocument.status as RunStatus,
+        time: suiteDocument.time,
         isOpen: openState[suiteId.join(':')] ?? false,
         tests: {}
       };

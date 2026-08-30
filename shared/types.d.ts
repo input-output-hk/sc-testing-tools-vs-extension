@@ -83,6 +83,7 @@ type TestSuiteMap = Record<string, TestSuite>;
 type TestSuite = {
   name: string;
   status: RunStatus;
+  time?: number;
   tests: TestTreeNodeMap;
   isOpen: boolean;
 };
@@ -381,14 +382,15 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
 
 // Webview message
 
-type TestSuiteUpdate = {
+type TestSuiteTreeUpdate = {
   packageId: TestPackageId;
   suite: TestSuite;
 };
 
-type TestSuiteStatusUpdate = {
+type TestSuiteUpdate = {
   suiteId: TestSuiteId;
   status: RunStatus;
+  time?: number;
 };
 
 type TestTreeUpdate = {
@@ -412,8 +414,8 @@ type TestResult = {
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: { test: Test } }
+  | { type: "test-tree-suite-tree-update", payload: TestSuiteTreeUpdate }
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
-  | { type: "test-tree-suite-status-update", payload: TestSuiteStatusUpdate }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
