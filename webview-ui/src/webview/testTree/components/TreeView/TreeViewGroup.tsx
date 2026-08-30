@@ -11,6 +11,7 @@ import {
   getGroupStatus,
   nodeMatchesFilter,
   nodeMatchesStatus,
+  nodeMatchesType,
   isRunnableTestId,
   sortTreeNodes,
 } from '../../utils/treeUtils';
@@ -23,6 +24,7 @@ interface TreeViewGroupProps {
   path: Array<string>;
   filterText: string;
   statusFilter: RunStatus | null;
+  typeFilter: TestType | null;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -44,6 +46,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   path,
   filterText,
   statusFilter,
+  typeFilter,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -76,10 +79,11 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
       Object.values(node.nodes).filter(
         (childNode) =>
           nodeMatchesStatus(childNode, statusFilter) &&
+          nodeMatchesType(childNode, typeFilter) &&
           nodeMatchesFilter(childNode, effectiveFilterText),
       )
       .sort(sortTreeNodes),
-    [node.nodes, effectiveFilterText, statusFilter],
+    [node.nodes, effectiveFilterText, statusFilter, typeFilter],
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -124,6 +128,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           path={[...path, node.name]}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
+          typeFilter={typeFilter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

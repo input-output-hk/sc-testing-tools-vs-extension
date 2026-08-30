@@ -5,7 +5,7 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import { nodeMatchesFilter, nodeMatchesStatus, nodeMatchesType } from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {
   workspaceId: string;
@@ -13,6 +13,7 @@ interface TreeViewSuiteProps {
   suite: TestSuite;
   filterText: string;
   statusFilter: RunStatus | null;
+  typeFilter: TestType | null;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -33,6 +34,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   suite,
   filterText,
   statusFilter,
+  typeFilter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -59,9 +61,10 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
       Object.values(suite.tests).filter(
         (node) =>
           nodeMatchesStatus(node, statusFilter) &&
+          nodeMatchesType(node, typeFilter) &&
           (!effectiveFilterText || nodeMatchesFilter(node, effectiveFilterText)),
       ),
-    [suite.tests, effectiveFilterText, statusFilter],
+    [suite.tests, effectiveFilterText, statusFilter, typeFilter],
   );
 
   const handleRunSuite = (event: React.MouseEvent): void => {
@@ -118,6 +121,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           path={[]}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
+          typeFilter={typeFilter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
