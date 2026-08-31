@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-
 import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TreeViewPackage from './TreeViewPackage';
@@ -8,6 +7,7 @@ import ContextMenu, { type ContextMenuTarget } from './ContextMenu';
 import {
   packageMatchesFilter,
   packageMatchesStatus,
+  packageMatchesType,
   isRunnableTestId,
   isSelectionEntryRunnable,
 } from '../../utils/treeUtils';
@@ -36,9 +36,10 @@ interface TreeViewProps {
 
 const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult, onShowTestLocation }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filterText, setFilterText] = useState('');
+  const [filterText, setFilterText] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<TestType | null>(null);
   const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState<boolean>(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: ContextMenuTarget } | null>(null);
   const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +54,11 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
 
   const handleStatusFilterChange = (nextStatusFilter: RunStatus | null) => {
     setStatusFilter(nextStatusFilter);
+    setIsFilterMenuOpen(false);
+  };
+
+  const handleTypeFilterChange = (nextTypeFilter: TestType | null) => {
+    setTypeFilter(nextTypeFilter);
     setIsFilterMenuOpen(false);
   };
 
@@ -94,9 +100,10 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
       Object.values(testTree.packages).filter(
         testPackage =>
           packageMatchesStatus(testPackage, statusFilter) &&
+          packageMatchesType(testPackage, typeFilter) &&
           (!filterText || packageMatchesFilter(testPackage, filterText)),
       ),
-    [testTree.packages, filterText, statusFilter],
+    [testTree.packages, filterText, statusFilter, typeFilter],
   );
 
   const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
@@ -183,12 +190,21 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
           value={filterText}
           onChange={handleFilterInput}
         />
-        <span ref={filterWrapperRef} className="absolute right-3 inline-flex items-center">
+        <span
+          ref={filterWrapperRef}
+          className="absolute right-3 inline-flex items-center"
+        >
           <i
-            className={`codicon cursor-pointer hover:opacity-100 ${statusFilter !== null ? 'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70'}`}
+            className={`codicon cursor-pointer hover:opacity-100 ${statusFilter !== null || typeFilter !== null ? 'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70'}`}
             onClick={handleFilterToggle}
           />
-          <FilterMenu isOpen={isFilterMenuOpen} statusFilter={statusFilter} onChange={handleStatusFilterChange} />
+          <FilterMenu
+            isOpen={isFilterMenuOpen}
+            typeFilter={typeFilter}
+            statusFilter={statusFilter}
+            onChangeStatus={handleStatusFilterChange}
+            onChangeType={handleTypeFilterChange}
+          />
         </span>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -199,6 +215,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
               testPackage={testPackage}
               filterText={filterText}
               statusFilter={statusFilter}
+              typeFilter={typeFilter}
               onRunTest={handleRunTest}
               onBuildTestSuite={onBuildTestSuite}
               onUpdateSelection={handleUpdateSelection}

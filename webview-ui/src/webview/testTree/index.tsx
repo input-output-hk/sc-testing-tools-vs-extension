@@ -7,7 +7,7 @@ import TreeView from './components/TreeView';
 import {
   updateTest,
   updateTestSuite,
-  updateTestSuiteStatus,
+  updateTestSuiteTree,
   updateOpenTestTreeNode
 } from './utils/treeUpdateUtils';
 
@@ -36,10 +36,10 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         setTestTree(message.payload.testTree);
         setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');
       }
-      if (message.type === 'test-tree-suite-update') {
+      if (message.type === 'test-tree-suite-tree-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
-          return updateTestSuite({ ...testTree }, message.payload);
+          return updateTestSuiteTree({ ...testTree }, message.payload);
         });
       }
       if (message.type === 'test-tree-update') {
@@ -48,10 +48,10 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           return updateTest(testTree, message.payload);
         });
       }
-      if (message.type === 'test-tree-suite-status-update') {
+      if (message.type === 'test-tree-suite-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
-          return updateTestSuiteStatus(testTree, message.payload);
+          return updateTestSuite(testTree, message.payload);
         });
       }
     };

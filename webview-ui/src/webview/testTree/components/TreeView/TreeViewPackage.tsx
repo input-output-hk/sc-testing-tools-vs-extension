@@ -5,13 +5,22 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewSuite from './TreeViewSuite';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus, isRunnableStatus } from '../../utils/treeUtils';
+import {
+  suiteMatchesFilter,
+  suiteMatchesStatus,
+  suiteMatchesType,
+  getPackageTime,
+  getPackageStatus,
+  isRunnableStatus,
+  formatTestTime
+} from '../../utils/treeUtils';
 import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
   filterText: string;
   statusFilter: RunStatus | null;
+  typeFilter: TestType | null;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -31,6 +40,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
   filterText,
   statusFilter,
+  typeFilter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -45,6 +55,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     },
   });
 
+  const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
   const isRunnable = isRunnableStatus(status);
 
@@ -56,9 +67,10 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
       Object.values(testPackage.suites).filter(
         (suite) =>
           suiteMatchesStatus(suite, statusFilter) &&
+          suiteMatchesType(suite, typeFilter) &&
           (!effectiveFilterText || suiteMatchesFilter(suite, effectiveFilterText)),
       ),
-    [testPackage.suites, effectiveFilterText, statusFilter],
+    [testPackage.suites, effectiveFilterText, statusFilter, typeFilter],
   );
 
   const handleBuildPackage = (event: React.MouseEvent): void => {
@@ -89,6 +101,11 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {testPackage.name}
+          {time > 0 &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
+            </span>
+          }
         </span>
         <button
           type="button"
@@ -119,6 +136,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           suite={suite}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
+          typeFilter={typeFilter}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateSelection={onUpdateSelection}

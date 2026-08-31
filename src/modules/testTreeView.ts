@@ -29,7 +29,7 @@ export default class TestTreeView {
 
     this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteStatusUpdate(this.sendTestSuiteStatusUpdate.bind(this));
+    this.context.store.testStore.onTestSuiteTreeUpdate(this.sendTestSuiteTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -171,15 +171,15 @@ export default class TestTreeView {
     }
   }
 
-  private sendTestSuiteUpdate({ packageId, suite }: TestSuiteUpdate): void {
+  private sendTestSuiteTreeUpdate({ packageId, suite }: TestSuiteTreeUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-suite-tree-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
     }
   }
 
-  private sendTestSuiteStatusUpdate({ suiteId, status }: TestSuiteStatusUpdate): void {
+  private sendTestSuiteUpdate({ suiteId, status, time }: TestSuiteUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-status-update', payload: { suiteId, status } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-suite-update', payload: { suiteId, status, time } } as ExtensionToWebviewMessage);
     }
   }
 

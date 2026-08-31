@@ -8,11 +8,14 @@ import TestStatusIcon from '../../../../components/TestStatusIcon';
 import {
   getGroupTests,
   getGroupTestIds,
+  getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
   nodeMatchesStatus,
+  nodeMatchesType,
   isTestRunnable,
   sortTreeNodes,
+  formatTestTime,
 } from '../../utils/treeUtils';
 import type { ContextMenuTarget } from './ContextMenu';
 
@@ -24,6 +27,7 @@ interface TreeViewGroupProps {
   path: Array<string>;
   filterText: string;
   statusFilter: RunStatus | null;
+  typeFilter: TestType | null;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -46,6 +50,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   path,
   filterText,
   statusFilter,
+  typeFilter,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -53,6 +58,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onShowTestLocation,
   onContextMenu,
 }) => {
+  const time = getGroupTime(node);
+  const status = getGroupStatus(node);
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
@@ -79,10 +86,11 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
       Object.values(node.nodes).filter(
         (childNode) =>
           nodeMatchesStatus(childNode, statusFilter) &&
+          nodeMatchesType(childNode, typeFilter) &&
           nodeMatchesFilter(childNode, effectiveFilterText),
       )
       .sort(sortTreeNodes),
-    [node.nodes, effectiveFilterText, statusFilter],
+    [node.nodes, effectiveFilterText, statusFilter, typeFilter],
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -100,13 +108,18 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
-      <TestStatusIcon status={getGroupStatus(node)} isThreatModel={isThreatModel} />
+      <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
               ({Object.keys(node.nodes).length})
+            </span>
+          }
+          {time > 0 && status !== 'running' && status !== 'waiting' &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
             </span>
           }
         </span>
@@ -133,6 +146,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           path={[...path, node.name]}
           filterText={effectiveFilterText}
           statusFilter={statusFilter}
+          typeFilter={typeFilter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

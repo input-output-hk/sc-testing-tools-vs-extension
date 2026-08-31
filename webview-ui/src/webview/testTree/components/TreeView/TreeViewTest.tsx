@@ -1,8 +1,8 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
-import { isTestRunnable } from '../../utils/treeUtils';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
+import { isTestRunnable, formatTestTime } from '../../utils/treeUtils';
 import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewTestProps {
@@ -14,14 +14,6 @@ interface TreeViewTestProps {
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
 }
-
-const formatTestTime = (time: number): string => {
-  if (time < 1000) {
-    return `${time.toFixed(2)}ms`;
-  } else {
-    return `${(time / 1000).toFixed(2)}s`;
-  }
-};
 
 const TreeViewTest: React.FC<TreeViewTestProps> = ({
   node,
