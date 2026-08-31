@@ -9,7 +9,6 @@ export type ContextMenuTarget =
 interface ContextMenuProps {
   x: number;
   y: number;
-  showRun: boolean;
   runDisabled: boolean;
   onRun: () => void;
   showRefresh: boolean;
@@ -22,7 +21,6 @@ interface ContextMenuProps {
 const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(({
   x,
   y,
-  showRun,
   runDisabled,
   onRun,
   showRefresh,
@@ -37,19 +35,17 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(({
 
   return (
     <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 w-44 bg-base-19 shadow-lg py-2">
-      {showRun &&
-        <button
-          type="button"
-          disabled={runDisabled}
-          className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-            runDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
-          }`}
-          onClick={onRun}
-        >
-          <i className="codicon codicon-run-all" />
-          <span>Run Tests</span>
-        </button>
-      }
+      <button
+        type="button"
+        disabled={runDisabled}
+        className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
+          runDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
+        }`}
+        onClick={onRun}
+      >
+        <i className="codicon codicon-run-all" />
+        <span>Run Tests</span>
+      </button>
       {showRefresh &&
         <button
           type="button"

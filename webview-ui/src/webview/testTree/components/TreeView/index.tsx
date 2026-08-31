@@ -215,7 +215,6 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
           ref={contextMenuRef}
           x={contextMenu.x}
           y={contextMenu.y}
-          showRun
           runDisabled={isContextMenuRunDisabled(contextMenu.target, selected, testTree)}
           onRun={handleContextMenuRun}
           showRefresh={isContextMenuRefreshVisible(contextMenu.target)}
