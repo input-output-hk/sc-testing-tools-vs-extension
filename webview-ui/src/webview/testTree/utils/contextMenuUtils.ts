@@ -12,15 +12,15 @@ import {
 export const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId> => {
   switch (target.type) {
     case 'package':
-      return Object.values(target.testPackage.suites).map(
-        (suite): TestSuiteId => [target.testPackage.workspace.id, target.testPackage.name, suite.name]
+      return Object.values(target.packageNode.suites).map(
+        (suite): TestSuiteId => [target.packageNode.workspace.id, target.packageNode.name, suite.name]
       );
     case 'suite':
-      return [[target.workspaceId, target.packageName, target.suite.name]];
-    case 'group':
-      return getGroupTestIds(target.node);
-    case 'test':
-      return [target.node.test.id];
+      return [[target.workspaceId, target.packageName, target.suiteNode.name]];
+    case 'node':
+      return target.node.type === 'test'
+        ? [(target.node as TestTreeTestNode).test.id]
+        : getGroupTestIds(target.node as TestTreeGroupNode);
   }
 };
 
@@ -28,9 +28,9 @@ export const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId
 const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
   switch (target.type) {
     case 'suite':
-      return [target.workspaceId, target.packageName, target.suite.name].join(':');
-    case 'test':
-      return target.node.test.id.join(':');
+      return [target.workspaceId, target.packageName, target.suiteNode.name].join(':');
+    case 'node':
+      return target.node.type === 'test' ? (target.node as TestTreeTestNode).test.id.join(':') : null;
     default:
       return null;
   }
@@ -40,13 +40,13 @@ const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
 const isTargetRunnable = (target: ContextMenuTarget): boolean => {
   switch (target.type) {
     case 'package':
-      return isRunnableStatus(getPackageStatus(target.testPackage));
+      return isRunnableStatus(getPackageStatus(target.packageNode));
     case 'suite':
-      return isRunnableStatus(target.suite.status);
-    case 'group':
-      return getGroupTests(target.node).some(isTestRunnable);
-    case 'test':
-      return isTestRunnable(target.node.test);
+      return isRunnableStatus(target.suiteNode.status);
+    case 'node':
+      return target.node.type === 'test'
+        ? isTestRunnable((target.node as TestTreeTestNode).test)
+        : getGroupTests(target.node as TestTreeGroupNode).some(isTestRunnable);
   }
 };
 
@@ -62,15 +62,16 @@ export const isContextMenuRunDisabled = (target: ContextMenuTarget, selected: Se
 /** Disables "Refresh Tests" when the target package/suite is already running or waiting. */
 export const isContextMenuRefreshDisabled = (target: ContextMenuTarget): boolean =>
   target.type === 'package'
-    ? !isRunnableStatus(getPackageStatus(target.testPackage))
-    : target.type === 'suite' && !isRunnableStatus(target.suite.status);
+    ? !isRunnableStatus(getPackageStatus(target.packageNode))
+    : target.type === 'suite' && !isRunnableStatus(target.suiteNode.status);
 
 /** Shows "View in source file" only for a single selected test that has a known location. */
 export const isContextMenuViewLocationVisible = (target: ContextMenuTarget, selected: Set<string>): boolean => {
-  if (target.type !== 'test') return false;
-  const key = target.node.test.id.join(':');
+  if (target.type !== 'node' || target.node.type !== 'test') return false;
+  const test = (target.node as TestTreeTestNode).test;
+  const key = test.id.join(':');
   const effectiveSize = selected.has(key) ? selected.size : 1;
-  return effectiveSize === 1 && target.node.test.location !== undefined;
+  return effectiveSize === 1 && test.location !== undefined;
 };
 
 /** Shows "Refresh Tests" only for suite and package targets. */

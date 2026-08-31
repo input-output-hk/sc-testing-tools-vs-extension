@@ -158,18 +158,18 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
     if (!contextMenu) return;
     const { target } = contextMenu;
     if (target.type === 'suite') {
-      onBuildTestSuite([target.workspaceId, target.packageName, target.suite.name]);
+      onBuildTestSuite([target.workspaceId, target.packageName, target.suiteNode.name]);
     } else if (target.type === 'package') {
-      Object.values(target.testPackage.suites).forEach(suite =>
-        onBuildTestSuite([target.testPackage.workspace.id, target.testPackage.name, suite.name])
+      Object.values(target.packageNode.suites).forEach(suite =>
+        onBuildTestSuite([target.packageNode.workspace.id, target.packageNode.name, suite.name])
       );
     }
     closeContextMenu();
   };
 
   const handleContextMenuViewLocation = (): void => {
-    if (!contextMenu || contextMenu.target.type !== 'test') return;
-    onShowTestLocation(contextMenu.target.node.test.id);
+    if (!contextMenu || contextMenu.target.type !== 'node' || contextMenu.target.node.type !== 'test') return;
+    onShowTestLocation((contextMenu.target.node as TestTreeTestNode).test.id);
     closeContextMenu();
   };
 

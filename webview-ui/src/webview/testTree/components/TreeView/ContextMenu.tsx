@@ -1,10 +1,9 @@
 import { forwardRef } from 'react';
 
 export type ContextMenuTarget =
-  | { type: 'package'; testPackage: TestPackage }
-  | { type: 'suite'; workspaceId: string; packageName: string; suite: TestSuite }
-  | { type: 'group'; workspaceId: string; packageName: string; suiteName: string; node: TestTreeGroupNode }
-  | { type: 'test'; node: TestTreeTestNode };
+  | { type: 'package'; packageNode: TestPackage }
+  | { type: 'suite'; workspaceId: string; packageName: string; suiteNode: TestSuite }
+  | { type: 'node'; node: TestTreeNode };
 
 interface ContextMenuProps {
   x: number;
