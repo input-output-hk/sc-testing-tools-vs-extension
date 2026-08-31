@@ -23,7 +23,9 @@ const Tabs: React.FC<Props> = ({ tabs, selectedId, onSelect, className, panelCla
           aria-selected={tab.id === selectedId}
           onClick={() => onSelect(tab.id)}
           className={`pb-2 text-[13px] font-medium border-b-2 ${
-            tab.id === selectedId ? 'text-base-01 border-blue-04' : 'text-base-09 border-transparent'
+            tab.id === selectedId
+              ? 'text-vscode-panel-tab-active-fg border-vscode-panel-tab-active-border'
+              : 'text-vscode-panel-tab-inactive-fg border-transparent'
           }`}
         >
           {tab.label}
