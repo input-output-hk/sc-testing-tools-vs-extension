@@ -84,14 +84,13 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
     const update: any = {
       $set: {
         treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion,
-        time: undefined,
       }
     };
     if (runStatus === 'running') {
       update['$set']['status'] = 'running';
+      update['$set']['time'] = undefined;
     } else if (runStatus === 'done' || runStatus === 'idle') {
       update['$set']['status'] = await computeSuiteStatus(database, suiteDocument);
-
       if (runStatus === 'done') {
         update['$set']['time'] = await computeSuiteTime(database, suiteDocument);
       }
