@@ -92,6 +92,12 @@ export const getPackageStatus = (testPackage: TestPackage): RunStatus => {
   return 'undetermined';
 };
 
+export const getPackageTime = (testPackage: TestPackage): number => {
+  return Object.values(testPackage.suites)
+    .map(suite => suite.time ?? 0)
+    .reduce((sum, time) => sum + time, 0);
+};
+
 export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
   const tests: Array<Test> = [];
   for (const node of Object.values(group.nodes)) {
@@ -124,6 +130,12 @@ export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
   return 'undetermined';
 };
 
+export const getGroupTime = (group: TestTreeGroupNode): number => {
+  return getGroupTests(group)
+    .map(test => test.time ?? 0)
+    .reduce((sum, time) => sum + time, 0);
+};
+
 export const isRunnableTestId = (testId: RunnableTestId): boolean => {
   return testId[3] === undefined || !testId[3].startsWith('static');
 };
@@ -141,5 +153,13 @@ export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
     const [,,, testIdA] = (a as TestTreeTestNode).test.id;
     const [,,, testIdB] = (b as TestTreeTestNode).test.id;
     return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
+  }
+};
+
+export const formatTestTime = (time: number): string => {
+  if (time < 1000) {
+    return `${time.toFixed(2)}ms`;
+  } else {
+    return `${(time / 1000).toFixed(2)}s`;
   }
 };

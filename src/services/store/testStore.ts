@@ -245,12 +245,12 @@ export default class TestStore {
     this.database.onTestUpdate(callback);
   }
 
-  public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    this.database.onTestSuiteUpdate(this.testOpenState, callback);
+  public onTestSuiteTreeUpdate(callback: (params: TestSuiteTreeUpdate) => void): void {
+    this.database.onTestSuiteTreeUpdate(this.testOpenState, callback);
   }
 
-  public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
-    this.database.onTestSuiteStatusUpdate(callback);
+  public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
+    this.database.onTestSuiteUpdate(callback);
   }
 
   public onCoverageUpdate(callback: (coverageTree: CoverageTree) => void): void {

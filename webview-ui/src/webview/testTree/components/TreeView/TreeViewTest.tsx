@@ -1,8 +1,8 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
-import { isRunnableTestId } from '../../utils/treeUtils';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
+import { isRunnableTestId, formatTestTime } from '../../utils/treeUtils';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;
@@ -12,14 +12,6 @@ interface TreeViewTestProps {
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
-
-const formatTestTime = (time: number): string => {
-  if (time < 1000) {
-    return `${time.toFixed(2)}ms`;
-  } else {
-    return `${(time / 1000).toFixed(2)}s`;
-  }
-};
 
 const TreeViewTest: React.FC<TreeViewTestProps> = ({
   node,

@@ -8,12 +8,14 @@ import TestStatusIcon from '../../../../components/TestStatusIcon';
 import {
   getGroupTests,
   getGroupTestIds,
+  getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
   nodeMatchesStatus,
   nodeMatchesType,
   isRunnableTestId,
   sortTreeNodes,
+  formatTestTime,
 } from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
@@ -53,6 +55,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onOpenTestResult,
   onShowTestLocation,
 }) => {
+  const time = getGroupTime(node);
+  const status = getGroupStatus(node);
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
@@ -95,13 +99,18 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
-      <TestStatusIcon status={getGroupStatus(node)} isThreatModel={isThreatModel} />
+      <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
               ({Object.keys(node.nodes).length})
+            </span>
+          }
+          {time > 0 && status !== 'running' && status !== 'waiting' &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
             </span>
           }
         </span>

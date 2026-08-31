@@ -1,4 +1,4 @@
-export const updateTestSuite = (testTree: TestTree, { packageId, suite }: TestSuiteUpdate): TestTree => {
+export const updateTestSuiteTree = (testTree: TestTree, { packageId, suite }: TestSuiteTreeUpdate): TestTree => {
   const packageNode = testTree.packages[packageId.join(':')];
   if (!packageNode) return testTree;
 
@@ -95,9 +95,9 @@ export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTr
   };
 };
 
-export const updateTestSuiteStatus = (
+export const updateTestSuite = (
   testTree: TestTree,
-  { suiteId, status }: TestSuiteStatusUpdate,
+  { suiteId, status, time }: TestSuiteUpdate,
 ): TestTree => {
   const [workspaceId, packageName, suiteName] = suiteId;
   const packageId = `${workspaceId}:${packageName}`;
@@ -119,6 +119,7 @@ export const updateTestSuiteStatus = (
           [suiteName]: {
             ...suiteNode,
             status,
+            time,
           },
         },
       },
