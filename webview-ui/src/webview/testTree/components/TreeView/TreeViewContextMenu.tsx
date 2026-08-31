@@ -17,7 +17,6 @@ export interface ContextMenuState {
 
 interface TreeViewContextMenuProps {
   contextMenu: ContextMenuState | null;
-  testTree: TestTree;
   selected: Set<string>;
   onClose: () => void;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
@@ -27,7 +26,6 @@ interface TreeViewContextMenuProps {
 
 const TreeViewContextMenu: React.FC<TreeViewContextMenuProps> = ({
   contextMenu,
-  testTree,
   selected,
   onClose,
   onRunTest,
@@ -99,7 +97,7 @@ const TreeViewContextMenu: React.FC<TreeViewContextMenuProps> = ({
       ref={menuRef}
       x={contextMenu.x}
       y={contextMenu.y}
-      runDisabled={isContextMenuRunDisabled(contextMenu.target, selected, testTree)}
+      runDisabled={isContextMenuRunDisabled(contextMenu.target)}
       onRun={handleRun}
       showRefresh={isContextMenuRefreshVisible(contextMenu.target)}
       refreshDisabled={isContextMenuRefreshDisabled(contextMenu.target)}

@@ -5,7 +5,6 @@ import {
   getPackageStatus,
   isRunnableStatus,
   isTestRunnable,
-  isSelectionEntryRunnable,
 } from './treeUtils';
 
 /** Expands a context menu target into the ids that "Run Tests" should dispatch. */
@@ -24,19 +23,7 @@ export const getRunTargetIds = (target: ContextMenuTarget): Array<RunnableTestId
   }
 };
 
-/** Colon-joined `selected` key for a suite/test target, or null for package/group (never individually present in `selected`). */
-const getTargetSelectionKey = (target: ContextMenuTarget): string | null => {
-  switch (target.type) {
-    case 'suite':
-      return [target.workspaceId, target.packageName, target.suiteNode.name].join(':');
-    case 'node':
-      return target.node.type === 'test' ? (target.node as TestTreeTestNode).test.id.join(':') : null;
-    default:
-      return null;
-  }
-};
-
-/** Whether the target itself (ignoring any wider `selected` set) has anything runnable in it. */
+/** Whether the target itself has anything runnable in it. */
 const isTargetRunnable = (target: ContextMenuTarget): boolean => {
   switch (target.type) {
     case 'package':
@@ -50,14 +37,9 @@ const isTargetRunnable = (target: ContextMenuTarget): boolean => {
   }
 };
 
-/** Disables "Run Tests" only when nothing in the effective selection (or the lone target) can currently run. */
-export const isContextMenuRunDisabled = (target: ContextMenuTarget, selected: Set<string>, testTree: TestTree): boolean => {
-  const key = getTargetSelectionKey(target);
-  if (key !== null && selected.has(key) && selected.size > 1) {
-    return Array.from(selected).every(id => !isSelectionEntryRunnable(testTree, id));
-  }
-  return !isTargetRunnable(target);
-};
+/** Disables "Run Tests" when the target has nothing currently runnable — same rule as the row's own Run button. */
+export const isContextMenuRunDisabled = (target: ContextMenuTarget): boolean =>
+  !isTargetRunnable(target);
 
 /** Disables "Refresh Tests" when the target package/suite is already running or waiting. */
 export const isContextMenuRefreshDisabled = (target: ContextMenuTarget): boolean =>

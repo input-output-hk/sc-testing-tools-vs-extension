@@ -146,40 +146,6 @@ export const isRunnableStatus = (status: RunStatus): boolean =>
 export const isTestRunnable = (test: Test): boolean =>
   isRunnableTestId(test.id) && isRunnableStatus(test.status);
 
-export const findSuiteById = (testTree: TestTree, suiteId: TestSuiteId): TestSuite | undefined => {
-  const [workspaceId, packageName, suiteName] = suiteId;
-  return testTree.packages[[workspaceId, packageName].join(':')]?.suites[suiteName];
-};
-
-const findTestInNodes = (nodes: TestTreeNodeMap, testId: TestId): Test | undefined => {
-  for (const node of Object.values(nodes)) {
-    if (node.type === 'test') {
-      const test = (node as TestTreeTestNode).test;
-      if (test.id.join(':') === testId.join(':')) return test;
-    } else {
-      const found = findTestInNodes((node as TestTreeGroupNode).nodes, testId);
-      if (found) return found;
-    }
-  }
-  return undefined;
-};
-
-export const findTestById = (testTree: TestTree, testId: TestId): Test | undefined => {
-  const suite = findSuiteById(testTree, [testId[0], testId[1], testId[2]]);
-  return suite && findTestInNodes(suite.tests, testId);
-};
-
-/** Resolves a colon-joined id from `selected` (3 segments = suite, 4 = test) back to its current runnable state. */
-export const isSelectionEntryRunnable = (testTree: TestTree, idString: string): boolean => {
-  const parts = idString.split(':');
-  if (parts.length === 4) {
-    const test = findTestById(testTree, parts as unknown as TestId);
-    return test ? isTestRunnable(test) : true;
-  }
-  const suite = findSuiteById(testTree, parts as unknown as TestSuiteId);
-  return suite ? isRunnableStatus(suite.status) : true;
-};
-
 export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
   if (a.type === 'group' && b.type === 'test') {
     return +1;

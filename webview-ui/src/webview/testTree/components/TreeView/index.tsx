@@ -10,7 +10,6 @@ import {
   packageMatchesStatus,
   packageMatchesType,
   isRunnableTestId,
-  isSelectionEntryRunnable,
 } from '../../utils/treeUtils';
 
 interface TreeViewProps {
@@ -70,11 +69,6 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
         testRun.add(selectedId);
       }
     }
-    for (const id of Array.from(testRun)) {
-      if (!isSelectionEntryRunnable(testTree, id)) {
-        testRun.delete(id);
-      }
-    }
     if (testRun.size > 0) {
       const removeIds = new Set<string>(
         Array.from(testRun).filter(id => !id.split(':')[3])
@@ -127,7 +121,6 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
       </div>
       <TreeViewContextMenu
         contextMenu={contextMenu}
-        testTree={testTree}
         selected={selected}
         onClose={closeContextMenu}
         onRunTest={handleRunTest}
