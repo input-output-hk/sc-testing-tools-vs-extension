@@ -16,7 +16,7 @@ const TestHeader: React.FC<Props> = ({ test }) => (
   <div>
     <div className="flex justify-between items-center mb-1.5">
       <TestStatusIcon status={test.status} />
-      <span className="flex-1 ml-1.5 text-base-06 font-semibold text-lg">{test.name}</span>
+      <span className="flex-1 ml-1.5 text-base-06 font-semibold text-[15.6px]">{test.name}</span>
       {test.time !== undefined && test.time > 0 &&
         <span className="flex-none text-base-06 font-medium">
           {formatTestTime(test.time)}
