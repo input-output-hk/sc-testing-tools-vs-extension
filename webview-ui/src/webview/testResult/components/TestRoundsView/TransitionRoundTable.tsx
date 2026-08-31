@@ -52,7 +52,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             panel: (
               <>
                 {transactions.map((transition, index) => (
-                  <div key={index} className="p-3 mb-3 bg-base-19">
+                  <div key={index} className="p-2 mb-3 bg-base-19">
                     <TxTitle
                       index={index}
                       txId={transition.tx?.id}
@@ -83,7 +83,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             panel: (
               <>
                 {transactions.map((transition, index) => (
-                  <div key={index} className="p-3 mb-3 bg-base-19">
+                  <div key={index} className="p-2 mb-3 bg-base-19">
                     <TxTitle
                       index={index}
                       txId={transition.tx?.id}
@@ -114,7 +114,7 @@ const TransitionRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             panel: (
               <>
                 {transactions.map((transition, index) => (
-                  <div key={index} className="p-3 mb-3 bg-base-19">
+                  <div key={index} className="p-2 mb-3 bg-base-19">
                     <TxTitle
                       index={index}
                       txId={transition.tx?.id}

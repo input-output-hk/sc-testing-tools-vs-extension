@@ -59,7 +59,7 @@ const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   <VscodeTableCell
     className={
-      (props.id ? ' text-left p-0' : ' text-center p-3') +
+      (props.id ? ' text-left p-0' : ' text-center p-2') +
       (props.onClick ? ' cursor-pointer' : '')
     }
     onClick={props.onClick}
@@ -85,13 +85,13 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
-              className="py-3 pl-3 pr-0 opacity-40 cursor-pointer"
+              className="py-2 pl-3 pr-0 opacity-40 cursor-pointer"
               onClick={() => setCollapsed(!collapsed)}
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>
             <button
-              className="p-3 text-blue-05 cursor-pointer"
+              className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
             >
               {round.id}

@@ -43,7 +43,7 @@ const TxTitle: React.FC<TxTitleProps> = ({ index, txId, txType, onClickTxId }) =
 );
 
 const InputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-2 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
@@ -68,7 +68,7 @@ const InputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) =>
 );
 
 const OutputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-2 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
@@ -93,7 +93,7 @@ const OutputTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) =
 );
 
 const MintTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-2 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}

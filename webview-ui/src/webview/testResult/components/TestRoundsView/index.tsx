@@ -23,7 +23,7 @@ interface TableBodyProps {
 const TableHeader: React.FC = () => (
   <VscodeTableHeader slot="header" className="bg-base-20">
     {['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'].map(column => (
-      <VscodeTableHeaderCell key={column} className="p-3 border border-base-14 text-center">
+      <VscodeTableHeaderCell key={column} className="p-2 border border-base-14 text-center">
         {column}
       </VscodeTableHeaderCell>
     ))}
