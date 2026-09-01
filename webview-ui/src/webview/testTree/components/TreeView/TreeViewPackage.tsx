@@ -7,20 +7,15 @@ import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
   suiteMatchesFilter,
-  suiteMatchesStatus,
-  suiteMatchesType,
   getPackageTime,
   getPackageStatus,
   isRunnableStatus,
   formatTestTime
 } from '../../utils/treeUtils';
-import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
-  filterText: string;
-  statusFilter: RunStatus | null;
-  typeFilter: TestType | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -33,14 +28,12 @@ interface TreeViewPackageProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
-  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
-  filterText,
-  statusFilter,
-  typeFilter,
+  filter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -49,28 +42,22 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   onShowTestLocation,
   onContextMenu,
 }) => {
+  const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
+  const time = getPackageTime(testPackage);
+  const status = getPackageStatus(testPackage);
+  const isRunnable = isRunnableStatus(status);
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onUpdateOpenTestTreeNode(!isCollapsed, testPackage.workspace.id, testPackage.name);
     },
   });
 
-  const time = getPackageTime(testPackage);
-  const status = getPackageStatus(testPackage);
-  const isRunnable = isRunnableStatus(status);
-
-  const effectiveFilterText =
-    !filterText || testPackage.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
-
   const filteredSuites = useMemo(
     () =>
-      Object.values(testPackage.suites).filter(
-        (suite) =>
-          suiteMatchesStatus(suite, statusFilter) &&
-          suiteMatchesType(suite, typeFilter) &&
-          (!effectiveFilterText || suiteMatchesFilter(suite, effectiveFilterText)),
-      ),
-    [testPackage.suites, effectiveFilterText, statusFilter, typeFilter],
+      Object.values(testPackage.suites)
+        .filter(suite => suiteMatchesFilter(suite, filter)),
+    [testPackage.suites, filter],
   );
 
   const handleBuildPackage = (event: React.MouseEvent): void => {
@@ -92,7 +79,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { type: 'package', packageNode: testPackage });
+    onContextMenu(event, { type: 'package', packageId, packageNode: testPackage });
   };
 
   return (
@@ -131,12 +118,9 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
       {filteredSuites.map((suite) => (
         <TreeViewSuite
           key={suite.name}
-          workspaceId={testPackage.workspace.id}
-          packageName={testPackage.name}
+          packageId={packageId}
           suite={suite}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
-          typeFilter={typeFilter}
+          filter={filter}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateSelection={onUpdateSelection}

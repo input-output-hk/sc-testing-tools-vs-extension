@@ -8,19 +8,13 @@ import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
   isRunnableStatus,
   nodeMatchesFilter,
-  nodeMatchesStatus,
-  nodeMatchesType,
   formatTestTime
 } from '../../utils/treeUtils';
-import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewSuiteProps {
-  workspaceId: string;
-  packageName: string;
+  packageId: TestPackageId;
   suite: TestSuite;
-  filterText: string;
-  statusFilter: RunStatus | null;
-  typeFilter: TestType | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -33,16 +27,13 @@ interface TreeViewSuiteProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
-  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
-  workspaceId,
-  packageName,
+  packageId,
   suite,
-  filterText,
-  statusFilter,
-  typeFilter,
+  filter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -51,49 +42,44 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onShowTestLocation,
   onContextMenu,
 }) => {
+  const [workspaceId, packageName] = packageId;
+  const suiteId: TestSuiteId = [workspaceId, packageName, suite.name];
+  const isRunnable = isRunnableStatus(suite.status);
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suite.name);
     },
     onToggleSelection: (selected) => {
-      onUpdateSelection([[workspaceId, packageName, suite.name]], selected);
+      onUpdateSelection([suiteId], selected);
     },
   });
 
-  const isRunnable = isRunnableStatus(suite.status);
-
-  const effectiveFilterText =
-    !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
-
   const filteredNodes = useMemo(
     () =>
-      Object.values(suite.tests).filter(
-        (node) =>
-          nodeMatchesStatus(node, statusFilter) &&
-          nodeMatchesType(node, typeFilter) &&
-          (!effectiveFilterText || nodeMatchesFilter(node, effectiveFilterText)),
-      ),
-    [suite.tests, effectiveFilterText, statusFilter, typeFilter],
+      Object.values(suite.tests)
+        .filter(node => nodeMatchesFilter(node, filter)),
+    [suite.tests, filter],
   );
 
   const handleRunSuite = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTest([[workspaceId, packageName, suite.name]]);
+    onRunTest([suiteId]);
   };
 
   const handleBuildSuite = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onBuildTestSuite([workspaceId, packageName, suite.name]);
+    onBuildTestSuite(suiteId);
   };
 
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    onContextMenu(event, { type: 'suite', workspaceId, packageName, suiteNode: suite });
+    onContextMenu(event, { type: 'suite', suiteId, suiteNode: suite });
   };
 
   return (
@@ -134,14 +120,10 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           key={node.type === 'group'
             ? (node as TestTreeGroupNode).name
             : (node as TestTreeTestNode).test.id.join(':')}
-          workspaceId={workspaceId}
-          packageName={packageName}
-          suiteName={suite.name}
+          suiteId={suiteId}
           node={node}
           path={[]}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
-          typeFilter={typeFilter}
+          filter={filter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

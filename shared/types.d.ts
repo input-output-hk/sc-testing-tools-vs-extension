@@ -106,6 +106,17 @@ type TestTreeTestNode = TestTreeNode & {
   test: Test;
 };
 
+type TestTreeItem =
+  | { type: 'package'; packageId: TestPackageId; packageNode: TestPackage; }
+  | { type: 'suite'; suiteId: TestSuiteId; suiteNode: TestSuite; }
+  | { type: 'node'; node: TestTreeNode; };
+
+type TestTreeFilter = {
+  text?: string;
+  type?: TestType;
+  status?: RunStatus;
+}
+
 // Test Result
 
 type TestRound = {

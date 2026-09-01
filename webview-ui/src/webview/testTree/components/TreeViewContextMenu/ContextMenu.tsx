@@ -1,32 +1,27 @@
 import { forwardRef } from 'react';
 
-export type ContextMenuTarget =
-  | { type: 'package'; packageNode: TestPackage }
-  | { type: 'suite'; workspaceId: string; packageName: string; suiteNode: TestSuite }
-  | { type: 'node'; node: TestTreeNode };
-
-interface ContextMenuProps {
+interface Props {
   x: number;
   y: number;
-  runDisabled: boolean;
+  isRunnable: boolean;
+  isBuildable: boolean;
+  isBuildEnabled: boolean;
+  hasLocation: boolean;
   onRun: () => void;
-  showRefresh: boolean;
-  refreshDisabled: boolean;
-  onRefresh: () => void;
-  showViewLocation: boolean;
-  onViewLocation: () => void;
+  onBuild: () => void;
+  onShowLocation: () => void;
 }
 
-const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(({
+const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwardRef<HTMLDivElement, Props>(({
   x,
   y,
-  runDisabled,
+  isRunnable,
+  isBuildable,
+  isBuildEnabled,
+  hasLocation,
   onRun,
-  showRefresh,
-  refreshDisabled,
-  onRefresh,
-  showViewLocation,
-  onViewLocation,
+  onBuild,
+  onShowLocation,
 }, ref) => {
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
@@ -36,33 +31,33 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(({
     <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 w-44 bg-base-19 shadow-lg py-2">
       <button
         type="button"
-        disabled={runDisabled}
+        disabled={!isRunnable}
         className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-          runDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
+          !isRunnable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
         }`}
         onClick={onRun}
       >
         <i className="codicon codicon-run-all" />
         <span>Run Tests</span>
       </button>
-      {showRefresh &&
+      {isBuildable &&
         <button
           type="button"
-          disabled={refreshDisabled}
+          disabled={!isBuildEnabled}
           className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-            refreshDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
+            !isBuildEnabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
           }`}
-          onClick={onRefresh}
+          onClick={onBuild}
         >
           <i className="codicon codicon-refresh" />
           <span>Refresh Tests</span>
         </button>
       }
-      {showViewLocation &&
+      {hasLocation &&
         <button
           type="button"
           className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
-          onClick={onViewLocation}
+          onClick={onShowLocation}
         >
           <i className="codicon codicon-go-to-file" />
           <span>View in source file</span>
