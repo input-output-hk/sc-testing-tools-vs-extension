@@ -4,9 +4,10 @@ interface Props {
   content: string;
   id: string;
   place?: PlacesType;
+  maxWidth?: string;
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right' }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px' }) => {
 
   return (
     <>
@@ -17,8 +18,7 @@ const Tooltip: React.FC<Props> = ({ content, id, place = 'right' }) => {
         place={place}
         delayShow={300}
         border="1px solid var(--vscode-editorHoverWidget-border, #454545)"
-        // TODO: consider dynamically adjusting the max width based on passing in a prop
-        className="py-1 px-2 text-[12px] font-normal !opacity-100 z-[9999] max-w-[250px] whitespace-pre-wrap break-words"
+        className={`py-1 px-2 text-[12px] font-normal !opacity-100 z-[9999] max-w-[${maxWidth}] whitespace-pre-wrap break-words`}
         style={{
           backgroundColor: 'var(--vscode-editorHoverWidget-background, #252526)',
           color: 'var(--vscode-editorHoverWidget-foreground, #cccccc)',

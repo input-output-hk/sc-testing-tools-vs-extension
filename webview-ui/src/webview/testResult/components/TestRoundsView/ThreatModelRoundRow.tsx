@@ -5,11 +5,11 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
-import TransitionRoundTable from './TransitionRoundTable';
+import ThreatModelRoundSubTable from './ThreatModelRoundSubTable';
 
 interface Props {
   index: number;
-  round: TransitionTestRound;
+  round: ThreatModelTestRound;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
@@ -27,39 +27,42 @@ interface RoundStats {
   inputs: number;
   outputs: number;
   mints: number;
+  attacks: number;
   roundHasError: boolean;
   txHasError: boolean;
 }
 
-const getRoundStats = (round: TransitionTestRound): RoundStats => {
+const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
   let transactions = 0;
   let inputs = 0;
   let outputs = 0;
   let mints = 0;
+  let attacks = 0;
 
   const roundHasError = round.status.status === 'failure';
   let txHasError = false;
 
-  for (const transition of round.transitions) {
-    if (transition.tx) {
+  for (const trace of round.traces) {
+    if (trace.tx) {
       transactions += 1;
-      inputs += transition.tx.inputs.length;
-      outputs += transition.tx.outputs.length;
-      mints += transition.tx.mint ? transition.tx.mint.assets.length : 0;
+      inputs += trace.tx.inputs.length;
+      outputs += trace.tx.outputs.length;
+      mints += trace.tx.mint ? trace.tx.mint.assets.length : 0;
 
-      if (!txHasError && transition.result.status === 'failure') {
+      if (!txHasError && trace.outcome.status === 'failed') {
         txHasError = true;
       }
     }
+    attacks += trace.modifiedTx ? 1 : 0;
   }
 
-  return { transactions, inputs, outputs, mints, roundHasError, txHasError };
+  return { transactions, inputs, outputs, mints, attacks, roundHasError, txHasError };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   <VscodeTableCell
     className={
-      (props.id ? ' text-left p-0' : ' text-center p-3') +
+      (props.id ? ' text-left p-0' : ' text-center p-2') +
       (props.onClick ? ' cursor-pointer' : '')
     }
     onClick={props.onClick}
@@ -68,9 +71,9 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   </VscodeTableCell>
 );
 
-const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
+const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { transactions, inputs, outputs, mints, roundHasError, txHasError } = getRoundStats(round);
+  const { transactions, inputs, outputs, mints, attacks, roundHasError, txHasError } = getRoundStats(round);
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -85,13 +88,13 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
-              className="py-3 pl-3 pr-0 opacity-40 cursor-pointer"
+              className="py-2 pl-3 pr-0 opacity-40 cursor-pointer"
               onClick={() => setCollapsed(!collapsed)}
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>
             <button
-              className="p-3 text-blue-05 cursor-pointer"
+              className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
             >
               {round.id}
@@ -114,11 +117,12 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
         <RoundCell value={inputs} />
         <RoundCell value={outputs} />
         <RoundCell value={mints} />
+        <RoundCell value={attacks} />
       </VscodeTableRow>
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
-          <td colSpan={5} className="px-3 pb-3">
-            <TransitionRoundTable round={round} onOpenGraph={onOpenGraph} />
+          <td colSpan={6} className="px-3 pb-3">
+            <ThreatModelRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
       }
@@ -126,4 +130,4 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   );
 };
 
-export default TransitionRoundRow;
+export default ThreatModelRoundRow;

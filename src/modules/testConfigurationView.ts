@@ -6,6 +6,10 @@ import type { PbtContext } from '../extension';
 export default class TestConfigurationView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  // tracks the last dependency error actually surfaced to the status bar/notification,
+  // so surfacing the same cached error twice (e.g. testTreeView opens, then this view
+  // opens) doesn't pop the "no dependencies" error notification a second time
+  private lastSurfacedDependencyError: DependencyError | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -40,6 +44,15 @@ export default class TestConfigurationView {
     this.context.store.dependencyStore.initialize(this.context);
   }
 
+  // pushes the current (already-computed) dependency status to the status bar/notification
+  // and this view's webview; called both when this view opens and, so the check surfaces
+  // whenever the extension container is open regardless of which view the user has expanded,
+  // from other views in the container (e.g. testTreeView) on their own webview-ready
+  public surfaceDependencyStatus(): void {
+    this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
+    this.sendDependencyStatus();
+  }
+
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
@@ -54,9 +67,7 @@ export default class TestConfigurationView {
           case 'webview-ready':
             this.sendExecutionModeConfig();
             this.sendTestRoundsConfig();
-            // only surface the status bar item/error notification once the user has opened this view
-            this.onDependencyError(this.context.store.dependencyStore.getDependencyError());
-            this.sendDependencyStatus();
+            this.surfaceDependencyStatus();
             break;
           case 'config-update-execution-mode':
             this.updateExecutionMode(message.payload.executionMode);
@@ -109,30 +120,43 @@ export default class TestConfigurationView {
     this.webview?.postMessage({ type: 'status-missing-dependency', payload: { error } } as ExtensionToWebviewMessage);
   }
 
-  private onDependencyError({ hasError, message, code }: DependencyError): void {
+  private onDependencyError(error: DependencyError): void {
+    const { hasError, message, code } = error;
+
+    // this view's webview-ready and other container views' webview-ready (e.g. testTreeView)
+    // can both surface the same cached error when the user expands more than one view in
+    // the container, so only pop the notification again if the error actually changed
+    const alreadySurfaced = this.lastSurfacedDependencyError !== null
+      && this.lastSurfacedDependencyError.hasError === hasError
+      && this.lastSurfacedDependencyError.code === code
+      && this.lastSurfacedDependencyError.message === message;
+    this.lastSurfacedDependencyError = error;
+
     // Update the status bar and show error notification if no dependencies are installed
     if (hasError && code === 'no-dependencies') {
       this.context.statusBarItem.text = '$(error) No dependencies detected.';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       this.context.statusBarItem.show();
 
-      vscode.window.showErrorMessage(message,
-        'Retry',
-        'Install Nix',
-        'Install Docker'
-      ).then((selection) => {
-        switch (selection) {
-          case 'Retry':
-            this.refresh();
-            break;
-          case 'Install Nix':
-            vscode.env.openExternal(vscode.Uri.parse('https://nixos.org/download/'));
-            break;
-          case 'Install Docker':
-            vscode.env.openExternal(vscode.Uri.parse('https://www.docker.com/'));
-            break;
-        }
-      });
+      if (!alreadySurfaced) {
+        vscode.window.showErrorMessage(message,
+          'Retry',
+          'Install Nix',
+          'Install Docker'
+        ).then((selection) => {
+          switch (selection) {
+            case 'Retry':
+              this.refresh();
+              break;
+            case 'Install Nix':
+              vscode.env.openExternal(vscode.Uri.parse('https://nixos.org/download/'));
+              break;
+            case 'Install Docker':
+              vscode.env.openExternal(vscode.Uri.parse('https://www.docker.com/'));
+              break;
+          }
+        });
+      }
     } else if (hasError && code === 'nix-not-detected') {
       this.context.statusBarItem.text = '$(error) Nix not detected';
       this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');

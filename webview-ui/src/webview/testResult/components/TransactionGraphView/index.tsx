@@ -14,7 +14,7 @@ interface Props {
   isActive: boolean;
 }
 
-const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
+const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
   const [mode, setMode] = useState<GraphMode>('result-graph');
   const [test, setTest] = useState<Test|null>(null);
   const [testRoundIndex, setTestRoundIndex] = useState<number>(0);
@@ -78,5 +78,5 @@ const TransactionGraphTab: React.FC<Props & React.RefAttributes<Handle>> = forwa
   );
 });
 
-export type { Handle as TransactionGraphTabRef };
-export default TransactionGraphTab;
+export type { Handle as TransactionGraphViewRef };
+export default TransactionGraphView;

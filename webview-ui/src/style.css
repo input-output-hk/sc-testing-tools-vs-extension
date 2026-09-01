@@ -72,6 +72,11 @@
 
   /* VS Code editor hover widget theme tokens */
   --color-vscode-hover-bg: var(--vscode-editorHoverWidget-background);
+
+  /* VS Code panel tab theme tokens */
+  --color-vscode-panel-tab-active-fg: var(--vscode-panelTitle-activeForeground);
+  --color-vscode-panel-tab-inactive-fg: var(--vscode-panelTitle-inactiveForeground);
+  --color-vscode-panel-tab-active-border: var(--vscode-panelTitle-activeBorder);
 }
 
 @keyframes fadeIn {

@@ -28,7 +28,7 @@ interface TableBodyProps {
 const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
   <VscodeTableHeader slot="header" className="bg-base-20 min-w-24">
     {headers.map(column => (
-      <VscodeTableHeaderCell key={column} className="p-3 border border-base-14 text-center">
+      <VscodeTableHeaderCell key={column} className="p-2 border border-base-14 text-center">
         {column}
       </VscodeTableHeaderCell>
     ))}
@@ -57,7 +57,7 @@ const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph
   </VscodeTableBody>
 );
 
-const TestRoundsTab: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => (
+const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => (
   <ScrollableTable
     key={test.id.join(':')}
     isActive={isActive}
@@ -76,4 +76,4 @@ const TestRoundsTab: React.FC<Props> = ({ test, testRounds, isActive, onOpenGrap
   </ScrollableTable>
 )
 
-export default TestRoundsTab;
+export default TestRoundsView;

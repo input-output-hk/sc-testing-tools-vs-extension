@@ -1,9 +1,7 @@
-import {
-  VscodeTabs,
-  VscodeTabHeader,
-  VscodeTabPanel
-} from '@vscode-elements/react-elements';
+import { useState } from 'react';
 
+import Tabs from '../Tabs';
+import type { TabItem } from '../Tabs';
 import GenericTable from './GenericTable';
 
 import { txValueToString } from '../../utils/txUtils';
@@ -113,47 +111,77 @@ const MintTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
   </div>
 );
 
-const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => (
-  <div className="relative z-1">
-    <VscodeTabs className="px-3 pt-1 bg-base-20">
-      <VscodeTabHeader slot="header">Inputs</VscodeTabHeader>
-      <VscodeTabHeader slot="header">Outputs</VscodeTabHeader>
-      <VscodeTabHeader slot="header">Mints</VscodeTabHeader>
+const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
+  const [selectedTab, setSelectedTab] = useState<string>('inputs');
+  const traces = round.traces.filter(trace => trace.tx);
+  const hasMintTransaction = traces.some(trace => (trace.tx.mint?.assets.length ?? 0) > 0);
+  const effectiveSelectedTab = selectedTab === 'mints' && !hasMintTransaction ? 'inputs' : selectedTab;
 
-      <VscodeTabPanel className="mt-3">
-        {round.traces.filter(trace => trace.tx).map((trace, index) => (
-          <div key={index}>
-            <InputTable
-              index={index} tx={trace.tx}
-              onClickNode={nodeId => onOpenGraph(round, nodeId)}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
+  const tabs: Array<TabItem> = [
+    {
+      id: 'inputs',
+      label: 'Inputs',
+      panel: (
+        <div>
+          {traces.map((trace, index) => (
+            <div key={index}>
+              <InputTable
+                index={index} tx={trace.tx}
+                onClickNode={nodeId => onOpenGraph(round, nodeId)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'outputs',
+      label: 'Outputs',
+      panel: (
+        <div>
+          {traces.map((trace, index) => (
+            <div key={index}>
+              <OutputTable
+                index={index} tx={trace.tx}
+                onClickNode={nodeId => onOpenGraph(round, nodeId)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
 
-      <VscodeTabPanel className="mt-3">
-        {round.traces.filter(trace => trace.tx).map((trace, index) => (
-          <div key={index}>
-            <OutputTable
-              index={index} tx={trace.tx}
-              onClickNode={nodeId => onOpenGraph(round, nodeId)}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
+  if (hasMintTransaction) {
+    tabs.push({
+      id: 'mints',
+      label: 'Mints',
+      panel: (
+        <div>
+          {traces.map((trace, index) => (
+            <div key={index}>
+              <MintTable
+                index={index} tx={trace.tx}
+                onClickNode={nodeId => onOpenGraph(round, nodeId)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
 
-      <VscodeTabPanel className="mt-3">
-        {round.traces.filter(trace => trace.tx).map((trace, index) => (
-          <div key={index}>
-            <MintTable
-              index={index} tx={trace.tx}
-              onClickNode={nodeId => onOpenGraph(round, nodeId)}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
-    </VscodeTabs>
-  </div>
-);
+  return (
+    <div className="relative z-1">
+      <Tabs
+        className="px-3 pt-1 bg-base-20"
+        panelClassName="mt-3"
+        selectedId={effectiveSelectedTab}
+        onSelect={setSelectedTab}
+        tabs={tabs}
+      />
+    </div>
+  );
+};
 
-export default ThreatModelRoundTable;
+export default ThreatModelRoundSubTable;

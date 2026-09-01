@@ -36,7 +36,7 @@ const ScrollableTable: React.FC<Props> = ({ isActive, children }) => {
   return (
     <VscodeTable
       ref={tableRef}
-      className="h-full flex flex-col"
+      className="h-full flex flex-col border border-base-14"
       responsive resizable
     >
       {children}
