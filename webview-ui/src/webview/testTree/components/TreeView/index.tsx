@@ -1,16 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TreeViewPackage from './TreeViewPackage';
-import TreeViewFilter from './TreeViewFilter';
-import TreeViewContextMenu, { type ContextMenuState } from './TreeViewContextMenu';
-import type { ContextMenuTarget } from './ContextMenu';
-import {
-  packageMatchesFilter,
-  packageMatchesStatus,
-  packageMatchesType,
-  isRunnableTestId,
-} from '../../utils/treeUtils';
+import TreeViewFilter from '../TreeViewFilter';
+import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
+import { packageMatchesFilter, isRunnableTestId } from '../../utils/treeUtils';
 
 interface TreeViewProps {
   testTree: TestTree;
@@ -27,22 +21,23 @@ interface TreeViewProps {
   onShowTestLocation: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSuite, onUpdateOpenTestTreeNode, onOpenTestResult, onShowTestLocation }) => {
+const TreeView: React.FC<TreeViewProps> = ({
+  testTree,
+  onRunTest,
+  onBuildTestSuite,
+  onUpdateOpenTestTreeNode,
+  onOpenTestResult,
+  onShowTestLocation
+}) => {
+  const contextMenuRef = useRef<TreeViewContextMenuRef>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filterText, setFilterText] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<TestType | null>(null);
-  const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [filter, setFilter] = useState<TestTreeFilter>({});
 
   const filteredPackages = useMemo(
     () =>
-      Object.values(testTree.packages).filter(
-        testPackage =>
-          packageMatchesStatus(testPackage, statusFilter) &&
-          packageMatchesType(testPackage, typeFilter) &&
-          (!filterText || packageMatchesFilter(testPackage, filterText)),
-      ),
-    [testTree.packages, filterText, statusFilter, typeFilter],
+      Object.values(testTree.packages)
+        .filter(testPackage => packageMatchesFilter(testPackage, filter)),
+    [testTree.packages, filter],
   );
 
   const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
@@ -83,31 +78,23 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
     }
   };
 
-  const handleContextMenu = (event: React.MouseEvent, target: ContextMenuTarget): void => {
-    setContextMenu({ x: event.clientX, y: event.clientY, target });
+  const handleContextMenu = (event: React.MouseEvent, item: TestTreeItem): void => {
+    contextMenuRef.current?.open(event, item);
   };
-
-  const closeContextMenu = (): void => setContextMenu(null);
 
   return (
     <div className="h-full flex flex-col">
       <TreeViewFilter
-        filterText={filterText}
-        statusFilter={statusFilter}
-        typeFilter={typeFilter}
-        onFilterTextChange={setFilterText}
-        onStatusFilterChange={setStatusFilter}
-        onTypeFilterChange={setTypeFilter}
+        filter={filter}
+        onChangeFilter={setFilter}
       />
       <div className="flex-1 overflow-y-auto">
         <VscodeTree multiSelect>
-          {filteredPackages.map((testPackage) => (
+          {filteredPackages.map(testPackage => (
             <TreeViewPackage
               key={testPackage.name}
               testPackage={testPackage}
-              filterText={filterText}
-              statusFilter={statusFilter}
-              typeFilter={typeFilter}
+              filter={filter}
               onRunTest={handleRunTest}
               onBuildTestSuite={onBuildTestSuite}
               onUpdateSelection={handleUpdateSelection}
@@ -120,9 +107,7 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTest, onBuildTestSui
         </VscodeTree>
       </div>
       <TreeViewContextMenu
-        contextMenu={contextMenu}
-        selected={selected}
-        onClose={closeContextMenu}
+        ref={contextMenuRef}
         onRunTest={handleRunTest}
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}

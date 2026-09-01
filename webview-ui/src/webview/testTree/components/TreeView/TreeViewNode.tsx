@@ -1,16 +1,11 @@
 import TreeViewGroup from './TreeViewGroup';
 import TreeViewTest from './TreeViewTest';
-import type { ContextMenuTarget } from './ContextMenu';
 
 interface TreeViewNodeProps {
-  workspaceId: string;
-  packageName: string;
-  suiteName: string;
+  suiteId: TestSuiteId;
   node: TestTreeNode;
   path: Array<string>;
-  filterText: string;
-  statusFilter: RunStatus | null;
-  typeFilter: TestType | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -22,18 +17,14 @@ interface TreeViewNodeProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
-  onContextMenu: (event: React.MouseEvent, target: ContextMenuTarget) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
-  workspaceId,
-  packageName,
-  suiteName,
+  suiteId,
   node,
   path,
-  filterText,
-  statusFilter,
-  typeFilter,
+  filter,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -43,14 +34,10 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
 }) =>
   node.type === 'group' ? (
     <TreeViewGroup
+      suiteId={suiteId}
       node={node as TestTreeGroupNode}
       path={path}
-      workspaceId={workspaceId}
-      packageName={packageName}
-      suiteName={suiteName}
-      filterText={filterText}
-      statusFilter={statusFilter}
-      typeFilter={typeFilter}
+      filter={filter}
       onRunTest={onRunTest}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
