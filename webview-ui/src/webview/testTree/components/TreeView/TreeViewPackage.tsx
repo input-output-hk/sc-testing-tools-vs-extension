@@ -5,12 +5,17 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewSuite from './TreeViewSuite';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { suiteMatchesFilter, suiteMatchesStatus, getPackageStatus } from '../../utils/treeUtils';
+import {
+  suiteMatchesFilter,
+  getPackageTime,
+  getPackageStatus,
+  isRunnableStatus,
+  formatTestTime
+} from '../../utils/treeUtils';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
-  filterText: string;
-  statusFilter: RunStatus | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -23,39 +28,36 @@ interface TreeViewPackageProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
-  filterText,
-  statusFilter,
+  filter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
+  const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
+  const time = getPackageTime(testPackage);
+  const status = getPackageStatus(testPackage);
+  const isRunnable = isRunnableStatus(status);
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onUpdateOpenTestTreeNode(!isCollapsed, testPackage.workspace.id, testPackage.name);
     },
   });
 
-  const status = getPackageStatus(testPackage);
-  const isRunnable = status !== 'running' && status !== 'waiting';
-
-  const effectiveFilterText =
-    !filterText || testPackage.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
-
   const filteredSuites = useMemo(
     () =>
-      Object.values(testPackage.suites).filter(
-        (suite) =>
-          suiteMatchesStatus(suite, statusFilter) &&
-          (!effectiveFilterText || suiteMatchesFilter(suite, effectiveFilterText)),
-      ),
-    [testPackage.suites, effectiveFilterText, statusFilter],
+      Object.values(testPackage.suites)
+        .filter(suite => suiteMatchesFilter(suite, filter)),
+    [testPackage.suites, filter],
   );
 
   const handleBuildPackage = (event: React.MouseEvent): void => {
@@ -74,12 +76,23 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     onRunTest(Object.values(testPackage.suites).map(suite => [testPackage.workspace.id, testPackage.name, suite.name]));
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { type: 'package', packageId, packageNode: testPackage });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen}>
+    <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {testPackage.name}
+          {time > 0 &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
+            </span>
+          }
         </span>
         <button
           type="button"
@@ -105,17 +118,16 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
       {filteredSuites.map((suite) => (
         <TreeViewSuite
           key={suite.name}
-          workspaceId={testPackage.workspace.id}
-          packageName={testPackage.name}
+          packageId={packageId}
           suite={suite}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
+          filter={filter}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

@@ -10,14 +10,16 @@ import {
 interface Column {
   key: string;
   label: string;
+  clickable?: boolean;
 }
 
 interface Props {
   columns: Column[];
   rows: Array<Record<string, unknown>>;
+  onClick?: (rowIndex: number, column: string) => void;
 }
 
-const GenericTable: React.FC<Props> = ({ rows, columns }) => (
+const GenericTable: React.FC<Props> = ({ rows, columns, onClick }) => (
   <VscodeTable responsive resizable className="border border-base-13">
     <VscodeTableHeader slot="header" className="bg-transparent">
       {columns.map((column, index) =>
@@ -35,7 +37,8 @@ const GenericTable: React.FC<Props> = ({ rows, columns }) => (
           {columns.map((column, colIndex) => (
             <VscodeTableCell
               key={colIndex}
-              className="p-2 text-center border border-base-13"
+              className={`p-2 text-center border border-base-13 ${column.clickable ? 'cursor-pointer text-blue-05' : ''}`}
+              onClick={column.clickable && onClick ? () => onClick(index, column.key) : undefined}
             >
               {Object.hasOwn(row, column.key) ? String(row[column.key]) : ''}
             </VscodeTableCell>

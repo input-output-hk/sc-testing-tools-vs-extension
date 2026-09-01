@@ -3,26 +3,24 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
-import useTreeItemState from '../../../../hooks/useTreeItemState';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
   getGroupTests,
   getGroupTestIds,
+  getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
-  nodeMatchesStatus,
-  isRunnableTestId,
+  isTestRunnable,
   sortTreeNodes,
+  formatTestTime,
 } from '../../utils/treeUtils';
 
 interface TreeViewGroupProps {
-  workspaceId: string;
-  packageName: string;
-  suiteName: string;
+  suiteId: TestSuiteId;
   node: TestTreeGroupNode;
   path: Array<string>;
-  filterText: string;
-  statusFilter: RunStatus | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -34,26 +32,28 @@ interface TreeViewGroupProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
-  workspaceId,
-  packageName,
-  suiteName,
+  suiteId,
   node,
   path,
-  filterText,
-  statusFilter,
+  filter,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
+  const [workspaceId, packageName, suiteName] = suiteId;
+  const time = getGroupTime(node);
+  const status = getGroupStatus(node);
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
-    () => getGroupTests(node).some(test => isRunnableTestId(test.id) && test.status !== 'running' && test.status !== 'waiting'),
+    () => getGroupTests(node).some(isTestRunnable),
     [node],
   );
 
@@ -66,20 +66,12 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     },
   });
 
-  const effectiveFilterText =
-    !filterText || node.name.toLowerCase().includes(filterText.toLowerCase())
-      ? ''
-      : filterText;
-
   const filteredNodes = useMemo(
     () =>
-      Object.values(node.nodes).filter(
-        (childNode) =>
-          nodeMatchesStatus(childNode, statusFilter) &&
-          nodeMatchesFilter(childNode, effectiveFilterText),
-      )
-      .sort(sortTreeNodes),
-    [node.nodes, effectiveFilterText, statusFilter],
+      Object.values(node.nodes)
+        .filter(node => nodeMatchesFilter(node, filter))
+        .sort(sortTreeNodes),
+    [node.nodes, filter]
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -89,15 +81,26 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     onRunTest(getGroupTestIds(node));
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { type: 'node', node });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
-      <TestStatusIcon status={getGroupStatus(node)} isThreatModel={isThreatModel} />
+    <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
+      <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
               ({Object.keys(node.nodes).length})
+            </span>
+          }
+          {time > 0 && status !== 'running' && status !== 'waiting' &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(time)}
             </span>
           }
         </span>
@@ -117,18 +120,16 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           key={childNode.type === 'group'
             ? (childNode as TestTreeGroupNode).name
             : (childNode as TestTreeTestNode).test.id.join(':')}
-          workspaceId={workspaceId}
-          packageName={packageName}
-          suiteName={suiteName}
+          suiteId={suiteId}
           node={childNode}
           path={[...path, node.name]}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
+          filter={filter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

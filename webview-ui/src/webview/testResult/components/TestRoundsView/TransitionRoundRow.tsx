@@ -10,7 +10,7 @@ import TransitionRoundSubTable from './TransitionRoundSubTable';
 interface Props {
   index: number;
   round: TransitionTestRound;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
 type RoundCellProps = {

@@ -5,14 +5,16 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { nodeMatchesFilter, nodeMatchesStatus } from '../../utils/treeUtils';
+import {
+  isRunnableStatus,
+  nodeMatchesFilter,
+  formatTestTime
+} from '../../utils/treeUtils';
 
 interface TreeViewSuiteProps {
-  workspaceId: string;
-  packageName: string;
+  packageId: TestPackageId;
   suite: TestSuite;
-  filterText: string;
-  statusFilter: RunStatus | null;
+  filter: TestTreeFilter;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -25,65 +27,72 @@ interface TreeViewSuiteProps {
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
-  workspaceId,
-  packageName,
+  packageId,
   suite,
-  filterText,
-  statusFilter,
+  filter,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
+  const [workspaceId, packageName] = packageId;
+  const suiteId: TestSuiteId = [workspaceId, packageName, suite.name];
+  const isRunnable = isRunnableStatus(suite.status);
+
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
       onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suite.name);
     },
     onToggleSelection: (selected) => {
-      onUpdateSelection([[workspaceId, packageName, suite.name]], selected);
+      onUpdateSelection([suiteId], selected);
     },
   });
 
-  const isRunnable = suite.status !== 'running' && suite.status !== 'waiting';
-
-  const effectiveFilterText =
-    !filterText || suite.name.toLowerCase().includes(filterText.toLowerCase()) ? '' : filterText;
-
   const filteredNodes = useMemo(
     () =>
-      Object.values(suite.tests).filter(
-        (node) =>
-          nodeMatchesStatus(node, statusFilter) &&
-          (!effectiveFilterText || nodeMatchesFilter(node, effectiveFilterText)),
-      ),
-    [suite.tests, effectiveFilterText, statusFilter],
+      Object.values(suite.tests)
+        .filter(node => nodeMatchesFilter(node, filter)),
+    [suite.tests, filter],
   );
 
   const handleRunSuite = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTest([[workspaceId, packageName, suite.name]]);
+    onRunTest([suiteId]);
   };
 
   const handleBuildSuite = (event: React.MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onBuildTestSuite([workspaceId, packageName, suite.name]);
+    onBuildTestSuite(suiteId);
+  };
+
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { type: 'suite', suiteId, suiteNode: suite });
   };
 
   return (
-    <VscodeTreeItem ref={treeItemRef} open={suite.isOpen}>
+    <VscodeTreeItem ref={treeItemRef} open={suite.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={suite.status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {suite.name}
+          {suite.time !== undefined && suite.time > 0 &&
+            <span className="ml-1 opacity-60">
+              {formatTestTime(suite.time)}
+            </span>
+          }
         </span>
         <button
           type="button"
@@ -111,18 +120,16 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           key={node.type === 'group'
             ? (node as TestTreeGroupNode).name
             : (node as TestTreeTestNode).test.id.join(':')}
-          workspaceId={workspaceId}
-          packageName={packageName}
-          suiteName={suite.name}
+          suiteId={suiteId}
           node={node}
           path={[]}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
+          filter={filter}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
           onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

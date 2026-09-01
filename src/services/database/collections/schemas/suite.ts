@@ -7,6 +7,7 @@ import {
 } from 'rxdb';
 
 import {
+  numberSchema,
   stringSchema,
   suiteIdSchema,
   workspaceIdSchema,
@@ -29,6 +30,7 @@ const suiteSchemaLiteral = {
     packageName: packageNameSchema,
     suiteName: suiteNameSchema,
     status: stringSchema,
+    time: numberSchema,
     treeVersion: {
       type: 'number',
       minimum: 0,

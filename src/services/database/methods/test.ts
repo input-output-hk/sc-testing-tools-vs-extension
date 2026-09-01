@@ -128,7 +128,7 @@ export const handleTestRunErrorEvent = async (
         .find({ selector: { workspaceId, packageName, suiteName, status: 'waiting' } })
         .update({ $set: { status: 'undetermined' } });
     }
-    await suiteDocument.update({ $set: { status: 'invalid' } });
+    await suiteDocument.update({ $set: { status: 'invalid', time: undefined } });
   }
 }
 
@@ -164,7 +164,7 @@ export const handleTestRun = async (database: Database, testIds: Array<RunnableT
 
   await database.suites
     .findByIds(Array.from(suites))
-    .update({ $set: { status: 'running' } });
+    .update({ $set: { status: 'running', time: undefined } });
 }
 
 export const getTest = async (database: Database, testId: TestId): Promise<Test> => {

@@ -37,13 +37,11 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
     return () => window.removeEventListener('message', messageHandler);
   }, [vscode]);
 
-  const handleOpenGraph = (round: TestRound, txId?: string, txType?: TxType): void => {
+  const handleOpenGraph = (round: TestRound, nodeId?: string): void => {
     setSelectedTab(TX_GRAPH_TAB);
-    if (txId === undefined) {
-      graphRef.current?.selectRound(round);
-    } else {
-      graphRef.current?.selectTx(round, txId, txType);
-    }
+    requestAnimationFrame(() =>
+      graphRef.current?.showRoundNode(round, nodeId)
+    );
   };
 
   if (!test) return <></>;
@@ -91,6 +89,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
                   test={test}
                   testRounds={testRounds}
                   ref={graphRef}
+                  isActive={selectedTab === TX_GRAPH_TAB}
                 />
               ),
             },

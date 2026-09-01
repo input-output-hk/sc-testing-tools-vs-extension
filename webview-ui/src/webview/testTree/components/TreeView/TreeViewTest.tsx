@@ -1,8 +1,8 @@
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
-import { isRunnableTestId } from '../../utils/treeUtils';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
+import { isTestRunnable, formatTestTime } from '../../utils/treeUtils';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;
@@ -11,15 +11,8 @@ interface TreeViewTestProps {
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
-
-const formatTestTime = (time: number): string => {
-  if (time < 1000) {
-    return `${time.toFixed(2)}ms`;
-  } else {
-    return `${(time / 1000).toFixed(2)}s`;
-  }
-};
 
 const TreeViewTest: React.FC<TreeViewTestProps> = ({
   node,
@@ -28,8 +21,9 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onUpdateSelection,
   onOpenTestResult,
   onShowTestLocation,
+  onContextMenu,
 }) => {
-  const isRunnable = isRunnableTestId(node.test.id) && node.test.status !== 'running' && node.test.status !== 'waiting';
+  const isRunnable = isTestRunnable(node.test);
   const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
 
   const treeItemRef = useTreeItemState({
@@ -57,8 +51,14 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     if (node.test.location !== undefined) onShowTestLocation(node.test.id);
   };
 
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { type: 'node', node });
+  };
+
   return (
-    <VscodeTreeItem ref={treeItemRef} onClickCapture={handleShowTestLocation}>
+    <VscodeTreeItem ref={treeItemRef} onClickCapture={handleShowTestLocation} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={node.test.status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">

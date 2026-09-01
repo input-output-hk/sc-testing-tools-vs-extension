@@ -11,18 +11,23 @@ import ThreatModelRoundRow from './ThreatModelRoundRow';
 interface Props {
   test: Test;
   testRounds: Array<TestRound>;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
   isActive: boolean;
 }
 
-interface TableBodyProps {
-  testRounds: Array<TestRound>;
-  onOpenGraph: (round: TestRound, txId?: string, txType?: TxType) => void;
+interface TableHeaderProps {
+  headers: Array<string>;
 }
 
-const TableHeader: React.FC = () => (
-  <VscodeTableHeader slot="header" className="bg-base-20">
-    {['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'].map(column => (
+interface TableBodyProps {
+  testType?: TestType;
+  testRounds: Array<TestRound>;
+  onOpenGraph: (round: TestRound, nodeId?: string) => void;
+}
+
+const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
+  <VscodeTableHeader slot="header" className="bg-base-20 min-w-24">
+    {headers.map(column => (
       <VscodeTableHeaderCell key={column} className="p-2 border border-base-14 text-center">
         {column}
       </VscodeTableHeaderCell>
@@ -30,10 +35,10 @@ const TableHeader: React.FC = () => (
   </VscodeTableHeader>
 );
 
-const TableBody: React.FC<TableBodyProps> = ({ testRounds, onOpenGraph }) => (
+const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph }) => (
   <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-base-14 border-x-base-14">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
-      round.type !== 'threat-model' ? (
+      testType !== 'threat-model' ? (
         <TransitionRoundRow
           key={index}
           index={index}
@@ -52,19 +57,23 @@ const TableBody: React.FC<TableBodyProps> = ({ testRounds, onOpenGraph }) => (
   </VscodeTableBody>
 );
 
-const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => {
-  return (
-    <ScrollableTable
-      key={test.id.join(':')}
-      isActive={isActive}
-    >
-      <TableHeader />
-      <TableBody
-        testRounds={testRounds}
-        onOpenGraph={onOpenGraph}
-      />
-    </ScrollableTable>
-  );
-};
+const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => (
+  <ScrollableTable
+    key={test.id.join(':')}
+    isActive={isActive}
+  >
+    <TableHeader
+      headers={test.type !== 'threat-model' ?
+        ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
+        ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
+      }
+    />
+    <TableBody
+      testType={test.type}
+      testRounds={testRounds}
+      onOpenGraph={onOpenGraph}
+    />
+  </ScrollableTable>
+)
 
 export default TestRoundsView;
