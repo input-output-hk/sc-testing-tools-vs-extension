@@ -115,7 +115,7 @@ const MintTable: React.FC<TableProps> = ({ index, tx, txType, onClickTxId }) => 
   </div>
 );
 
-const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => {
+const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   const [selectedTab, setSelectedTab] = useState<string>(INPUTS_TAB);
   const traces = round.traces.filter(trace => trace.tx);
 
@@ -211,4 +211,4 @@ const ThreatModelRoundTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   );
 };
 
-export default ThreatModelRoundTable;
+export default ThreatModelRoundSubTable;

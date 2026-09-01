@@ -5,7 +5,7 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
-import TransitionRoundTable from './TransitionRoundTable';
+import TransitionRoundSubTable from './TransitionRoundSubTable';
 
 interface Props {
   index: number;
@@ -118,7 +118,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
           <td colSpan={5} className="px-3 pb-3">
-            <TransitionRoundTable round={round} onOpenGraph={onOpenGraph} />
+            <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
       }

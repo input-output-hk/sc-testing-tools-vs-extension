@@ -5,7 +5,7 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
-import ThreatModelRoundTable from './ThreatModelRoundTable';
+import ThreatModelRoundSubTable from './ThreatModelRoundSubTable';
 
 interface Props {
   index: number;
@@ -118,7 +118,7 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
           <td colSpan={5} className="px-3 pb-3">
-            <ThreatModelRoundTable round={round} onOpenGraph={onOpenGraph} />
+            <ThreatModelRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
       }
