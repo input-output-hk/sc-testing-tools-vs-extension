@@ -1,9 +1,7 @@
-import {
-  VscodeTabs,
-  VscodeTabHeader,
-  VscodeTabPanel
-} from '@vscode-elements/react-elements';
+import { useState } from 'react';
 
+import Tabs from '../Tabs';
+import type { TabItem } from '../Tabs';
 import GenericTable from './GenericTable';
 
 import { txValueToString } from '../../utils/txUtils';
@@ -33,94 +31,123 @@ const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
   </h3>
 );
 
-const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => (
-  <div className="relative z-1">
-    <VscodeTabs className="px-3 pt-1 bg-base-20">
-      <VscodeTabHeader slot="header">Inputs</VscodeTabHeader>
-      <VscodeTabHeader slot="header">Outputs</VscodeTabHeader>
-      <VscodeTabHeader slot="header">Mints</VscodeTabHeader>
+const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
+  const [selectedTab, setSelectedTab] = useState<string>('inputs');
+  const transactions = round.transitions.filter(transition => transition.tx);
+  const hasMintTransaction = transactions.some(transition => (transition.tx?.mint?.assets.length ?? 0) > 0);
+  const effectiveSelectedTab = selectedTab === 'mints' && !hasMintTransaction ? 'inputs' : selectedTab;
 
-      <VscodeTabPanel className="mt-3">
-        {round.transitions.filter(transition => transition.tx).map((transition, index) => (
-          <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle
-              index={index}
-              txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-            />
-            <GenericTable
-              columns={[
-                { key: 'utxo', label: 'UTxO', clickable: true },
-                { key: 'address', label: 'Address' },
-                { key: 'amount', label: 'Amount' },
-                { key: 'redeemer', label: 'Redeemer' }
-              ]}
-              rows={transition.tx?.inputs.map(input => ({
-                utxo: input.utxo,
-                address: input.address,
-                amount: txValueToString(input.value),
-                redeemer: input.redeemerRaw || ''
-              })) ?? []}
-              onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
+  const tabs: Array<TabItem> = [
+    {
+      id: 'inputs',
+      label: 'Inputs',
+      panel: (
+        <div>
+          {transactions.map((transition, index) => (
+            <div key={index} className="p-3 mb-3 bg-base-19">
+              <TxTitle
+                index={index}
+                txId={transition.tx?.id}
+                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
+              />
+              <GenericTable
+                columns={[
+                  { key: 'utxo', label: 'UTxO', clickable: true },
+                  { key: 'address', label: 'Address' },
+                  { key: 'amount', label: 'Amount' },
+                  { key: 'redeemer', label: 'Redeemer' }
+                ]}
+                rows={transition.tx?.inputs.map(input => ({
+                  utxo: input.utxo,
+                  address: input.address,
+                  amount: txValueToString(input.value),
+                  redeemer: input.redeemerRaw || ''
+                })) ?? []}
+                onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'outputs',
+      label: 'Outputs',
+      panel: (
+        <div>
+          {transactions.map((transition, index) => (
+            <div key={index} className="p-3 mb-3 bg-base-19">
+              <TxTitle
+                index={index}
+                txId={transition.tx?.id}
+                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
+              />
+              <GenericTable
+                columns={[
+                  { key: 'index', label: '#' },
+                  { key: 'utxo', label: 'UTxO', clickable: true },
+                  { key: 'address', label: 'Address' },
+                  { key: 'amount', label: 'Amount' },
+                  { key: 'datum', label: 'Datum' }
+                ]}
+                rows={transition.tx?.outputs.map(output => ({
+                  index: output.index,
+                  utxo: output.utxo,
+                  address: output.address,
+                  amount: txValueToString(output.value),
+                  datum: output.datum || ''
+                })) ?? []}
+                onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.outputs[index].utxo}`)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
 
-      <VscodeTabPanel className="mt-3">
-        {round.transitions.filter(transition => transition.tx).map((transition, index) => (
-          <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle
-              index={index}
-              txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-            />
-            <GenericTable
-              columns={[
-                { key: 'index', label: '#' },
-                { key: 'utxo', label: 'UTxO', clickable: true },
-                { key: 'address', label: 'Address' },
-                { key: 'amount', label: 'Amount' },
-                { key: 'datum', label: 'Datum' }
-              ]}
-              rows={transition.tx?.outputs.map(output => ({
-                index: output.index,
-                utxo: output.utxo,
-                address: output.address,
-                amount: txValueToString(output.value),
-                datum: output.datum || ''
-              })) ?? []}
-              onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
+  if (hasMintTransaction) {
+    tabs.push({
+      id: 'mints',
+      label: 'Mints',
+      panel: (
+        <div>
+          {transactions.map((transition, index) => (
+            <div key={index} className="p-3 mb-3 bg-base-19">
+              <TxTitle
+                index={index}
+                txId={transition.tx?.id}
+                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
+              />
+              <GenericTable
+                columns={[
+                  { key: 'quantity', label: 'Quantity' },
+                  { key: 'name', label: 'Name' },
+                  { key: 'policyId', label: 'Policy ID' }
+                ]}
+                rows={transition.tx?.mint?.assets.map(mint => ({
+                  quantity: mint.quantity,
+                  name: mint.name,
+                  policyId: mint.policyId
+                })) ?? []}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
 
-      <VscodeTabPanel className="mt-3">
-        {round.transitions.filter(transition => transition.tx).map((transition, index) => (
-          <div key={index} className="p-3 mb-3 bg-base-19">
-            <TxTitle
-              index={index}
-              txId={transition.tx?.id}
-              onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-            />
-            <GenericTable
-              columns={[
-                { key: 'quantity', label: 'Quantity' },
-                { key: 'name', label: 'Name' },
-                { key: 'policyId', label: 'Policy ID' }
-              ]}
-              rows={transition.tx?.mint?.assets.map(mint => ({
-                quantity: mint.quantity,
-                name: mint.name,
-                policyId: mint.policyId
-              })) ?? []}
-            />
-          </div>
-        ))}
-      </VscodeTabPanel>
-    </VscodeTabs>
-  </div>
-);
+  return (
+    <div className="relative z-1">
+      <Tabs className="px-3 pt-1 bg-base-20"
+        panelClassName="mt-3"
+        selectedId={effectiveSelectedTab}
+        onSelect={setSelectedTab}
+        tabs={tabs}
+      />
+    </div>
+  );
+};
 
 export default TransitionRoundSubTable;
