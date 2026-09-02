@@ -111,7 +111,6 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
 
   if (processState.spawnError !== null) {
     const data: ScriptExecutionErrorData = {
-      kind: 'script-execution-error',
       scriptPath,
       params: scriptParams,
       exitCode: null,
@@ -123,7 +122,6 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
 
   if (processState.exitCode !== 0) {
     const data: ScriptExecutionErrorData = {
-      kind: 'script-execution-error',
       scriptPath,
       params: scriptParams,
       exitCode: processState.exitCode,

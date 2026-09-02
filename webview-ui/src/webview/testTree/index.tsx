@@ -7,7 +7,6 @@ import TreeView from './components/TreeView';
 import {
   updateTest,
   updateTestSuite,
-  updateTestSuiteTree,
   updateOpenTestTreeNode
 } from './utils/treeUpdateUtils';
 
@@ -35,12 +34,6 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-tree') {
         setTestTree(message.payload.testTree);
         setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');
-      }
-      if (message.type === 'test-tree-suite-tree-update') {
-        setTestTree(testTree => {
-          if (!testTree) return testTree;
-          return updateTestSuiteTree({ ...testTree }, message.payload);
-        });
       }
       if (message.type === 'test-tree-update') {
         setTestTree(testTree => {

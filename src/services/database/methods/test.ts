@@ -1,4 +1,4 @@
-import { Range } from 'vscode';
+import { Range, workspace } from 'vscode';
 
 import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage } from './coverage';
@@ -96,39 +96,72 @@ export const handleTestContextEvent = async (database: Database, event: TestCont
   await createRounds(database, event.payload.rounds);
 }
 
+const getWorkspaceTestRuns = (workspace: Workspace, testIds: Array<RunnableTestId>): Array<TestRun> => {
+  const testRunsMap: Map<string, Array<string>> = new Map();
+  for (const id of testIds) {
+    const [_, packageName, suiteName, testId] = id;
+    const key = `${packageName}:${suiteName}`;
+    if (!testRunsMap.has(key)) testRunsMap.set(key, []);
+    if (testId !== undefined) testRunsMap.get(key)!.push(testId);
+  }
+  const testRuns: Array<TestRun> = [];
+  for (const [key, testIds] of testRunsMap) {
+    const [packageName, suiteName] = key.split(':');
+    testRuns.push({
+      packageName,
+      suiteName,
+      workspaceId: workspace.id,
+      testIds: testIds.length > 0 ? testIds : undefined
+    });
+  }
+  return testRuns;
+}
+
 export const handleTestRunErrorEvent = async (
   database: Database,
-  event: TestRunErrorEvent,
+  testJob: RpcRunJob,
+  failedTestRun: TestRun,
   prefetchTree: TestTree | null
 ): Promise<void> => {
-  const { workspaceId, packageName, suiteName, testIds } = event.payload.runParams.testRun;
+  const { workspace, testIds } = testJob.params;
+  const testRuns: Array<TestRun> = getWorkspaceTestRuns(workspace, testIds);
 
-  if (prefetchTree !== null) {
-    updateTestTreeSuiteStatus(prefetchTree, [workspaceId, packageName, suiteName], 'invalid');
-  }
+  for (const testRun of testRuns) {
+    const { workspaceId, packageName, suiteName, testIds } = testRun;
 
-  const suiteDocument: SuiteDocument | null = await database.suites.findOne({
-    selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
-  }).exec();
-  
-  if (suiteDocument !== null) {
-    if (testIds !== undefined) {
-      const testIdQuery = testIds.map(testId => ({ id: `${workspaceId}:${packageName}:${suiteName}:${testId}` }))
-      await database.tests
-        .find({ selector: { $or: testIdQuery, status: 'running' } })
-        .update({ $set: { status: 'invalid' } });
-      await database.tests
-        .find({ selector: { $or: testIdQuery, status: 'waiting' } })
-        .update({ $set: { status: 'undetermined' } });
-    } else {
-      await database.tests
-        .find({ selector: { workspaceId, packageName, suiteName, status: 'running' } })
-        .update({ $set: { status: 'invalid' } });
-      await database.tests
-        .find({ selector: { workspaceId, packageName, suiteName, status: 'waiting' } })
-        .update({ $set: { status: 'undetermined' } });
+    if (prefetchTree !== null) {
+      updateTestTreeSuiteStatus(prefetchTree, [workspaceId, packageName, suiteName], 'invalid');
     }
-    await suiteDocument.update({ $set: { status: 'invalid', time: undefined } });
+
+    const suiteDocument: SuiteDocument | null = await database.suites.findOne({
+      selector: { id: `${workspaceId}:${packageName}:${suiteName}` }
+    }).exec();
+    
+    if (suiteDocument !== null) {
+      if (testIds !== undefined) {
+        const testIdQuery = testIds.map(testId => ({ id: `${workspaceId}:${packageName}:${suiteName}:${testId}` }))
+        await database.tests
+          .find({ selector: { $or: testIdQuery, status: 'running' } })
+          .update({ $set: { status: 'invalid' } });
+        await database.tests
+          .find({ selector: { $or: testIdQuery, status: 'waiting' } })
+          .update({ $set: { status: 'undetermined' } });
+      } else {
+        await database.tests
+          .find({ selector: { workspaceId, packageName, suiteName, status: 'running' } })
+          .update({ $set: { status: 'invalid' } });
+        await database.tests
+          .find({ selector: { workspaceId, packageName, suiteName, status: 'waiting' } })
+          .update({ $set: { status: 'undetermined' } });
+      }
+
+      const status =
+        suiteDocument.workspaceId === failedTestRun.workspaceId &&
+        suiteDocument.packageName === failedTestRun.packageName ?
+        'invalid' : 'undetermined';
+
+      await suiteDocument.update({ $set: { status, time: undefined } });
+    }
   }
 }
 
@@ -162,9 +195,15 @@ export const handleTestRun = async (database: Database, testIds: Array<RunnableT
     })
     .update({ $set: { status: 'waiting' } });
 
-  await database.suites
-    .findByIds(Array.from(suites))
-    .update({ $set: { status: 'running', time: undefined } });
+  const suiteDocuments = await database.suites.findByIds(Array.from(suites)).exec();
+  for (const suiteDocument of suiteDocuments.values()) {
+    await suiteDocument.update({
+      $set: {
+        status: suiteDocument.status !== 'running' ? 'waiting' : 'running',
+        time: undefined
+      }
+    });
+  }
 }
 
 export const getTest = async (database: Database, testId: TestId): Promise<Test> => {

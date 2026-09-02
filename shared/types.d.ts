@@ -393,15 +393,13 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
 
 // Webview message
 
-type TestSuiteTreeUpdate = {
-  packageId: TestPackageId;
-  suite: TestSuite;
-};
-
 type TestSuiteUpdate = {
   suiteId: TestSuiteId;
-  status: RunStatus;
+  name?: string;
+  status?: RunStatus;
   time?: number;
+  tests?: TestTreeNodeMap;
+  isOpen?: boolean;
 };
 
 type TestTreeUpdate = {
@@ -425,7 +423,6 @@ type TestResult = {
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: { test: Test } }
-  | { type: "test-tree-suite-tree-update", payload: TestSuiteTreeUpdate }
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
@@ -470,7 +467,30 @@ type TestRunParams = {
   testIds: Array<RunnableTestId>;
 };
 
-type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-error" | "test-build-error";
+type RpcJobStatus = "running" | "valid" | "invalid";
+type RpcJobType = "run" | "build";
+
+type RpcJob = {
+  id: string;
+  type: RpcJobType;
+  status: TestJobStatus;
+  progress: number;
+  startedOn: number;
+  finishedOn?: number;
+  params: unknown;
+};
+
+type RpcBuildJob = RpcJob & {
+  type: 'build';
+  params: TestSuiteBuildParams;
+};
+
+type RpcRunJob = RpcJob & {
+  type: 'run';
+  params: TestRunParams;
+};
+
+type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-update" | "test-run-error";
 
 type TestEvent = {
   eventType: TestEventType;
@@ -512,33 +532,30 @@ type TestContextEvent = TestEvent & {
   };
 };
 
-type TestRunErrorEvent = TestEvent & {
-  eventType: "test-run-error";
-  payload: TestRunErrorData;
+type TestRunUpdateEvent = TestEvent & {
+  eventType: "test-run-update";
+  payload: {
+    job: RpcJob;
+  };
 };
 
-type TestSuiteBuildErrorEvent = TestEvent & {
-  eventType: "test-build-error";
-  payload: TestSuiteBuildErrorData;
+type TestRunErrorEvent = TestEvent & {
+  eventType: "test-run-error";
+  payload: {
+    job: RpcJob;
+    failedTestRun?: TestRun;
+    error: ScriptExecutionErrorData;
+  };
 };
 
 // Errors
 
 type ScriptExecutionErrorData = {
-  kind: "script-execution-error";
   scriptPath: string;
   params: Array<string>;
   exitCode: number | null;
   stderr: string;
   stdout: string;
-};
-
-type TestSuiteBuildErrorData = ScriptExecutionErrorData & {
-  runParams: TestSuiteBuildParams;
-};
-
-type TestRunErrorData = ScriptExecutionErrorData & {
-  runParams: TestRunParams & { testRun: TestRun };
 };
 
 type DependencyErrorCode = "no-dependencies" | "nix-not-detected" | "docker-not-detected" | "docker-connection";

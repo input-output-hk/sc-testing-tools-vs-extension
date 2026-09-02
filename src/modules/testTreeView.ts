@@ -29,7 +29,6 @@ export default class TestTreeView {
 
     this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
     this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteTreeUpdate(this.sendTestSuiteTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -82,9 +81,6 @@ export default class TestTreeView {
   private fetchTestTree(): void {
     this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
-    }).catch((error: unknown) => {
-      this.showError('Test discovery failed', error instanceof Error ? error.message : String(error));
-      this.sendTestTreeErrorToWebview();
     });
   }
 
@@ -128,25 +124,21 @@ export default class TestTreeView {
 
   private async runTest(testIds: Array<RunnableTestId>): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     this.context.store.testStore.runTest(testIds);
   }
 
   private async buildTestSuite(suiteId: TestSuiteId): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     this.context.store.testStore.buildTestSuite(suiteId);
   }
 
   private async buildAllTestSuites(): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     await this.context.store.testStore.buildAllTestSuites();
   }
 
   private async runAllTests(): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     await this.context.store.testStore.runAllTests();
   }
 
@@ -176,29 +168,9 @@ export default class TestTreeView {
     }
   }
 
-  private sendTestSuiteTreeUpdate({ packageId, suite }: TestSuiteTreeUpdate): void {
+  private sendTestSuiteUpdate(payload: TestSuiteUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-tree-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-suite-update', payload } as ExtensionToWebviewMessage);
     }
-  }
-
-  private sendTestSuiteUpdate({ suiteId, status, time }: TestSuiteUpdate): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-update', payload: { suiteId, status, time } } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private showError(title: string, message: string): void {
-    this.context.outputChannel.appendLine(`> ERROR: ${title}`);
-    this.context.outputChannel.appendLine(message);
-    this.context.outputChannel.show(true);
-
-    this.context.statusBarItem.text = `$(error) ${title}`;
-    this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-    this.context.statusBarItem.show();
-  }
-
-  private clearError(): void {
-    this.context.statusBarItem.hide();
   }
 }

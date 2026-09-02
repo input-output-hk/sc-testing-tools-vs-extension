@@ -18,8 +18,7 @@ import {
   handleTestSuiteBuild,
   handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
-  onTestSuiteUpdate,
-  onTestSuiteTreeUpdate,
+  onTestSuiteUpdate
 } from './methods/suite';
 
 import {
@@ -68,12 +67,12 @@ export default class Database {
     return await handleTestContextEvent(this.database!, event);
   }
 
-  public async handleTestRunErrorEvent(event: TestRunErrorEvent, prefetchTree: TestTree | null): Promise<void> {
-    return await handleTestRunErrorEvent(this.database!, event, prefetchTree);
+  public async handleTestRunErrorEvent(testJob: RpcRunJob, failedTestRun: TestRun, prefetchTree: TestTree | null): Promise<void> {
+    return await handleTestRunErrorEvent(this.database!, testJob, failedTestRun, prefetchTree);
   }
 
-  public async handleTestSuiteBuildErrorEvent(event: TestSuiteBuildErrorEvent, prefetchTree: TestTree | null): Promise<void> {
-    return await handleTestSuiteBuildErrorEvent(this.database!, event, prefetchTree);
+  public async handleTestSuiteBuildErrorEvent(testJob: RpcBuildJob, prefetchTree: TestTree | null): Promise<void> {
+    return await handleTestSuiteBuildErrorEvent(this.database!, testJob, prefetchTree);
   }
 
   public async handleTestTree(testTree: TestTree): Promise<void> {
@@ -124,12 +123,8 @@ export default class Database {
     onTestUpdate(this.database!, callback);
   }
 
-  public onTestSuiteTreeUpdate(openState: Record<string, boolean>, callback: (params: TestSuiteTreeUpdate) => void): void {
-    onTestSuiteTreeUpdate(this.database!, openState, callback);
-  }
-
-  public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
-    onTestSuiteUpdate(this.database!, callback);
+  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: (params: TestSuiteUpdate) => void): void {
+    onTestSuiteUpdate(this.database!, openState, callback);
   }
 
   public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {

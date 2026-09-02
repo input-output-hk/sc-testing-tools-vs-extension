@@ -33,6 +33,8 @@ export const getPackageStatus = (testPackage: TestPackage): RunStatus => {
     return 'running';
   } else if (statuses.includes('invalid')) {
     return 'invalid';
+  } else if (statuses.every((status) => status === 'waiting')) {
+    return 'waiting';
   } else if (statuses.every((status) => status === 'valid')) {
     return 'valid';
   }
@@ -113,7 +115,9 @@ export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
 export const formatTestTime = (time: number): string => {
   if (time < 1000) {
     return `${time.toFixed(2)}ms`;
-  } else {
+  } else if (time < 1000 * 60) {
     return `${(time / 1000).toFixed(2)}s`;
+  } else {
+    return `${(time / 1000 / 60).toFixed(2)}m`;
   }
 };

@@ -18,16 +18,16 @@ export const handleTestSuiteBuild = async (database: Database, testSuiteId: Test
   }).exec();
 
   if (suiteDocument !== null) {
-    await suiteDocument.update({ $set: { status: 'running' } });
+    await suiteDocument.update({
+      $set: {
+        status: suiteDocument.status !== 'running' ? 'waiting' : 'running',
+      }
+    });
   }
 }
 
-export const handleTestSuiteBuildErrorEvent = async (
-  database: Database,
-  event: TestSuiteBuildErrorEvent,
-  prefetchTree: TestTree | null
-): Promise<void> => {
-  const { workspace: { id: workspaceId }, packageName, suiteName } = event.payload.runParams
+export const handleTestSuiteBuildErrorEvent = async (database: Database, testJob: RpcBuildJob, prefetchTree: TestTree | null): Promise<void> => {
+  const { workspace: { id: workspaceId }, packageName, suiteName } = testJob.params;
   const testSuiteId: TestSuiteId = [workspaceId, packageName, suiteName];
   if (prefetchTree !== null) {
     updateTestTreeSuiteStatus(prefetchTree, testSuiteId, 'invalid');
@@ -99,15 +99,27 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
   }
 }
 
-export const onTestSuiteTreeUpdate = (
+export const onTestSuiteUpdate = (
   database: Database,
   openState: Record<string, boolean>,
-  callback: (params: TestSuiteTreeUpdate) => void
+  callback: (params: TestSuiteUpdate) => void
 ): void => {
   database.suites.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
-    const prevVersion = changeEvent.previousDocumentData?.treeVersion;
-    if (prevVersion !== document.treeVersion) {
+
+    const update: TestSuiteUpdate = {
+      suiteId: [document.workspaceId, document.packageName, document.suiteName]
+    };
+
+    if (document.time !== changeEvent.previousDocumentData?.time) {
+      update.time = document.time;
+    }
+
+    if (document.status !== changeEvent.previousDocumentData?.status) {
+      update.status = document.status as RunStatus;
+    }
+
+    if (document.treeVersion !== changeEvent.previousDocumentData?.treeVersion) {
       const testDocuments: Array<TestDocument> = await database.tests.find({
         selector: {
           workspaceId: document.workspaceId,
@@ -141,37 +153,14 @@ export const onTestSuiteTreeUpdate = (
 
       const packageId: TestPackageId = [document.workspaceId, document.packageName];
       const suiteId: TestSuiteId = [...packageId, document.suiteName];
-      const testTree = createTestTree(suiteId, openState, tests);
-      const suite: TestSuite = {
-        name: document.suiteName,
-        status: document.status as RunStatus,
-        time: document.time,
-        tests: testTree,
-        isOpen: openState[suiteId.join(':')] ?? false,
-      };
 
-      callback({ packageId, suite });
+      update.name = document.suiteName;
+      update.status = document.status as RunStatus;
+      update.time = document.time;
+      update.tests = createTestTree(suiteId, openState, tests);
+      update.isOpen = openState[suiteId.join(':')] ?? false;
     }
-  });
-}
 
-export const onTestSuiteUpdate = (
-  database: Database,
-  callback: (params: TestSuiteUpdate) => void
-): void => {
-  database.suites.update$.subscribe(changeEvent => {
-    const document = changeEvent.documentData;
-    const prevStatus = changeEvent.previousDocumentData?.status;
-    if (prevStatus !== document.status) {
-      callback({ 
-        suiteId: [
-          document.workspaceId,
-          document.packageName,
-          document.suiteName
-        ], 
-        status: document.status as RunStatus,
-        time: document.time,
-      });
-    }
+    callback(update);
   });
 }

@@ -69,11 +69,15 @@ export default class TestStore {
       case 'test-context':
         await this.database.handleTestContextEvent(event as TestContextEvent);
         break;
-      case 'test-build-error':
-        await this.database.handleTestSuiteBuildErrorEvent(event as TestSuiteBuildErrorEvent, this.staticTestTree);
-        break;
       case 'test-run-error':
-        await this.database.handleTestRunErrorEvent(event as TestRunErrorEvent, this.staticTestTree);
+        const testJob = (event as TestRunErrorEvent).payload.job;
+        const testRun = (event as TestRunErrorEvent).payload.failedTestRun;
+        if (testJob.type === 'build') {
+          await this.database.handleTestSuiteBuildErrorEvent(testJob as RpcBuildJob, this.staticTestTree);
+        }
+        if (testJob.type === 'run') {
+          await this.database.handleTestRunErrorEvent(testJob as RpcRunJob, testRun!, this.staticTestTree);
+        }
         break;
     }
   }
@@ -245,12 +249,8 @@ export default class TestStore {
     this.database.onTestUpdate(callback);
   }
 
-  public onTestSuiteTreeUpdate(callback: (params: TestSuiteTreeUpdate) => void): void {
-    this.database.onTestSuiteTreeUpdate(this.testOpenState, callback);
-  }
-
   public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
-    this.database.onTestSuiteUpdate(callback);
+    this.database.onTestSuiteUpdate(this.testOpenState, callback);
   }
 
   public onCoverageUpdate(callback: (coverageTree: CoverageTree) => void): void {
