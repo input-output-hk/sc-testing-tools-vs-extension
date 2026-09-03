@@ -52,6 +52,9 @@ export default class TestTreeView {
           case 'test-tree-build-suite':
             this.buildTestSuite(message.payload.suiteId);
             break;
+          case 'test-tree-open-coverage':
+            this.context.testCoverageView.openForTest(message.payload.testId, message.payload.testName);
+            break;
           case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
