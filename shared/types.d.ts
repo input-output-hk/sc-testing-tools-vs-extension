@@ -417,6 +417,10 @@ type CoverageTreeUpdate = {
   path: Array<string>;
 };
 
+type CoverageScope =
+  | { type: "all" }
+  | { type: "test", testId: TestId, testName: string };
+
 type TestResult = {
   test: Test;
   rounds: Array<TestRound>;
@@ -429,7 +433,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
-  | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
+  | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
   | { type: "status-missing-dependency", payload: { error: DependencyError } }
@@ -444,8 +448,10 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
+  | { type: "test-tree-open-coverage", payload: { testId: TestId, testName: string } }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
   | { type: "coverage-open-file", payload: { filePath: string } }
+  | { type: "coverage-show-all" }
   | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-update-test-rounds", payload: { rounds: number } };
 

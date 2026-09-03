@@ -197,7 +197,7 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
       'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
     }
   }).exec();
-  
+
   for (const document of documents) {
     const { total, covered } = calculateCoverageStats(document, testId);
     coverage.push({

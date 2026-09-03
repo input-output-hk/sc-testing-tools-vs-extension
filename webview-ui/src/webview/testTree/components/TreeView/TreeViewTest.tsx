@@ -10,6 +10,7 @@ interface TreeViewTestProps {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -20,6 +21,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onRunTest,
   onUpdateSelection,
   onOpenTestResult,
+  onOpenCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -37,6 +39,13 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
     onOpenTestResult(node.test.id);
+  };
+
+  const handleOpenCoverage = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onOpenCoverage(node.test.id, node.test.name);
   };
 
   const handleRunTest = (event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -81,6 +90,16 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             onClickCapture={handleOpenTestResult}
           >
             <i className="codicon codicon-tasklist" />
+          </button>
+        }
+
+        {node.test.type !== undefined && node.test.type !== 'unit-test' &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={handleOpenCoverage}
+          >
+            <i className="codicon codicon-coverage" />
           </button>
         }
 

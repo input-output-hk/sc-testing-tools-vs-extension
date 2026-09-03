@@ -5,6 +5,7 @@ import { GenericWebviewViewProvider } from '../utils/webview';
 export default class TestCoverageView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  private scope: CoverageScope = { type: 'all' };
 
   constructor() {
     this.context = {} as PbtContext;
@@ -24,13 +25,25 @@ export default class TestCoverageView {
     context.extension.subscriptions.push(collapseAllCommand);
   }
 
+  public openForTest(testId: TestId, testName: string): void {
+    this.scope = { type: 'test', testId, testName };
+    vscode.commands.executeCommand('pbt-test-coverage.focus');
+    this.refreshCoverage();
+  }
+
+  public openEntire(): void {
+    this.scope = { type: 'all' };
+    this.refreshCoverage();
+  }
+
   private close(): void {
+    this.scope = { type: 'all' };
     vscode.commands.executeCommand('pbt-test-coverage.removeView');
   }
-  
+
   private collapseAll(): void {
     this.context.store.testStore.collapseCoverage();
-    this.sendCoverage();
+    this.refreshCoverage();
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -42,7 +55,7 @@ export default class TestCoverageView {
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-            this.sendCoverage();
+            this.refreshCoverage();
             break;
           case 'coverage-open-file':
             this.openFile(message.payload.filePath);
@@ -52,6 +65,9 @@ export default class TestCoverageView {
               message.payload.isOpen, message.payload.path
             );
             break;
+          case 'coverage-show-all':
+            this.openEntire();
+            break;
         }
       },
       undefined,
@@ -59,13 +75,19 @@ export default class TestCoverageView {
     );
   }
 
-  private async sendCoverage(): Promise<void> {
-    const coverageTree = await this.context.store.testStore.getCoverage();
-    this.webview?.postMessage({ type: 'coverage-tree', payload: { coverageTree } } as ExtensionToWebviewMessage);
+  private async refreshCoverage(): Promise<void> {
+    const coverageTree = this.scope.type === 'test'
+      ? await this.context.store.testStore.getCoverageForTest(this.scope.testId)
+      : await this.context.store.testStore.getCoverage();
+    this.webview?.postMessage({ type: 'coverage-tree', payload: { coverageTree, scope: this.scope } } as ExtensionToWebviewMessage);
   }
 
   private sendCoverageUpdate(coverageTree: CoverageTree): void {
-    this.webview?.postMessage({ type: 'coverage-tree', payload: { coverageTree } } as ExtensionToWebviewMessage);
+    if (this.scope.type === 'all') {
+      this.webview?.postMessage({ type: 'coverage-tree', payload: { coverageTree, scope: this.scope } } as ExtensionToWebviewMessage);
+    } else {
+      this.refreshCoverage();
+    }
   }
   
   private async openFile(filePath: string): Promise<void> {

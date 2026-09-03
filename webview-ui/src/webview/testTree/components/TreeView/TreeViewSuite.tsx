@@ -26,6 +26,7 @@ interface TreeViewSuiteProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -39,6 +40,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onOpenCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -128,6 +130,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onOpenCoverage={onOpenCoverage}
           onShowTestLocation={onShowTestLocation}
           onContextMenu={onContextMenu}
         />

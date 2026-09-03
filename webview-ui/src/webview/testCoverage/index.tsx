@@ -13,6 +13,7 @@ interface TestCoverageProps {
 
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
   const [coverageTree, setCoverageTree] = useState<CoverageTree | null>(null);
+  const [scope, setScope] = useState<CoverageScope>({ type: 'all' });
   const hasItems = coverageTree !== null && Object.keys(coverageTree).length > 0;
 
   useEffect(() => {
@@ -22,6 +23,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
       const message = event.data as ExtensionToWebviewMessage;
       if (message.type === 'coverage-tree') {
         setCoverageTree(message.payload.coverageTree);
+        setScope(message.payload.scope);
       }
     };
 
@@ -38,6 +40,10 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
     vscode.postMessage({ type: 'coverage-tree-update', payload: { isOpen, path } });
   }
 
+  const onShowEntireCoverage = (): void => {
+    vscode.postMessage({ type: 'coverage-show-all' } as WebviewToExtensionMessage);
+  };
+
   return (
     <>
       {coverageTree === null &&
@@ -49,7 +55,13 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
         <div className="flex h-full flex-col">
           <CoverageTitle
             icon={hasItems}
-            text={hasItems ? 'Coverage: Entire Test Run' : 'No coverage detected'}
+            text={!hasItems
+              ? 'No coverage detected'
+              : scope.type === 'test'
+                ? `Coverage: ${scope.testName}`
+                : 'Coverage: Entire Test Run'
+            }
+            onClear={scope.type === 'test' ? onShowEntireCoverage : undefined}
           />
           <div className="min-h-0 flex-1">
             <CoverageTree
