@@ -31,12 +31,12 @@
     "commands": [
       {
         "command": "pbt-extension.buildAllTestSuites",
-        "title": "Refresh all test suites",
+        "title": "Refresh Tests",
         "icon": "$(refresh)"
       },
       {
         "command": "pbt-extension.runAllTests",
-        "title": "Run All",
+        "title": "Run Tests",
         "icon": "$(run-all)"
       },
       {

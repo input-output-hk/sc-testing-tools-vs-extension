@@ -1,20 +1,22 @@
 import { Tooltip as ReactTooltip, type PlacesType } from 'react-tooltip';
 
 interface Props {
-  content: string;
+  content?: string;
   id: string;
   place?: PlacesType;
   maxWidth?: string;
+  render?: React.ComponentProps<typeof ReactTooltip>['render'];
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px' }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', render }) => {
 
   return (
     <>
       <ReactTooltip
         id={id}
-        anchorSelect={`#${id}`}
+        anchorSelect={content !== undefined ? `#${id}` : undefined}
         content={content}
+        render={render}
         place={place}
         delayShow={300}
         border="1px solid var(--vscode-editorHoverWidget-border, #454545)"

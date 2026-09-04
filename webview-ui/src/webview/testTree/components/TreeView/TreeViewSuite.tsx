@@ -86,7 +86,11 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={suite.status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={suite.name}
+        >
           {suite.name}
           {suite.time !== undefined && suite.time > 0 &&
             <span className="ml-1 opacity-60">
@@ -101,6 +105,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleBuildSuite}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Refresh Tests"
         >
           <i className="codicon codicon-refresh" />
         </button>
@@ -111,6 +117,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunSuite}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>
