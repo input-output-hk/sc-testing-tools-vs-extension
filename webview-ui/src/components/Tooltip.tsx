@@ -1,7 +1,7 @@
 import { Tooltip as ReactTooltip, type PlacesType } from 'react-tooltip';
 
 interface Props {
-  content: string;
+  content?: string;
   id: string;
   place?: PlacesType;
   maxWidth?: string;
@@ -13,7 +13,7 @@ const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '25
     <>
       <ReactTooltip
         id={id}
-        anchorSelect={`#${id}`}
+        anchorSelect={content !== undefined ? `#${id}` : undefined}
         content={content}
         place={place}
         delayShow={300}

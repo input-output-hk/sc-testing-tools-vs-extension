@@ -4,6 +4,7 @@ import { VscodeTree } from '@vscode-elements/react-elements';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewFilter from '../TreeViewFilter';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
+import Tooltip from '../../../../components/Tooltip';
 import { packageMatchesFilter, isRunnableTestId } from '../../utils/treeUtils';
 
 interface TreeViewProps {
@@ -112,6 +113,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
       />
+      <Tooltip id="tree-node-action" place="left" />
     </div>
   );
 };

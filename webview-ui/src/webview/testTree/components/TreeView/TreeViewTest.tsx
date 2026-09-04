@@ -79,6 +79,8 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
             onClickCapture={handleOpenTestResult}
+            data-tooltip-id="tree-node-action"
+            data-tooltip-content="View Results"
           >
             <i className="codicon codicon-tasklist" />
           </button>
@@ -91,6 +93,8 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunTest}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Test"
         >
           <i className="codicon codicon-play" />
         </button>
