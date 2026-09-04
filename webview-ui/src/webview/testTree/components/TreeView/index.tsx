@@ -22,6 +22,12 @@ interface TreeViewProps {
   onShowTestLocation: (testId: TestId) => void;
 }
 
+const renderTruncatedNodeName = ({ activeAnchor }: { activeAnchor: Element | null }): string | null => {
+  if (activeAnchor === null) return null;
+  if (activeAnchor.scrollWidth <= activeAnchor.clientWidth + 1) return null;
+  return activeAnchor.getAttribute('data-node-name');
+};
+
 const TreeView: React.FC<TreeViewProps> = ({
   testTree,
   onRunTest,
@@ -114,6 +120,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         onShowTestLocation={onShowTestLocation}
       />
       <Tooltip id="tree-node-action" place="left" />
+      <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />
     </div>
   );
 };
