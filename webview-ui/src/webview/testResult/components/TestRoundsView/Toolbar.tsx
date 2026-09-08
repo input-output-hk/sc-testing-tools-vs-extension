@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { VscodeContextMenu } from '@vscode-elements/react-elements';
 
 const FILTER_OPTIONS = [
-  { label: 'Failed Transactions', value: 'failed-transactions' },
-  { label: 'Potential Counterexample', value: 'potential-counterexample' },
-  { label: 'Mint Transactions', value: 'mint-transactions' },
-  { label: 'Transactions with Attacks', value: 'transactions-with-attacks' }
+  { label: 'Failed Rounds', value: 'failed-rounds' },
+  { label: 'Skipped Rounds', value: 'skipped-rounds' },
+  { label: 'Transactions with Mints', value: 'mint-transactions' }
 ];
-
-const buildLabel = (label: string, isSelected: boolean): string =>
-  (isSelected ? '✓   ' : '    ') + label;
 
 const Toolbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -39,53 +34,52 @@ const Toolbar: React.FC = () => {
 
   const handleToggleMenu = () => setIsMenuOpen(open => !open);
 
-  const handleSelectFilter = (event: CustomEvent<{ value: string }>) => {
-    const { value } = event.detail;
+  const handleSelectFilter = (value: string) => {
     setSelectedFilter(current => current === value ? null : value);
   };
 
   const hasActiveFilter = selectedFilter !== null;
-
-  const data = FILTER_OPTIONS.map(option => ({
-    label: buildLabel(option.label, option.value === selectedFilter),
-    value: option.value
-  }));
 
   return (
     <div className="flex-none p-2 flex flex-row justify-end items-center gap-2 bg-base-18">
       <span ref={wrapperRef} className="relative inline-flex items-center">
         <button
           className={
-            'w-7 h-7 flex items-center justify-center rounded-md border cursor-pointer ' +
+            'flex items-center justify-center rounded-[4px] border cursor-pointer ' +
             (hasActiveFilter ?
-              'bg-blue-08 border-blue-04' :
+              'bg-[var(--vscode-inputOption-activeBackground)] border-[var(--vscode-inputOption-activeBorder)]' :
               isMenuOpen ?
-                'bg-white/10 border-transparent' :
-                'border-transparent hover:bg-white/10 active:bg-white/15')
+                'bg-[var(--vscode-inputOption-hoverBackground)] border-transparent' :
+                'border-transparent hover:bg-[var(--vscode-inputOption-hoverBackground)]')
           }
           onClick={handleToggleMenu}
         >
           <i
             className={
-              'codicon ' +
+              'codicon p-[1px] ' +
               (hasActiveFilter ?
-                'codicon-filter-filled opacity-100' :
+                'codicon-filter text-[var(--vscode-inputOption-activeForeground)]' :
                 isMenuOpen ?
-                  'codicon-filter opacity-100' :
-                  'codicon-filter opacity-70 hover:opacity-100')
+                  'codicon-filter text-[var(--vscode-inputOption-activeForeground)]' :
+                  'codicon-filter text-[var(--vscode-icon-foreground)] hover:text-[var(--vscode-inputOption-activeForeground)]')
             }
           />
         </button>
-        <VscodeContextMenu
-          className="absolute right-0 top-full mt-1 z-10 w-64"
-          style={{
-            '--vscode-menu-selectionBackground': 'rgba(255, 255, 255, 0.1)',
-            '--vscode-menu-selectionForeground': 'var(--vscode-menu-foreground, #cccccc)'
-          } as React.CSSProperties}
-          show={isMenuOpen}
-          data={data}
-          onVscContextMenuSelect={handleSelectFilter}
-        />
+        {isMenuOpen && (
+          <div className="absolute right-0 top-full mt-1 z-10 w-56 bg-base-19 shadow-lg py-2">
+            {FILTER_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
+                onClick={() => handleSelectFilter(option.value)}
+              >
+                <i className={`codicon codicon-check ${option.value === selectedFilter ? 'opacity-100' : 'opacity-0'}`} />
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </span>
     </div>
   );
