@@ -5,10 +5,9 @@ import Tooltip from './Tooltip';
 interface Props {
   id: string;
   text: string;
-  baseColorClassName?: string;
 }
 
-const CopyButton: React.FC<Props> = ({ id, text, baseColorClassName = 'text-base-06' }) => {
+const CopyButton: React.FC<Props> = ({ id, text }) => {
   const [copied, setCopied] = useState(false);
   const tooltipId = `copy-button-${id}`;
 
@@ -29,7 +28,7 @@ const CopyButton: React.FC<Props> = ({ id, text, baseColorClassName = 'text-base
         onClick={handleCopy}
       >
         <i
-          className={`codicon codicon-copy ${copied ? 'text-blue-05' : `${baseColorClassName} transition-colors duration-300`}`}
+          className={`codicon codicon-copy ${copied ? 'text-blue-05' : 'text-base-06 transition-colors duration-300'}`}
           style={{ fontSize: '11px' }}
         />
       </button>

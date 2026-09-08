@@ -62,33 +62,6 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onViewDetails }) => (
   </div>
 );
 
-const buildTxCopyAllText = (data: GraphNodeTxData): string => {
-  const rows: Array<{ label: string; value?: string }> = [
-    { label: 'Transaction ID', value: data.id.current },
-    { label: 'Mints', value: txValueToString(data.mint.current) },
-    { label: 'Fee', value: `${data.fee.current} lovelace` },
-    { label: 'Signers', value: data.signers.current?.join(', ') },
-  ];
-  return rows
-    .filter((row) => row.value !== undefined && row.value !== '')
-    .map((row) => `${row.label}: ${row.value}`)
-    .join('\n');
-};
-
-const buildUTxOCopyAllText = (data: GraphNodeUTxOData): string => {
-  const rows: Array<{ label: string; value?: string }> = [
-    { label: 'Address', value: data.address.current },
-    { label: 'UTxO', value: data.utxo.current },
-    { label: 'Amount', value: txValueToString(data.value.current) },
-    { label: 'Redeemer', value: data.redeemer?.current },
-    { label: 'Datum', value: data.datum?.current },
-  ];
-  return rows
-    .filter((row) => row.value !== undefined && row.value !== '')
-    .map((row) => `${row.label}: ${row.value}`)
-    .join('\n');
-};
-
 const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => {
   return (
     <div className="relative">
@@ -100,7 +73,6 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => {
           {data.status !== 'success' &&
             <i className="codicon codicon-warning text-base-01" />
           }
-          <CopyButton id={`${data.id.current}-all`} text={buildTxCopyAllText(data)} baseColorClassName="text-base-01" />
         </div>
         <div className="p-2 bg-base-18">
           <GraphNodeRow
@@ -179,7 +151,6 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => {
           <span className="flex-1 text-base-01 text-[12px]">
             UTxO{data.index !== undefined ? ` #${data.index}` : ''}
           </span>
-          <CopyButton id={`${data.utxo.current}-all`} text={buildUTxOCopyAllText(data)} baseColorClassName="text-base-01" />
         </div>
         <div className="p-2 bg-base-18">
           <GraphNodeRow
