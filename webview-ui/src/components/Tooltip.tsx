@@ -1,27 +1,31 @@
-import { Tooltip as ReactTooltip, type PlacesType } from 'react-tooltip';
+import { Tooltip as ReactTooltip, type PlacesType, type PositionStrategy } from 'react-tooltip';
 
 interface Props {
   content: string;
   id: string;
   place?: PlacesType;
   maxWidth?: string;
+  positionStrategy?: PositionStrategy;
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px' }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', positionStrategy }) => {
 
   return (
     <>
       <ReactTooltip
-        id={id}
+        id={`${id}-tooltip`}
         anchorSelect={`#${id}`}
         content={content}
         place={place}
+        positionStrategy={positionStrategy}
         delayShow={300}
+        opacity={1}
         border="1px solid var(--vscode-editorHoverWidget-border, #454545)"
-        className={`py-1 px-2 text-[12px] font-normal !opacity-100 z-[9999] max-w-[${maxWidth}] whitespace-pre-wrap break-words`}
+        className="py-1 px-2 text-[12px] font-normal z-[9999] whitespace-pre-wrap break-words"
         style={{
           backgroundColor: 'var(--vscode-editorHoverWidget-background, #252526)',
           color: 'var(--vscode-editorHoverWidget-foreground, #cccccc)',
+          maxWidth,
         }}
       />
     </>

@@ -94,7 +94,7 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>
-            <RoundStatusIcon status={round.status.status} />
+            <RoundStatusIcon roundId={round.id} status={round.status} />
             <button
               className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
