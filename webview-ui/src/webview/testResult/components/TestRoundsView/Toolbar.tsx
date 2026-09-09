@@ -6,9 +6,13 @@ const FILTER_OPTIONS = [
   { label: 'Transactions with Mints', value: 'mint-transactions' }
 ];
 
-const Toolbar: React.FC = () => {
+interface Props {
+  selectedFilter: string | null;
+  onSelectFilter: (value: string) => void;
+}
+
+const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
@@ -33,10 +37,6 @@ const Toolbar: React.FC = () => {
   }, []);
 
   const handleToggleMenu = () => setIsMenuOpen(open => !open);
-
-  const handleSelectFilter = (value: string) => {
-    setSelectedFilter(current => current === value ? null : value);
-  };
 
   const hasActiveFilter = selectedFilter !== null;
 
@@ -72,7 +72,7 @@ const Toolbar: React.FC = () => {
                 key={option.value}
                 type="button"
                 className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
-                onClick={() => handleSelectFilter(option.value)}
+                onClick={() => onSelectFilter(option.value)}
               >
                 <i className={`codicon codicon-check ${option.value === selectedFilter ? 'opacity-100' : 'opacity-0'}`} />
                 <span>{option.label}</span>
