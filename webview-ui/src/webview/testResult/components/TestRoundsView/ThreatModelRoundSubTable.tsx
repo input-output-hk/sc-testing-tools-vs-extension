@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import Tooltip from '../../../../components/Tooltip';
 import Tabs from '../Tabs';
 import type { TabItem } from '../Tabs';
 import GenericTable from './GenericTable';
@@ -14,34 +15,46 @@ interface Props {
 interface TableProps {
   index: number;
   tx: Tx;
+  tooltipId: string;
   onClickNode: (nodeId: string) => void;
 }
 
 interface TxTitleProps {
   index: number;
   txId?: string;
+  tooltipId: string;
   onClickTxId: () => void;
 }
 
-const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
+const TxTitle: React.FC<TxTitleProps> = ({ index, txId, tooltipId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
     {`Transaction #${index + 1}`}
     {txId &&
-      <span
-        onClick={onClickTxId}
-        className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
-      >
-        {txId}
-      </span>
+      <>
+        <span
+          id={tooltipId}
+          onClick={onClickTxId}
+          className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
+        >
+          {txId}
+        </span>
+        <Tooltip
+          content="View Graph"
+          id={tooltipId}
+          place="bottom-start"
+          positionStrategy="fixed"
+        />
+      </>
     }
   </h3>
 );
 
-const InputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
+const InputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
+      tooltipId={tooltipId}
       onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
@@ -57,16 +70,18 @@ const InputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
         amount: txValueToString(input.value),
         redeemer: input.redeemerRaw || ''
       })) ?? []}
+      tooltip={{ content: 'View Graph', idPrefix: `${tooltipId}-cell` }}
       onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
     />
   </div>
 );
 
-const OutputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
+const OutputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
+      tooltipId={tooltipId}
       onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
@@ -84,16 +99,18 @@ const OutputTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
         amount: txValueToString(output.value),
         datum: output.datum || ''
       })) ?? []}
+      tooltip={{ content: 'View Graph', idPrefix: `${tooltipId}-cell` }}
       onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
     />
   </div>
 );
 
-const MintTable: React.FC<TableProps> = ({ index, tx, onClickNode }) => (
+const MintTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
   <div className="p-3 mb-3 bg-base-19">
     <TxTitle
       index={index}
       txId={tx.id}
+      tooltipId={tooltipId}
       onClickTxId={() => onClickNode(`tx-${tx.id}`)}
     />
     <GenericTable
@@ -127,6 +144,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             <div key={index}>
               <InputTable
                 index={index} tx={trace.tx}
+                tooltipId={`tx-graph-${round.id}-inputs-${index}`}
                 onClickNode={nodeId => onOpenGraph(round, nodeId)}
               />
             </div>
@@ -143,6 +161,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             <div key={index}>
               <OutputTable
                 index={index} tx={trace.tx}
+                tooltipId={`tx-graph-${round.id}-outputs-${index}`}
                 onClickNode={nodeId => onOpenGraph(round, nodeId)}
               />
             </div>
@@ -162,6 +181,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
             <div key={index}>
               <MintTable
                 index={index} tx={trace.tx}
+                tooltipId={`tx-graph-${round.id}-mints-${index}`}
                 onClickNode={nodeId => onOpenGraph(round, nodeId)}
               />
             </div>

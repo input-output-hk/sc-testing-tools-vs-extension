@@ -5,6 +5,7 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
+import Tooltip from '../../../../components/Tooltip';
 import RoundStatusIcon from './RoundStatusIcon';
 import TransitionRoundSubTable from './TransitionRoundSubTable';
 
@@ -93,11 +94,18 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
             </button>
             <RoundStatusIcon roundId={round.id} status={round.status} />
             <button
+              id={`round-graph-${round.id}`}
               className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
             >
               {round.id}
             </button>
+            <Tooltip
+              content="View Graph"
+              id={`round-graph-${round.id}`}
+              place="bottom-start"
+              positionStrategy="fixed"
+            />
             {roundHasError &&
               <i className="translate-y-0.75 codicon codicon-error text-red-01" />
             }

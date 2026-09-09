@@ -7,6 +7,8 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
+import Tooltip from '../../../../components/Tooltip';
+
 interface Column {
   key: string;
   label: string;
@@ -17,9 +19,10 @@ interface Props {
   columns: Column[];
   rows: Array<Record<string, unknown>>;
   onClick?: (rowIndex: number, column: string) => void;
+  tooltip?: { content: string; idPrefix: string };
 }
 
-const GenericTable: React.FC<Props> = ({ rows, columns, onClick }) => (
+const GenericTable: React.FC<Props> = ({ rows, columns, onClick, tooltip }) => (
   <VscodeTable responsive resizable className="border border-base-13">
     <VscodeTableHeader slot="header" className="bg-transparent">
       {columns.map((column, index) =>
@@ -34,15 +37,29 @@ const GenericTable: React.FC<Props> = ({ rows, columns, onClick }) => (
     <VscodeTableBody slot="body">
       {rows.map((row, index) => (
         <VscodeTableRow key={index}>
-          {columns.map((column, colIndex) => (
-            <VscodeTableCell
-              key={colIndex}
-              className={`p-2 text-center border border-base-13 ${column.clickable ? 'cursor-pointer text-blue-05' : ''}`}
-              onClick={column.clickable && onClick ? () => onClick(index, column.key) : undefined}
-            >
-              {Object.hasOwn(row, column.key) ? String(row[column.key]) : ''}
-            </VscodeTableCell>
-          ))}
+          {columns.map((column, colIndex) => {
+            const cellTooltip = column.clickable && onClick && tooltip
+              ? { content: tooltip.content, id: `${tooltip.idPrefix}-${index}-${column.key}` }
+              : undefined;
+            return (
+              <VscodeTableCell
+                key={colIndex}
+                id={cellTooltip?.id}
+                className={`p-2 text-center border border-base-13 ${column.clickable ? 'cursor-pointer text-blue-05' : ''}`}
+                onClick={column.clickable && onClick ? () => onClick(index, column.key) : undefined}
+              >
+                {Object.hasOwn(row, column.key) ? String(row[column.key]) : ''}
+                {cellTooltip &&
+                  <Tooltip
+                    content={cellTooltip.content}
+                    id={cellTooltip.id}
+                    place="bottom-start"
+                    positionStrategy="fixed"
+                  />
+                }
+              </VscodeTableCell>
+            );
+          })}
         </VscodeTableRow>
       ))}
     </VscodeTableBody>

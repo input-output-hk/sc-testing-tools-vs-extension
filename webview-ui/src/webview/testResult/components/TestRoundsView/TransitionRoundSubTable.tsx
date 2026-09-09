@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import Tooltip from '../../../../components/Tooltip';
 import Tabs from '../Tabs';
 import type { TabItem } from '../Tabs';
 import GenericTable from './GenericTable';
@@ -14,19 +15,29 @@ interface Props {
 interface TxTitleProps {
   index: number;
   txId?: string;
+  tooltipId: string;
   onClickTxId: () => void;
 }
 
-const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
+const TxTitle: React.FC<TxTitleProps> = ({ index, txId, tooltipId, onClickTxId }) => (
   <h3 className="mb-3 text-base-10 font-bold">
     {`Transaction #${index + 1}`}
     {txId &&
-      <span
-        onClick={onClickTxId}
-        className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
-      >
-        {txId}
-      </span>
+      <>
+        <span
+          id={tooltipId}
+          onClick={onClickTxId}
+          className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
+        >
+          {txId}
+        </span>
+        <Tooltip
+          content="View Graph"
+          id={tooltipId}
+          place="bottom-start"
+          positionStrategy="fixed"
+        />
+      </>
     }
   </h3>
 );
@@ -48,6 +59,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
               <TxTitle
                 index={index}
                 txId={transition.tx?.id}
+                tooltipId={`tx-graph-${round.id}-inputs-${index}`}
                 onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
               />
               <GenericTable
@@ -63,6 +75,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
                   amount: txValueToString(input.value),
                   redeemer: input.redeemerRaw || ''
                 })) ?? []}
+                tooltip={{ content: 'View Graph', idPrefix: `utxo-graph-${round.id}-inputs-${index}` }}
                 onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
               />
             </div>
@@ -80,6 +93,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
               <TxTitle
                 index={index}
                 txId={transition.tx?.id}
+                tooltipId={`tx-graph-${round.id}-outputs-${index}`}
                 onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
               />
               <GenericTable
@@ -97,6 +111,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
                   amount: txValueToString(output.value),
                   datum: output.datum || ''
                 })) ?? []}
+                tooltip={{ content: 'View Graph', idPrefix: `utxo-graph-${round.id}-outputs-${index}` }}
                 onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.outputs[index].utxo}`)}
               />
             </div>
@@ -117,6 +132,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
               <TxTitle
                 index={index}
                 txId={transition.tx?.id}
+                tooltipId={`tx-graph-${round.id}-mints-${index}`}
                 onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
               />
               <GenericTable
