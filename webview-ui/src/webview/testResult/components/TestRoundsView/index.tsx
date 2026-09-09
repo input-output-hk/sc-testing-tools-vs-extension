@@ -97,7 +97,7 @@ const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGra
       >
         <TableHeader
           headers={test.type !== 'threat-model' ?
-            ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
+            ['Rounds', 'Valid Txs', 'Invalid Txs', 'Inputs', 'Outputs', 'Mints'] :
             ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
           }
         />

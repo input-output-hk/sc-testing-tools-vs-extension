@@ -24,37 +24,37 @@ type RoundCellProps = {
 });
 
 interface RoundStats {
-  transactions: number;
+  validTxs: number;
+  invalidTxs: number;
   inputs: number;
   outputs: number;
   mints: number;
   roundHasError: boolean;
-  txHasError: boolean;
 }
 
 const getRoundStats = (round: TransitionTestRound): RoundStats => {
-  let transactions = 0;
+  let validTxs = 0;
+  let invalidTxs = 0;
   let inputs = 0;
   let outputs = 0;
   let mints = 0;
 
   const roundHasError = round.status.status === 'failure';
-  let txHasError = false;
 
   for (const transition of round.transitions) {
     if (transition.tx) {
-      transactions += 1;
+      if (transition.result.status === 'success') {
+        validTxs += 1;
+      } else {
+        invalidTxs += 1;
+      }
       inputs += transition.tx.inputs.length;
       outputs += transition.tx.outputs.length;
       mints += transition.tx.mint ? transition.tx.mint.assets.length : 0;
-
-      if (!txHasError && transition.result.status === 'failure') {
-        txHasError = true;
-      }
     }
   }
 
-  return { transactions, inputs, outputs, mints, roundHasError, txHasError };
+  return { validTxs, invalidTxs, inputs, outputs, mints, roundHasError };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
@@ -71,7 +71,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 
 const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { transactions, inputs, outputs, mints, roundHasError, txHasError } = getRoundStats(round);
+  const { validTxs, invalidTxs, inputs, outputs, mints, roundHasError } = getRoundStats(round);
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -103,15 +103,11 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
             }
           </span>
         </RoundCell>
+        <RoundCell value={validTxs} />
         <RoundCell>
-            <span className="relative">
-              {transactions}
-              {txHasError &&
-                <span className="absolute -right-6 top-0">
-                  <i className="codicon codicon-warning text-[#E37933]" />
-                </span>
-              }
-            </span>
+          <span className={invalidTxs > 0 ? 'text-red-01' : undefined}>
+            {invalidTxs}
+          </span>
         </RoundCell>
         <RoundCell value={inputs} />
         <RoundCell value={outputs} />
@@ -119,7 +115,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
       </VscodeTableRow>
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
-          <td colSpan={5} className="px-3 pb-3">
+          <td colSpan={6} className="px-3 pb-3">
             <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
