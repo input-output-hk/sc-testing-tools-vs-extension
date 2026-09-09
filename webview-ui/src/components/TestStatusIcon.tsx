@@ -9,13 +9,13 @@ interface Props {
 const mapTestStatusToIcon = (status: RunStatus, isThreatModel?: boolean): string => {
   switch (status) {
     case 'undetermined':
-      return isThreatModel === true ? 'codicon-debug-step-over opacity-60' : 'codicon-circle opacity-60';
+      return isThreatModel === true ? 'codicon-debug-step-over text-[var(--vscode-testing-iconSkipped)]' : 'codicon-circle text-[var(--vscode-testing-iconUnset)]';
     case 'valid':
-      return 'codicon-pass text-green-01';
+      return 'codicon-pass text-[var(--vscode-testing-iconPassed)]';
     case 'invalid':
-      return 'codicon-error text-red-01';
+      return 'codicon-error text-[var(--vscode-testing-iconFailed)]';
     case 'waiting':
-      return 'codicon-history text-yellow-02';
+      return 'codicon-history text-[var(--vscode-testing-iconQueued)]';
     case 'running':
       return 'codicon-loading';
   }
