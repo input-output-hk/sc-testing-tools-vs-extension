@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import Tooltip from '../../../../components/Tooltip';
+
 const FILTER_OPTIONS = [
   { label: 'Failed Rounds', value: 'failed-rounds' },
   { label: 'Skipped Rounds', value: 'skipped-rounds' },
@@ -44,6 +46,7 @@ const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
     <div className="flex-none p-2 flex flex-row justify-end items-center gap-2 bg-base-18">
       <span ref={wrapperRef} className="relative inline-flex items-center">
         <button
+          id="test-rounds-filter"
           className={
             'flex items-center justify-center rounded-[4px] border cursor-pointer ' +
             (hasActiveFilter ?
@@ -65,6 +68,14 @@ const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
             }
           />
         </button>
+        {!isMenuOpen &&
+          <Tooltip
+            content="Filter"
+            id="test-rounds-filter"
+            place="bottom"
+            delayShow={200}
+          />
+        }
         {isMenuOpen && (
           <div className="absolute right-0 top-full mt-1 z-10 w-56 bg-base-19 shadow-lg py-2">
             {FILTER_OPTIONS.map(option => (

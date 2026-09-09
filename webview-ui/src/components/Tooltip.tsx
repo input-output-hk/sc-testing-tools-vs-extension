@@ -6,9 +6,10 @@ interface Props {
   place?: PlacesType;
   maxWidth?: string;
   positionStrategy?: PositionStrategy;
+  delayShow?: number;
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', positionStrategy }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', positionStrategy, delayShow = 300 }) => {
 
   return (
     <>
@@ -18,7 +19,7 @@ const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '25
         content={content}
         place={place}
         positionStrategy={positionStrategy}
-        delayShow={300}
+        delayShow={delayShow}
         opacity={1}
         border="1px solid var(--vscode-editorHoverWidget-border, #454545)"
         className="py-1 px-2 text-[12px] font-normal z-[9999] whitespace-pre-wrap break-words"
