@@ -31,6 +31,7 @@ interface TreeViewGroupProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -44,6 +45,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -134,6 +136,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
           onContextMenu={onContextMenu}
         />
