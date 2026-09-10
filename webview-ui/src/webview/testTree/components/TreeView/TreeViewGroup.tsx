@@ -91,7 +91,11 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={node.name}
+        >
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
@@ -111,6 +115,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunGroup}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>

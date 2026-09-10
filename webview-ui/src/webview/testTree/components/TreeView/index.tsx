@@ -4,6 +4,7 @@ import { VscodeTree } from '@vscode-elements/react-elements';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewFilter from '../TreeViewFilter';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
+import Tooltip from '../../../../components/Tooltip';
 import { packageMatchesFilter, isRunnableTestId } from '../../utils/treeUtils';
 
 interface TreeViewProps {
@@ -20,6 +21,12 @@ interface TreeViewProps {
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
+
+const renderTruncatedNodeName = ({ activeAnchor }: { activeAnchor: Element | null }): string | null => {
+  if (activeAnchor === null) return null;
+  if (activeAnchor.scrollWidth <= activeAnchor.clientWidth + 1) return null;
+  return activeAnchor.getAttribute('data-node-name');
+};
 
 const TreeView: React.FC<TreeViewProps> = ({
   testTree,
@@ -112,6 +119,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
       />
+      <Tooltip id="tree-node-action" place="left" />
+      <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />
     </div>
   );
 };
