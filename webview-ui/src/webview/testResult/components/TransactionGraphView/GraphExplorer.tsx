@@ -51,16 +51,18 @@ const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => 
 
   return (
     <VscodeTreeItem ref={treeItemRef} selected={selected}>
-      <i className={`codicon shrink-0 ${tx.valid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
-      <span className="flex items-center gap-1 overflow-hidden">
-        <span className="text-base-06 text-[11px] font-medium whitespace-nowrap">
-          {tx.indexLabel}
-        </span>
-        {tx.idLabel &&
-          <span className="text-base-09 text-[11px] font-medium whitespace-nowrap">
-            {tx.idLabel}
+      <span className="flex items-center gap-1.5 pl-[6px]">
+        <i className={`codicon shrink-0 ${tx.valid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
+        <span className="flex items-center gap-1 overflow-hidden">
+          <span className="text-base-06 text-[11px] font-medium whitespace-nowrap">
+            {tx.indexLabel}
           </span>
-        }
+          {tx.idLabel &&
+            <span className="text-base-09 text-[11px] font-medium whitespace-nowrap">
+              {tx.idLabel}
+            </span>
+          }
+        </span>
       </span>
     </VscodeTreeItem>
   );
@@ -95,7 +97,7 @@ const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId
         <span>{txs.length}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pl-2">
         <VscodeTree>
           {txs.map(tx =>
             <ExplorerRow
