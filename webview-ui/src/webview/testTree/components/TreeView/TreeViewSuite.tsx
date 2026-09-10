@@ -5,11 +5,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import {
-  isRunnableStatus,
-  nodeMatchesFilter,
-  formatTestTime
-} from '../../utils/treeUtils';
+import { nodeMatchesFilter } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewSuiteProps {
   packageId: TestPackageId;
@@ -44,7 +41,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
 }) => {
   const [workspaceId, packageName] = packageId;
   const suiteId: TestSuiteId = [workspaceId, packageName, suite.name];
-  const isRunnable = isRunnableStatus(suite.status);
+  const isRunnable = !suite.isRunning && !suite.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -84,13 +81,19 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen} onContextMenu={handleContextMenu}>
-      <TestStatusIcon status={suite.status} />
+      <TestStatusIcon
+        status={{
+          status: suite.status,
+          isWaiting: suite.isWaiting,
+          isRunning: suite.isRunning
+        }}
+      />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
           {suite.name}
           {suite.time !== undefined && suite.time > 0 &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(suite.time)}
+              {formatRunTime(suite.time)}
             </span>
           }
         </span>

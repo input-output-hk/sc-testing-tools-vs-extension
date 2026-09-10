@@ -1,6 +1,12 @@
 // Test
 
-type RunStatus = "undetermined" | "waiting" | "running" | "valid" | "invalid";
+type RunStatus = "undetermined" | "valid" | "invalid";
+
+type RunStatusContext = {
+  status: RunStatus;
+  isWaiting: boolean;
+  isRunning: boolean;
+};
 
 type TestPackageId = [
   workspaceId: string,
@@ -29,10 +35,14 @@ type Test = {
   name: string;
   group: Array<string>;
   status: RunStatus;
+  isWaiting: boolean;
+  isRunning: boolean;
+  isStatic: boolean;
   location?: TestLocation;
   time?: number;
   percentage?: number;
   type?: TestType;
+  hasCoverage?: boolean;
 };
 
 type TestRangePosition = {
@@ -62,37 +72,60 @@ type Workspace = {
   path: string;
 };
 
-// Test Tree
+// Generic Test Tree
 
-type TestTree = {
-  packages: TestPackageMap;
+type GenericMap<T> = Record<string, T>;
+
+type GenericTestTree<T> = {
+  packages: GenericMap<T>;
 };
 
-type TestPackageMap = Record<string, TestPackage>;
-
-type TestPackage = {
+type GenericTestPackage<T> = {
+  id: TestPackageId;
   name: string;
   packagePath: string;
   workspace: Workspace;
-  suites: TestSuiteMap;
+  suites: GenericMap<T>;
   isOpen: boolean;
 };
 
-type TestSuiteMap = Record<string, TestSuite>;
-
-type TestSuite = {
+type GenericTestSuite<T> = {
+  id: TestSuiteId;
   name: string;
   status: RunStatus;
+  isWaiting: boolean;
+  isRunning: boolean;
+  isStatic: boolean;
   time?: number;
-  tests: TestTreeNodeMap;
   isOpen: boolean;
+  tests: GenericMap<T>;
+};
+
+// Prefetch Test Tree
+
+type StaticTestTree = GenericTestTree<StaticTestPackage>;
+
+type StaticTestPackage = GenericTestPackage<StaticTestSuite>;
+
+type StaticTestSuite = GenericTestSuite<Test> & {
+  isStatic: boolean = true;
+};
+
+// Test Tree
+
+type TestTree = GenericTestTree<TestPackage>;
+
+type TestPackage = GenericTestPackage<TestSuite>;
+
+type TestSuite = GenericTestSuite<TestTreeNode> & {
+  isStatic: boolean = false;
 };
 
 type TestTreeNode = {
   type: "group" | "test";
 };
 
-type TestTreeNodeMap = Record<string, TestTreeNode>;
+type TestTreeNodeMap = GenericMap<TestTreeNode>;
 
 type TestTreeGroupNode = TestTreeNode & {
   type: "group";
@@ -347,9 +380,9 @@ type GraphTx = {
 
 // Coverage
 
-type CoverageStatements = Record<string, Array<string>>;
+type CoverageStatements = GenericMap<Array<string>>;
 
-type TestEventCoverageMap = Record<string, TestEventCoverage>;
+type TestEventCoverageMap = GenericMap<TestEventCoverage>;
 
 type TestEventCoverage = {
   workspaceId: string;
@@ -374,7 +407,7 @@ type FileCoverageContext = {
   suiteName: string;
 };
 
-type CoverageTree = Record<string, CoverageTreeNode>;
+type CoverageTree = GenericMap<CoverageTreeNode>;
 
 type CoverageTreeNode = {
   name: string;
@@ -397,6 +430,9 @@ type TestSuiteUpdate = {
   suiteId: TestSuiteId;
   name?: string;
   status?: RunStatus;
+  isWaiting?: boolean;
+  isRunning?: boolean;
+  isStatic?: boolean;
   time?: number;
   tests?: TestTreeNodeMap;
   isOpen?: boolean;
@@ -424,6 +460,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: { test: Test } }
   | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
+  | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree } }
@@ -467,25 +504,25 @@ type TestRunParams = {
   testIds: Array<RunnableTestId>;
 };
 
-type RpcJobStatus = "running" | "valid" | "invalid";
-type RpcJobType = "run" | "build";
+type TestJobStatus = "waiting" | "running" | "success" | "failed";
+type TestJobType = "run" | "build";
 
-type RpcJob = {
+type TestJob = {
   id: string;
-  type: RpcJobType;
+  type: TestJobType;
   status: TestJobStatus;
-  progress: number;
-  startedOn: number;
+  startedOn?: number;
   finishedOn?: number;
+  isLast?: boolean;
   params: unknown;
 };
 
-type RpcBuildJob = RpcJob & {
+type TestBuildJob = TestJob & {
   type: 'build';
   params: TestSuiteBuildParams;
 };
 
-type RpcRunJob = RpcJob & {
+type TestRunJob = TestJob & {
   type: 'run';
   params: TestRunParams;
 };
@@ -514,6 +551,7 @@ type TestUpdateEvent = TestEvent & {
   payload: {
     id: TestId;
     status?: RunStatus;
+    isRunning?: boolean;
     time?: number;
     percentage?: number;
     type?: TestType;
@@ -535,14 +573,14 @@ type TestContextEvent = TestEvent & {
 type TestRunUpdateEvent = TestEvent & {
   eventType: "test-run-update";
   payload: {
-    job: RpcJob;
+    job: TestJob;
   };
 };
 
 type TestRunErrorEvent = TestEvent & {
   eventType: "test-run-error";
   payload: {
-    job: RpcJob;
+    job: TestJob;
     failedTestRun?: TestRun;
     error: ScriptExecutionErrorData;
   };

@@ -1,12 +1,14 @@
 import { useMemo, useState, useRef } from 'react';
 import { VscodeTree } from '@vscode-elements/react-elements';
 
-import TreeViewPackage from './TreeViewPackage';
+import TestJob from '../TestJob';
 import TreeViewFilter from '../TreeViewFilter';
+import TreeViewPackage from './TreeViewPackage';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
-import { packageMatchesFilter, isRunnableTestId } from '../../utils/treeUtils';
+import { packageMatchesFilter } from '../../utils/treeUtils';
 
 interface TreeViewProps {
+  testJob: TestJob | null;
   testTree: TestTree;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
@@ -22,6 +24,7 @@ interface TreeViewProps {
 }
 
 const TreeView: React.FC<TreeViewProps> = ({
+  testJob,
   testTree,
   onRunTest,
   onBuildTestSuite,
@@ -44,12 +47,10 @@ const TreeView: React.FC<TreeViewProps> = ({
     setSelected((prevSelected) => {
       const newSelected = new Set(prevSelected);
       for (const testId of testIds) {
-        if (isRunnableTestId(testId)) {
-          if (selected) {
-            newSelected.add(testId.join(':'));
-          } else {
-            newSelected.delete(testId.join(':'));
-          }
+        if (selected) {
+          newSelected.add(testId.join(':'));
+        } else {
+          newSelected.delete(testId.join(':'));
         }
       }
       return newSelected;
@@ -57,9 +58,8 @@ const TreeView: React.FC<TreeViewProps> = ({
   };
 
   const handleRunTest = (testIds: Array<RunnableTestId>) => {
-    const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
-    const testRun: Set<string> = new Set(runnableIds);
-    if (runnableIds.some(id => selected.has(id))) {
+    const testRun: Set<string> = new Set(testIds.map(id => id.join(':')));
+    if (testIds.some(id => selected.has(id.join(':')))) {
       for (const selectedId of selected) {
         testRun.add(selectedId);
       }
@@ -88,6 +88,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         filter={filter}
         onChangeFilter={setFilter}
       />
+      <TestJob testJob={testJob} />
       <div className="flex-1 overflow-y-auto">
         <VscodeTree multiSelect>
           {filteredPackages.map(testPackage => (

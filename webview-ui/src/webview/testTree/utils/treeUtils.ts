@@ -26,20 +26,25 @@ export const packageMatchesFilter = (testPackage: TestPackage, filter: TestTreeF
   return Object.values(testPackage.suites).some((suite) => suiteMatchesFilter(suite, { ...filter, text }));
 };
 
-export const getPackageStatus = (testPackage: TestPackage): RunStatus => {
-  const statuses = Object.values(testPackage.suites).map((suite) => suite.status);
+export const getPackageStatus = (testPackage: TestPackage): RunStatusContext => {
+  const suites = Object.values(testPackage.suites);
+  const context: RunStatusContext = {
+    status: 'undetermined',
+    isWaiting: false,
+    isRunning: false
+  };
 
-  if (statuses.includes('running')) {
-    return 'running';
-  } else if (statuses.includes('invalid')) {
-    return 'invalid';
-  } else if (statuses.every((status) => status === 'waiting')) {
-    return 'waiting';
-  } else if (statuses.every((status) => status === 'valid')) {
-    return 'valid';
+  if (suites.some(suite => suite.isRunning)) {
+    context.isRunning = true;
+  } else if (suites.some(suite => suite.isWaiting)) {
+    context.isWaiting = true;
+  } else if (suites.some(suite => suite.status === 'invalid')) {
+    context.status = 'invalid';
+  } else if (suites.every(suite => suite.status === 'valid')) {
+    context.status = 'valid';
   }
 
-  return 'undetermined';
+  return context;
 };
 
 export const getPackageTime = (testPackage: TestPackage): number => {
@@ -60,24 +65,29 @@ export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
   return tests;
 };
 
-export const getGroupTestIds = (group: TestTreeGroupNode): Array<TestId> => {
-  return getGroupTests(group).map((test) => test.id);
+export const getGroupTestRunnableIds = (group: TestTreeGroupNode): Array<TestId> => {
+  return getGroupTests(group).filter(isTestRunnable).map((test) => test.id);
 };
 
-export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
-  const statuses = getGroupTests(group).map(test => test.status);
+export const getGroupStatus = (group: TestTreeGroupNode): RunStatusContext => {
+  const tests = getGroupTests(group);
+  const context: RunStatusContext = {
+    status: 'undetermined',
+    isWaiting: false,
+    isRunning: false
+  };
 
-  if (statuses.includes('running')) {
-    return 'running';
-  } else if (statuses.includes('invalid')) {
-    return 'invalid';
-  } else if (statuses.every((status) => status === 'waiting')) {
-    return 'waiting';
-  } else if (statuses.every((status) => status === 'valid')) {
-    return 'valid';
+  if (tests.some(test => test.isRunning)) {
+    context.isRunning = true;
+  } else if (tests.some(test => test.isWaiting)) {
+    context.isWaiting = true;
+  } else if (tests.some(test => test.status === 'invalid')) {
+    context.status = 'invalid';
+  } else if (tests.every(test => test.status === 'valid')) {
+    context.status = 'valid';
   }
 
-  return 'undetermined';
+  return context;
 };
 
 export const getGroupTime = (group: TestTreeGroupNode): number => {
@@ -86,15 +96,8 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
     .reduce((sum, time) => sum + time, 0);
 };
 
-export const isRunnableTestId = (testId: RunnableTestId): boolean => {
-  return testId[3] === undefined || !testId[3].startsWith('static');
-};
-
-export const isRunnableStatus = (status: RunStatus): boolean =>
-  status !== 'running' && status !== 'waiting';
-
 export const isTestRunnable = (test: Test): boolean =>
-  isRunnableTestId(test.id) && isRunnableStatus(test.status);
+  !test.isStatic && !test.isRunning && !test.isWaiting;
 
 export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
   if (a.type === 'group' && b.type === 'test') {
@@ -109,15 +112,5 @@ export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
     const [,,, testIdA] = (a as TestTreeTestNode).test.id;
     const [,,, testIdB] = (b as TestTreeTestNode).test.id;
     return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
-  }
-};
-
-export const formatTestTime = (time: number): string => {
-  if (time < 1000) {
-    return `${time.toFixed(2)}ms`;
-  } else if (time < 1000 * 60) {
-    return `${(time / 1000).toFixed(2)}s`;
-  } else {
-    return `${(time / 1000 / 60).toFixed(2)}m`;
   }
 };

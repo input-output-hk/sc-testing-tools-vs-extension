@@ -1,15 +1,15 @@
-import * as rpc from 'vscode-jsonrpc/node';
-
 import { handleTestSuiteBuild } from './testSuiteBuild';
 import { handleTestRun } from './testRun';
 
-export const handleJob = async (connection: rpc.MessageConnection, job: RpcJob): Promise<void> => {
+import type RpcServer from '../../index';
+
+export const handleJob = async (server: RpcServer, job: TestJob): Promise<void> => {
   switch (job.type) {
     case 'build':
-      await handleTestSuiteBuild(connection, job as RpcBuildJob);
+      await handleTestSuiteBuild(server, job as TestBuildJob);
       break;
     case 'run':
-      await handleTestRun(connection, job as RpcRunJob);
+      await handleTestRun(server, job as TestRunJob);
       break;
   }
 };

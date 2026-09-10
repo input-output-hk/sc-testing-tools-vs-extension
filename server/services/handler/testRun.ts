@@ -1,12 +1,23 @@
-import * as rpc from 'vscode-jsonrpc/node';
+import { runRunScript } from '../../utils/runScript';
+import { parseTestEvent } from '../../utils/parseTestEvent';
+import { getTestRuns, handleParseError, buildErrorEvent, sendTestRunUpdate, sendTestEvent } from './utils';
 
-import { runRunScript, ScriptExecutionError } from '../../utils/runScript';
-import { parseTestEvent, TestEventValidationError } from '../../utils/parseTestEvent';
+import type RpcServer from '../../index';
 
-export const handleTestRun = async (connection: rpc.MessageConnection, job: RpcRunJob): Promise<void> => {
+export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise<void> => {
+  const startedOn = Date.now();
+  sendTestRunUpdate(server, job, 'running', startedOn);
+
+  let hasFailed = false;
   for (const testRun of getTestRuns(job.params.workspace, job.params.testIds)) {
     try {
-      for await (const output of runRunScript(job.params.mode, job.params.workspace.path, testRun.packageName, testRun.suiteName, testRun.testIds)) {
+      for await (const output of runRunScript(
+        job.params.mode,
+        job.params.workspace.path,
+        testRun.packageName,
+        testRun.suiteName,
+        testRun.testIds
+      )) {
         try {
           const testEvent = parseTestEvent(
             job.params.workspace.id,
@@ -16,71 +27,22 @@ export const handleTestRun = async (connection: rpc.MessageConnection, job: RpcR
             output
           );
           if (testEvent !== null) {
-            sendTestEvent(connection, testEvent);
+            sendTestEvent(server, testEvent);
           }
         } catch (error) {
           handleParseError(error);
         }
+
+        if (server.getStopSignal()) {
+          output.child.kill();
+          return;
+        }
       }
     } catch (error) {
-      sendTestEvent(connection, buildErrorEvent(job, testRun, error));
+      sendTestEvent(server, buildErrorEvent(job, error, testRun));
+      hasFailed = true;
     }
   }
-};
 
-const getTestRuns = (workspace: Workspace, testIds: Array<RunnableTestId>): Array<TestRun> => {
-  const testRunsMap: Map<string, Array<string>> = new Map();
-  for (const id of testIds) {
-    const [_, packageName, suiteName, testId] = id;
-    const key = `${packageName}:${suiteName}`;
-    if (!testRunsMap.has(key)) testRunsMap.set(key, []);
-    if (testId !== undefined) testRunsMap.get(key)!.push(testId);
-  }
-  const testRuns: Array<TestRun> = [];
-  for (const [key, testIds] of testRunsMap) {
-    const [packageName, suiteName] = key.split(':');
-    testRuns.push({
-      packageName,
-      suiteName,
-      workspaceId: workspace.id,
-      testIds: testIds.length > 0 ? testIds : undefined
-    });
-  }
-  return testRuns;
-}
-
-const handleParseError = (error: unknown): void => {
-  if (error instanceof TestEventValidationError) {
-    console.error('Test event parsing failed:', error.data);
-  } else {
-    console.error('Test event parsing failed:', error instanceof Error ? error.message : String(error));
-  }
-};
-
-const buildErrorEvent = (job: RpcJob, testRun: TestRun, error: unknown): TestRunErrorEvent => {
-  if (error instanceof ScriptExecutionError) {
-    return {
-      eventType: 'test-run-error',
-      payload: { job, failedTestRun: testRun, error: error.data }
-    };
-  }
-
-  return {
-    eventType: 'test-run-error',
-    payload: {
-      job,
-      failedTestRun: testRun,
-      error: {
-        scriptPath: '',
-        params: [],
-        exitCode: null,
-        stderr: error instanceof Error ? error.message : String(error),
-        stdout: '',
-      }
-    }
-  };
-};
-
-const sendTestEvent = (connection: rpc.MessageConnection, event: TestEvent): void => {
-  connection.sendNotification('testEvent', event);
+  sendTestRunUpdate(server, job, hasFailed ? 'failed' : 'success', startedOn, Date.now());
 };

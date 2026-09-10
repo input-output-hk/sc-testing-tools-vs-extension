@@ -19,6 +19,7 @@ interface Props {
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
   const [activeView, setActiveView] = useState<null | 'empty-workspaces' | 'empty-tree' | 'tree' | 'error'>(null);
   const [testTree, setTestTree] = useState<TestTree | null>(null);
+  const [testJob, setTestJob] = useState<TestJob | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -46,6 +47,9 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           if (!testTree) return testTree;
           return updateTestSuite(testTree, message.payload);
         });
+      }
+      if (message.type === 'test-tree-test-run-update') {
+        setTestJob(message.payload.job);
       }
     };
 
@@ -114,6 +118,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       }
       {activeView === 'tree' && testTree !== null &&
         <TreeView
+          testJob={testJob}
           testTree={testTree}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}

@@ -1,8 +1,7 @@
 import {
-  getGroupTests,
+  getGroupTestRunnableIds,
   isTestRunnable,
   getPackageStatus,
-  isRunnableStatus,
 } from '../../utils/treeUtils';
 
 interface ItemContext {
@@ -27,7 +26,8 @@ export const getItemContext = (item: TestTreeItem): ItemContext => {
 };
 
 const getPackageContext = (packageNode: TestPackage): ItemContext => {
-  const isRunnable = isRunnableStatus(getPackageStatus(packageNode));
+  const status = getPackageStatus(packageNode);
+  const isRunnable = !status.isRunning && !status.isWaiting;
   const suiteIds: Array<TestSuiteId> = Object.values(packageNode.suites)
     .map(suite => [packageNode.workspace.id, packageNode.name, suite.name]);
   return {
@@ -41,7 +41,7 @@ const getPackageContext = (packageNode: TestPackage): ItemContext => {
 };
 
 const getSuiteContext = (suiteId: TestSuiteId, suiteNode: TestSuite): ItemContext => {
-  const isRunnable = isRunnableStatus(suiteNode.status);
+  const isRunnable = !suiteNode.isRunning && !suiteNode.isWaiting;
   return {
     isRunnable,
     isBuildable: true,
@@ -54,13 +54,13 @@ const getSuiteContext = (suiteId: TestSuiteId, suiteNode: TestSuite): ItemContex
 
 const getNodeContext = (node: TestTreeNode): ItemContext => {
   if (node.type === 'group') {
-    const nodes = getGroupTests(node as TestTreeGroupNode);
+    const runnableIds = getGroupTestRunnableIds(node as TestTreeGroupNode);
     return {
-      isRunnable: nodes.some(isTestRunnable),
+      isRunnable: runnableIds.length > 0,
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: false,
-      runnableIds: nodes.map(node => node.id),
+      runnableIds,
     };
   } else {
     const test = (node as TestTreeTestNode).test;

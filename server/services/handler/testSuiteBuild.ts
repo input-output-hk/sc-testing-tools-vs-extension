@@ -1,11 +1,20 @@
-import * as rpc from 'vscode-jsonrpc/node';
+import { runBuildScript } from '../../utils/runScript';
+import { parseTestSuiteBuildEvent } from '../../utils/parseTestEvent';
+import { handleParseError, buildErrorEvent, sendTestRunUpdate, sendTestEvent } from './utils';
 
-import { runBuildScript, ScriptExecutionError } from '../../utils/runScript';
-import { parseTestSuiteBuildEvent, TestEventValidationError } from '../../utils/parseTestEvent';
+import type RpcServer from '../../index';
 
-export const handleTestSuiteBuild = async (connection: rpc.MessageConnection, job: RpcBuildJob): Promise<void> => {
+export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob): Promise<void> => {
+  const startedOn = Date.now();
+  sendTestRunUpdate(server, job, 'running', startedOn);
+
   try {
-    for await (const output of runBuildScript(job.params.mode, job.params.workspace.path, job.params.packageName, job.params.suiteName)) {
+    for await (const output of runBuildScript(
+      job.params.mode,
+      job.params.workspace.path,
+      job.params.packageName,
+      job.params.suiteName
+    )) {
       try {
         const testEvent = parseTestSuiteBuildEvent(
           job.params.workspace.id,
@@ -14,48 +23,22 @@ export const handleTestSuiteBuild = async (connection: rpc.MessageConnection, jo
           output
         );
         if (testEvent !== null) {
-          sendTestEvent(connection, testEvent);
+          sendTestEvent(server, testEvent);
         }
       } catch (error) {
         handleParseError(error);
       }
-    }
-  } catch (error) {
-    sendTestEvent(connection, buildErrorEvent(job, error));
-  }
-};
 
-const handleParseError = (error: unknown): void => {
-  if (error instanceof TestEventValidationError) {
-    console.error('Test event parsing failed:', error.data);
-  } else {
-    console.error('Test event parsing failed:', error instanceof Error ? error.message : String(error));
-  }
-};
-
-const buildErrorEvent = (job: RpcJob, error: unknown): TestRunErrorEvent => {
-  if (error instanceof ScriptExecutionError) {
-    return {
-      eventType: 'test-run-error',
-      payload: { job, error: error.data }
-    };
-  }
-
-  return {
-    eventType: 'test-run-error',
-    payload: {
-      job,
-      error: {
-        scriptPath: '',
-        params: [],
-        exitCode: null,
-        stderr: error instanceof Error ? error.message : String(error),
-        stdout: '',
+      if (server.getStopSignal()) {
+        output.child.kill();
+        return;
       }
     }
-  };
-};
+  } catch (error) {
+    sendTestEvent(server, buildErrorEvent(job, error));
+    sendTestRunUpdate(server, job, 'failed', startedOn, Date.now());
+    return;
+  }
 
-const sendTestEvent = (connection: rpc.MessageConnection, event: TestEvent): void => {
-  connection.sendNotification('testEvent', event);
+  sendTestRunUpdate(server, job, 'success', startedOn, Date.now());
 };

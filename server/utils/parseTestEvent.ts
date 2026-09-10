@@ -57,7 +57,10 @@ const parseTestSuiteStartedEvent = (
         id: [workspaceId, packageName, suiteName, testItem.id.toString()],
         name: testItem.name,
         group: testItem.path,
-        status: isBuild ? 'undetermined' : 'waiting',
+        status: 'undetermined',
+        isWaiting: !isBuild,
+        isRunning: false,
+        isStatic: false,
         location: testItem.srcLoc ? {
           uri: testItem.srcLoc.file,
           range: {
@@ -124,7 +127,7 @@ const parseTestStartedEvent = (
     eventType: 'test-update',
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: 0,
       time: 0,
     },
@@ -141,7 +144,7 @@ const parseTestProgressEvent = (
     eventType: 'test-update',
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: event.percent * 100,
       time: 0,
     },

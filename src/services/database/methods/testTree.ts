@@ -1,52 +1,97 @@
 import { Range } from 'vscode';
 
+import { shouldUpdateSuiteTestList } from './test';
 import { createTestTree } from '../../../utils/testTree';
 
 import type { Database, PackageDocument, SuiteDocument, TestDocument } from '../collections';
 
-export const handleTestTree = async (database: Database, testTree: TestTree): Promise<void> => {
-  const packages: Array<Partial<PackageDocument>> = [];
-  const suites: Array<Partial<SuiteDocument>> = [];
-
+export const storeStaticTestTree = async (database: Database, testTree: StaticTestTree): Promise<void> => {
   for (const testPackage of Object.values(testTree.packages)) {
-    packages.push({
+    await database.packages.upsert({
       id: `${testPackage.workspace.id}:${testPackage.name}`,
       workspaceId: testPackage.workspace.id,
       workspacePath: testPackage.workspace.path,
       packageName: testPackage.name,
       packagePath: testPackage.packagePath
     });
-
     for (const suite of Object.values(testPackage.suites)) {
-      suites.push({
-        id: `${testPackage.workspace.id}:${testPackage.name}:${suite.name}`,
-        workspaceId: testPackage.workspace.id,
-        packageName: testPackage.name,
-        suiteName: suite.name,
-        status: suite.status,
-        time: suite.time,
-        treeVersion: 0,
-      });
+      await storeStaticTestSuite(database, suite);
     }
   }
-
-  await database.packages.bulkUpsert(packages);
-  await database.suites.bulkUpsert(suites);
 }
 
-export const buildTestTree = async (database: Database, prefetchTree: TestTree, openState: Record<string, boolean>): Promise<TestTree> => {
-  const testTree: TestTree = { packages: { ...prefetchTree.packages } };
-  for (const packageNode of Object.values(testTree.packages)) {
-    packageNode.isOpen = openState[[packageNode.workspace.id, packageNode.name].join(':')] ?? false;
-    for (const suiteNode of Object.values(packageNode.suites)) {
-      suiteNode.isOpen = openState[[packageNode.workspace.id, packageNode.name, suiteNode.name].join(':')] ?? false;
+export const storeStaticTestSuite = async (database: Database, testSuite: StaticTestSuite): Promise<void> => {
+  const suiteDocument: SuiteDocument | null = await database.suites.findOne({
+    selector: {
+      id: testSuite.id.join(':')
     }
+  }).exec();
+
+  if (suiteDocument === null) {
+    await database.suites.insert({
+      id: testSuite.id.join(':'),
+      workspaceId: testSuite.id[0],
+      packageName: testSuite.id[1],
+      suiteName: testSuite.name,
+      status: testSuite.status,
+      isWaiting: testSuite.isWaiting,
+      isRunning: testSuite.isRunning,
+      isStatic: testSuite.isStatic,
+      time: testSuite.time,
+      treeVersion: 0,
+    });
+  } else {
+    await suiteDocument.update({
+      $set: {
+        status: testSuite.status,
+        isWaiting: testSuite.isWaiting,
+        isRunning: testSuite.isRunning,
+        isStatic: testSuite.isStatic,
+        time: testSuite.time,
+        treeVersion: suiteDocument.treeVersion + 1,
+      }
+    });
   }
+
+  await storeStaticTestList(database, testSuite.id, testSuite.tests);
+}
+
+const storeStaticTestList = async (database: Database, testSuiteId: TestSuiteId, testList: GenericMap<Test>): Promise<void> => {
+  if (await shouldUpdateSuiteTestList(database, testSuiteId, testList)) {
+    const [workspaceId, packageName, suiteName] = testSuiteId;
+    await database.tests.find({
+      selector: { workspaceId, packageName, suiteName }
+    }).remove();
+  }
+
+  await database.tests.bulkUpsert(
+    Object.values(testList).map(test => ({
+      id: test.id.join(':'),
+      workspaceId: test.id[0],
+      packageName: test.id[1],
+      suiteName: test.id[2],
+      testId: test.id[3],
+      name: test.name,
+      group: test.group,
+      status: test.status,
+      isWaiting: test.isWaiting,
+      isRunning: test.isRunning,
+      isStatic: test.isStatic,
+      location: test.location,
+      time: test.time,
+      percentage: test.percentage,
+    }))
+  );
+}
+
+export const fetchTestTree = async (database: Database, openState: Record<string, boolean>): Promise<TestTree> => {
+  const testTree: TestTree = { packages: {} };
 
   const packageDocuments: Array<PackageDocument> = await database.packages.find().exec();
   for (const packageDocument of packageDocuments) {
     const packageId: TestPackageId = [packageDocument.workspaceId, packageDocument.packageName];
     const packageNode: TestPackage = {
+      id: packageId,
       workspace: {
         id: packageDocument.workspaceId,
         path: packageDocument.workspacePath
@@ -67,8 +112,12 @@ export const buildTestTree = async (database: Database, prefetchTree: TestTree, 
     for (const suiteDocument of suiteDocuments) {
       const suiteId: TestSuiteId = [suiteDocument.workspaceId, suiteDocument.packageName, suiteDocument.suiteName];
       const suiteNode: TestSuite = {
+        id: suiteId,
         name: suiteDocument.suiteName,
         status: suiteDocument.status as RunStatus,
+        isWaiting: suiteDocument.isWaiting,
+        isRunning: suiteDocument.isRunning,
+        isStatic: suiteDocument.isStatic,
         time: suiteDocument.time,
         isOpen: openState[suiteId.join(':')] ?? false,
         tests: {}
@@ -93,6 +142,9 @@ export const buildTestTree = async (database: Database, prefetchTree: TestTree, 
         name: testDocument.name,
         group: testDocument.group,
         status: testDocument.status as RunStatus,
+        isWaiting: testDocument.isWaiting,
+        isRunning: testDocument.isRunning,
+        isStatic: testDocument.isStatic,
         location: testDocument.location ? {
           uri: testDocument.location.uri,
           range: new Range(
@@ -103,25 +155,14 @@ export const buildTestTree = async (database: Database, prefetchTree: TestTree, 
           )
         } : undefined,
         time: testDocument.time,
-        percentage: testDocument.percentage
+        percentage: testDocument.percentage,
+        type: testDocument.type ? testDocument.type as TestType : undefined
       }));
 
       suiteNode.tests = createTestTree(suiteId, openState, tests);
     }
     
-    const packageKey = packageId.join(':');
-    if (!testTree.packages[packageKey]) {
-      testTree.packages[packageKey] = packageNode;
-    } else {
-      for (const [suiteName, suiteNode] of Object.entries(packageNode.suites)) {
-        if (
-          !testTree.packages[packageKey].suites[suiteName] ||
-          Object.keys(suiteNode.tests).length > 0
-        ) {
-          testTree.packages[packageKey].suites[suiteName] = suiteNode;
-        }
-      }
-    }
+    testTree.packages[packageId.join(':')] = packageNode;
   }
 
   return testTree;

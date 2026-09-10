@@ -22,12 +22,18 @@ export default class TestTreeView {
 
     const runAllTestsCommand = vscode.commands.registerCommand('pbt-extension.runAllTests', this.runAllTests.bind(this));
     context.extension.subscriptions.push(runAllTestsCommand);
+
+    const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
+    context.extension.subscriptions.push(stopTestRunCommand);
+
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
+    this.context.store.testStore.onTestJobUpdate(this.sendTestJobUpdate.bind(this));
+    this.context.store.testStore.onTestUpdate(this.sendTestUpdate.bind(this));
     this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
@@ -142,6 +148,10 @@ export default class TestTreeView {
     await this.context.store.testStore.runAllTests();
   }
 
+  private async stopTestRun(): Promise<void> {
+    await this.context.store.testStore.stopTestRun();
+  }
+
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
   }
@@ -162,7 +172,16 @@ export default class TestTreeView {
     );
   }
 
-  private sendTestUpdateToWebview(test: Test): void {
+  private sendTestJobUpdate(job: TestJob | null): void {
+    const notActiveTestRun = job === null || job.isLast && job.status !== 'running' && job.status !== 'waiting';
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', !notActiveTestRun);
+
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-tree-test-run-update', payload: { job } } as ExtensionToWebviewMessage);
+    }
+  }
+
+  private sendTestUpdate(test: Test): void {
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-tree-update', payload: { test } } as ExtensionToWebviewMessage);
     }

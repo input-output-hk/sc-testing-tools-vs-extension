@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
+import { BehaviorSubject } from 'rxjs';
 import { queue } from 'async';
 import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
 import { PbtContext } from '../../extension';
-import { buildStaticTestList } from '../../utils/testTree';
 import {
   renderCoverageForEditor,
   clearCoverageForEditor,
@@ -21,17 +21,18 @@ export default class TestStore {
   private rpcClient: RpcClient;
   private eventQueue: QueueObject<TestEvent>;
 
+  private isPrefetched: boolean = false;
   private workspaces: Map<string, string>;
-  private staticTestTree: TestTree | null = null;
-  private staticTestList: Record<string, Test> = {};
+  private testJob: BehaviorSubject<TestJob | null>;
   private coverageTree: CoverageTree | null = null;
-  private testOpenState: Record<string, boolean> = {};
   private coverageOpenState: Record<string, boolean> = {};
+  private testOpenState: Record<string, boolean> = {};
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
     this.database = new Database();
     this.eventQueue = queue<TestEvent>(this.handleTestEvent.bind(this), 1);
+    this.testJob = new BehaviorSubject<TestJob | null>(null);
 
     this.workspaces = new Map(
       vscode.workspace.workspaceFolders?.map(folder => [
@@ -69,15 +70,12 @@ export default class TestStore {
       case 'test-context':
         await this.database.handleTestContextEvent(event as TestContextEvent);
         break;
+      case 'test-run-update':
+        this.updateTestJob(event as TestRunUpdateEvent);
+        await this.database.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
+        break;
       case 'test-run-error':
-        const testJob = (event as TestRunErrorEvent).payload.job;
-        const testRun = (event as TestRunErrorEvent).payload.failedTestRun;
-        if (testJob.type === 'build') {
-          await this.database.handleTestSuiteBuildErrorEvent(testJob as RpcBuildJob, this.staticTestTree);
-        }
-        if (testJob.type === 'run') {
-          await this.database.handleTestRunErrorEvent(testJob as RpcRunJob, testRun!, this.staticTestTree);
-        }
+        await this.database.handleTestRunErrorEvent(event as TestRunErrorEvent);
         break;
     }
   }
@@ -102,19 +100,22 @@ export default class TestStore {
   }
 
   public async getTestTree(): Promise<TestTree> {
-    if (this.staticTestTree === null) {
-      this.staticTestTree = await this.rpcClient.prefetch({
+    if (!this.isPrefetched) {
+      const staticTestTree = await this.rpcClient.prefetch({
         workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
       });
-      this.staticTestList = buildStaticTestList(this.staticTestTree);
-      for (const packageId of Object.keys(this.staticTestTree.packages)) {
+      for (const packageId of Object.keys(staticTestTree.packages)) {
         this.testOpenState[packageId] = true;
       }
-      await this.database!.handleTestTree(this.staticTestTree);
-      return this.staticTestTree;
+      await this.database!.storeStaticTestTree(staticTestTree);
+      this.isPrefetched = true;
     }
     
-    return await this.database!.buildTestTree(this.staticTestTree, this.testOpenState);
+    return await this.database!.fetchTestTree(this.testOpenState);
+  }
+
+  private updateTestJob(event: TestRunUpdateEvent): void {
+    this.testJob.next(event.payload.job);
   }
 
   public updateOpenTestTreeNode(
@@ -193,29 +194,27 @@ export default class TestStore {
     await this.runTest(suiteIds);
   }
 
+  public async stopTestRun(): Promise<void> {
+    this.rpcClient.stopTestRun();
+    this.testJob.next(null);
+    await this.database!.handleTestRunStop();
+  }
+
   public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {
     try {
       const packageId: TestPackageId = [testId[0], testId[1]];
       const { packagePath } = await this.database.getPackage(packageId);
       
-      let location: TestLocation | null = null;
-      if (!testId[3].startsWith('static')) {
-        const test = await this.database.getTest(testId);
-        location = test.location ?? null;
-      } else {
-        const test = Object.hasOwn(this.staticTestList, testId.join(':')) ? this.staticTestList[testId.join(':')] : undefined;
-        location = test?.location ?? null;
-      }
-
-      if (location === null) return;
+      const test = await this.database.getTest(testId);
+      if (!test.location) return;
 
       return {
-        path: vscode.Uri.joinPath(vscode.Uri.file(packagePath), location.uri).fsPath,
+        path: vscode.Uri.joinPath(vscode.Uri.file(packagePath), test.location.uri).fsPath,
         range: new vscode.Range(
-          location.range.start.line,
-          location.range.start.character,
-          location.range.end.line,
-          location.range.end.character
+          test.location.range.start.line,
+          test.location.range.start.character,
+          test.location.range.end.line,
+          test.location.range.end.character
         )
       };
     } catch (_) {
@@ -243,6 +242,10 @@ export default class TestStore {
   public async getCoverageForTest(testId: TestId): Promise<CoverageTree> {
     const files = await this.database.getCoverageForTest(testId);
     return buildCoverageTree(files, this.coverageOpenState);
+  }
+
+  public onTestJobUpdate(callback: (job: TestJob | null) => void): void {
+    this.testJob.subscribe(callback);
   }
 
   public onTestUpdate(callback: (test: Test) => void): void {

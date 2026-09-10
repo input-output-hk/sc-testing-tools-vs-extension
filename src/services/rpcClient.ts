@@ -35,8 +35,8 @@ export default class RpcClient {
     this.connection.listen();
   }
 
-  public async prefetch(params: PrefetchParams): Promise<TestTree> {
-    const request = new rpc.RequestType<PrefetchParams, TestTree, void>('prefetch');
+  public async prefetch(params: PrefetchParams): Promise<StaticTestTree> {
+    const request = new rpc.RequestType<PrefetchParams, StaticTestTree, void>('prefetch');
     return await this.connection.sendRequest(request, params);
   }
 
@@ -49,6 +49,12 @@ export default class RpcClient {
   public testRun(params: TestRunParams): void {
     const notification = new rpc.NotificationType<TestRunParams>('testRun');
     this.connection.sendNotification(notification, params);
+    this.clearError();
+  }
+
+  public stopTestRun(): void {
+    const notification = new rpc.NotificationType<void>('stop');
+    this.connection.sendNotification(notification);
     this.clearError();
   }
 
@@ -93,7 +99,7 @@ export default class RpcClient {
 
     let title = '';
     if (event.payload.job.type === 'build') {
-      const { packageName, suiteName } = (event.payload.job as RpcBuildJob).params;
+      const { packageName, suiteName } = (event.payload.job as TestBuildJob).params;
       title = `Test suite build failed for ${packageName}/${suiteName}`;
     }
     if (event.payload.job.type === 'run') {
