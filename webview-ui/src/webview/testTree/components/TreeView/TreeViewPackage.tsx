@@ -9,9 +9,8 @@ import {
   suiteMatchesFilter,
   getPackageTime,
   getPackageStatus,
-  isRunnableStatus,
-  formatTestTime
 } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
@@ -45,7 +44,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
   const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
-  const isRunnable = isRunnableStatus(status);
+  const isRunnable = !status.isRunning && !status.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -94,7 +93,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           {testPackage.name}
           {time > 0 &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(time)}
+              {formatRunTime(time)}
             </span>
           }
         </span>

@@ -173,7 +173,6 @@ const roundSchemaLiteral = {
   ],
   indexes: [
     ['workspaceId', 'packageName', 'suiteName', 'testId'],
-    ['workspaceId', 'packageName', 'suiteName', 'testId', 'status.status'],
   ],
 } as const;
 
@@ -181,4 +180,5 @@ const schemaTyped = toTypedRxJsonSchema(roundSchemaLiteral);
 type RoundDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const roundSchema: RxJsonSchema<RoundDocType> = roundSchemaLiteral;
 export type RoundDocument = RxDocument<RoundDocType>;
+export type RoundDocumentData = RoundDocType;
 export type RoundCollection = RxCollection<RoundDocType>;

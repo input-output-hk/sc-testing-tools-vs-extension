@@ -35,8 +35,8 @@ export default class RpcClient {
     this.connection.listen();
   }
 
-  public async prefetch(params: PrefetchParams): Promise<TestTree> {
-    const request = new rpc.RequestType<PrefetchParams, TestTree, void>('prefetch');
+  public async prefetch(params: PrefetchParams): Promise<StaticTestTree> {
+    const request = new rpc.RequestType<PrefetchParams, StaticTestTree, void>('prefetch');
     return await this.connection.sendRequest(request, params);
   }
 
@@ -52,48 +52,61 @@ export default class RpcClient {
     this.clearError();
   }
 
+  public stopTestRun(): void {
+    const notification = new rpc.NotificationType<void>('stop');
+    this.connection.sendNotification(notification);
+    this.clearError();
+  }
+
   public onTestEvent(callback: (event: TestEvent) => void): void {
     this.connection.onNotification('testEvent', (event: TestEvent) => {
-      if (event.eventType === 'test-build-error') {
-        this.showError('Test suite build failed', this.buildTestBuildErrorLog(event as TestSuiteBuildErrorEvent));
-      }
       if (event.eventType === 'test-run-error') {
-        this.showError('Test execution failed', this.buildTestRunErrorLog(event as TestRunErrorEvent));
+        const errorEvent = event as TestRunErrorEvent;
+        this.showError(errorEvent);
       }
       callback(event);
     });
   }
 
-  private buildTestBuildErrorLog(event: TestSuiteBuildErrorEvent): string {
-    const { packageName, suiteName } = event.payload.runParams;
-    const exitCode = event.payload.exitCode === null ? 'unknown' : String(event.payload.exitCode);
-    const commandOutput = event.payload.stderr.trim() || event.payload.stdout.trim();
-    const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
-    return `Build test suite failed for ${packageName}/${suiteName} (exit code ${exitCode})${details}`;
-  }
+  private showError(event: TestRunErrorEvent): void {
+    const { title, message } = this.buildTestError(event);
 
-  private buildTestRunErrorLog(event: TestRunErrorEvent): string {
-    const { testRun: { packageName, suiteName, testIds } } = event.payload.runParams;
-    const exitCode = event.payload.exitCode === null ? 'unknown' : String(event.payload.exitCode);
-    const commandOutput = event.payload.stderr.trim() || event.payload.stdout.trim();
-    const details = commandOutput.length > 0 ? `: ${commandOutput}` : '';
-    const testIdLabel = testIds && testIds.length > 0 ? `[${testIds.join(',')}]` : '[all tests]';
-    return `Run test failed for ${packageName}/${suiteName} ${testIdLabel} (exit code ${exitCode})${details}`;
-  }
-
-  private showError(title: string, message: string): void {
     this.context!.outputChannel.appendLine(`> ERROR: ${title}`);
     this.context!.outputChannel.appendLine(message);
-    this.context!.outputChannel.show(true);
 
     this.context!.statusBarItem.text = `$(error) ${title}`;
     this.context!.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
     this.context!.statusBarItem.show();
 
-    vscode.window.showErrorMessage(title);
+    vscode.window
+      .showErrorMessage(title, 'Show output')
+      .then(selection => {
+        if (selection === 'Show output') {
+          this.context!.outputChannel.show(true);
+        }
+      });
   }
 
   private clearError(): void {
     this.context!.statusBarItem.hide();
+  }
+
+  private buildTestError(event: TestRunErrorEvent): { title: string; message: string } {
+    const exitCode = event.payload.error.exitCode === null ? 'unknown' : String(event.payload.error.exitCode);
+    const commandOutput = event.payload.error.stderr.trim() || event.payload.error.stdout.trim();
+    const details = commandOutput.length > 0 ? commandOutput : '';
+    const message = `Exit code: ${exitCode}, ${details}`;
+
+    let title = '';
+    if (event.payload.job.type === 'build') {
+      const { packageName, suiteName } = (event.payload.job as TestBuildJob).params;
+      title = `Test suite build failed for ${packageName}/${suiteName}`;
+    }
+    if (event.payload.job.type === 'run') {
+      const { packageName, suiteName } = event.payload.failedTestRun!;
+      title = `Test execution failed for ${packageName}/${suiteName}`;
+    }
+
+    return { title, message };
   }
 }

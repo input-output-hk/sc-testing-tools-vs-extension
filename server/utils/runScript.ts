@@ -1,8 +1,9 @@
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
 export interface ScriptOutput {
+  child: ChildProcess;
   rawOutput: string;
   parsed: unknown;
 }
@@ -89,7 +90,7 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
       if (!rawOutput.trim()) continue;
       try {
         const parsed = JSON.parse(rawOutput);
-        yield ({ rawOutput, parsed });
+        yield ({ child, rawOutput, parsed });
       } catch {
         console.error('JSON line parsing failed:\n', rawOutput);
       }
@@ -101,7 +102,7 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
   if (finalOutput.length > 0) {
     try {
       const parsed = JSON.parse(stdoutBuffer);
-      yield ({ rawOutput: stdoutBuffer, parsed });
+      yield ({ child, rawOutput: stdoutBuffer, parsed });
     } catch {
       console.error('JSON line parsing failed:\n', stdoutBuffer);
     }
@@ -111,7 +112,6 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
 
   if (processState.spawnError !== null) {
     const data: ScriptExecutionErrorData = {
-      kind: 'script-execution-error',
       scriptPath,
       params: scriptParams,
       exitCode: null,
@@ -123,7 +123,6 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
 
   if (processState.exitCode !== 0) {
     const data: ScriptExecutionErrorData = {
-      kind: 'script-execution-error',
       scriptPath,
       params: scriptParams,
       exitCode: processState.exitCode,

@@ -2,7 +2,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { isTestRunnable, formatTestTime } from '../../utils/treeUtils';
+import { isTestRunnable } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;
@@ -28,7 +29,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
-      onUpdateSelection([node.test.id], selected);
+      if (isRunnable) onUpdateSelection([node.test.id], selected);
     },
   });
 
@@ -59,7 +60,14 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} onClickCapture={handleShowTestLocation} onContextMenu={handleContextMenu}>
-      <TestStatusIcon status={node.test.status} isThreatModel={isThreatModel} />
+      <TestStatusIcon
+        status={{
+          status: node.test.status,
+          isWaiting: node.test.isWaiting,
+          isRunning: node.test.isRunning
+        }}
+        isThreatModel={isThreatModel}
+      />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
         <span
           className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
@@ -69,7 +77,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           {node.test.name}
           {(node.test.time !== undefined && node.test.time > 0) &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(node.test.time)}
+              {formatRunTime(node.test.time)}
             </span>
            || (node.test.percentage !== undefined && node.test.percentage > 0) &&
             <span className="ml-1 opacity-60">

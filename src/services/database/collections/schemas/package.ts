@@ -35,9 +35,6 @@ const packageSchemaLiteral = {
     'workspacePath',
     'packageName',
     'packagePath',
-  ],
-  indexes: [
-    'workspaceId',
   ]
 } as const;
 
@@ -45,4 +42,5 @@ const schemaTyped = toTypedRxJsonSchema(packageSchemaLiteral);
 type PackageDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const packageSchema: RxJsonSchema<PackageDocType> = packageSchemaLiteral;
 export type PackageDocument = RxDocument<PackageDocType>;
+export type PackageDocumentData = PackageDocType;
 export type PackageCollection = RxCollection<PackageDocType>;
