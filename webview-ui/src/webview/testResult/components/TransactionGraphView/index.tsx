@@ -3,7 +3,7 @@ import { useState, forwardRef, useImperativeHandle } from 'react';
 import Toolbar from './Toolbar';
 import GraphTimeline from './GraphTimeline';
 import Graph from './Graph';
-import GraphTxExplorer from './GraphTxExplorer';
+import GraphExplorer from './GraphExplorer';
 
 interface Handle {
   showRoundNode: (round: TestRound, nodeId?: string) => void;
@@ -22,7 +22,6 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
   const [nodeId, setNodeId] = useState<string|null>(null);
   const [stepIndex, setStepIndex] = useState<number>(0);
   const [explorerOpen, setExplorerOpen] = useState<boolean>(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string|null>(null);
 
   if (test === null || test.id.join(':') != props.test.id.join(':')) {
     setMode('result-graph');
@@ -31,14 +30,12 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
     setNodeId(null);
     setStepIndex(0);
     setExplorerOpen(false);
-    setSelectedNodeId(null);
   }
 
   const onSelectRound = (index: number, nodeId?: string): void => {
     setTestRoundIndex(index);
     setNodeId(nodeId ? nodeId : null);
     setStepIndex(0);
-    setSelectedNodeId(null);
   };
 
   const onSelectMode = (newMode: GraphMode): void => {
@@ -50,7 +47,7 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
   };
 
   const onSelectTx = (txNodeId: string): void => {
-    setSelectedNodeId(txNodeId);
+    setNodeId(txNodeId);
   };
 
   useImperativeHandle(ref, () => ({
@@ -75,11 +72,11 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
       />
       <div className="flex-1 flex flex-row bg-base-19">
         {explorerOpen &&
-          <GraphTxExplorer
+          <GraphExplorer
             mode={mode}
             round={props.testRounds[testRoundIndex]}
             stepIndex={stepIndex}
-            selectedNodeId={selectedNodeId}
+            selectedNodeId={nodeId}
             onSelectTx={onSelectTx}
             onClose={onToggleExplorer}
           />
@@ -95,7 +92,7 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
           <Graph
             mode={mode}
             round={props.testRounds[testRoundIndex]}
-            nodeId={selectedNodeId || nodeId || undefined}
+            nodeId={nodeId || undefined}
             stepIndex={stepIndex}
             onViewNodeDetails={console.log}
             isActive={props.isActive}

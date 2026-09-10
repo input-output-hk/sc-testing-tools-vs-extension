@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
+import { VscodeTree, VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import { mapTestRoundToGraphData } from '../../utils/reactFlowMapper';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 
 interface Props {
   mode: GraphMode;
@@ -13,7 +15,8 @@ interface Props {
 
 interface ExplorerTx {
   nodeId: string;
-  label: string;
+  indexLabel: string;
+  idLabel: string;
   valid: boolean;
 }
 
@@ -25,10 +28,12 @@ interface ExplorerRowProps {
 
 const noop = (): void => {};
 
-const formatTxLabel = (id: string, index: number): string => {
-  if (id === '') return `Transaction #${index + 1}`;
-  if (id.length <= 8) return `# ${id}`;
-  return `# ${id.slice(0, 4)}...${id.slice(-4)}`;
+const formatTxIndexLabel = (index: number): string => `Transaction #${index + 1}`;
+
+const formatTxIdLabel = (id: string): string => {
+  if (id === '') return '';
+  if (id.length <= 8) return id;
+  return `${id.slice(0, 4)}...${id.slice(-4)}`;
 };
 
 const mapRoundToTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Array<ExplorerTx> => {
@@ -39,33 +44,37 @@ const mapRoundToTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Ar
     .sort((a, b) => a.index - b.index)
     .map(data => ({
       nodeId: `tx-${data.id.current}`,
-      label: formatTxLabel(data.id.current, data.index),
+      indexLabel: formatTxIndexLabel(data.index),
+      idLabel: formatTxIdLabel(data.id.current),
       valid: data.status === 'success',
     }));
 };
 
 const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => {
-  const handleClick = (): void => {
-    onSelect(tx.nodeId);
-  };
+  const treeItemRef = useTreeItemState({
+    onToggleSelection: (isSelected) => {
+      if (isSelected) onSelect(tx.nodeId);
+    },
+  });
 
   return (
-    <div className="h-[22px] w-full overflow-clip">
-      <button
-        type="button"
-        onClick={handleClick}
-        className={`flex w-full items-center gap-1.5 px-3 py-[3px] rounded border-0 cursor-pointer hover:bg-white/10 ${selected ? 'bg-blue-10' : 'bg-transparent'}`}
-      >
-        <i className={`codicon shrink-0 ${tx.valid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
+    <VscodeTreeItem ref={treeItemRef} selected={selected}>
+      <i className={`codicon shrink-0 ${tx.valid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
+      <span className="flex items-center gap-1 overflow-hidden">
         <span className="text-base-06 text-[11px] font-medium whitespace-nowrap">
-          {tx.label}
+          {tx.indexLabel}
         </span>
-      </button>
-    </div>
+        {tx.idLabel &&
+          <span className="text-base-09 text-[11px] font-medium whitespace-nowrap">
+            {tx.idLabel}
+          </span>
+        }
+      </span>
+    </VscodeTreeItem>
   );
 };
 
-const GraphTxExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId, onSelectTx, onClose }) => {
+const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId, onSelectTx, onClose }) => {
   const txs = useMemo(() => mapRoundToTxs(mode, round, stepIndex), [mode, round, stepIndex]);
 
   const handleClose = (): void => {
@@ -94,18 +103,20 @@ const GraphTxExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNode
         <span>{txs.length}</span>
       </div>
 
-      <div className="flex flex-col gap-0.5 w-full pl-2 flex-1 overflow-y-auto">
-        {txs.map(tx =>
-          <ExplorerRow
-            key={tx.nodeId}
-            tx={tx}
-            selected={tx.nodeId === selectedNodeId}
-            onSelect={onSelectTx}
-          />
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <VscodeTree>
+          {txs.map(tx =>
+            <ExplorerRow
+              key={tx.nodeId}
+              tx={tx}
+              selected={tx.nodeId === selectedNodeId}
+              onSelect={onSelectTx}
+            />
+          )}
+        </VscodeTree>
       </div>
     </div>
   );
 };
 
-export default GraphTxExplorer;
+export default GraphExplorer;
