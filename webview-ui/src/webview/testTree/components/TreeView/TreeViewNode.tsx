@@ -16,6 +16,7 @@ interface TreeViewNodeProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -29,6 +30,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) =>
@@ -42,6 +44,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
+      onShowCoverage={onShowCoverage}
       onShowTestLocation={onShowTestLocation}
       onContextMenu={onContextMenu}
     />
@@ -52,6 +55,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       onRunTest={onRunTest}
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
+      onShowCoverage={onShowCoverage}
       onShowTestLocation={onShowTestLocation}
       onContextMenu={onContextMenu}
     />

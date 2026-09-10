@@ -11,6 +11,7 @@ interface TreeViewTestProps {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -21,6 +22,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onRunTest,
   onUpdateSelection,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -45,6 +47,13 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
     if (isRunnable) onRunTest([node.test.id]);
+  };
+
+  const handleShowCoverage = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onShowCoverage(node.test.id, node.test.name);
   };
 
   const handleShowTestLocation = (event: React.MouseEvent): void => {
@@ -95,6 +104,16 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             data-tooltip-content="View Results"
           >
             <i className="codicon codicon-tasklist" />
+          </button>
+        }
+
+        {node.test.hasCoverage === true &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={handleShowCoverage}
+          >
+            <i className="codicon codicon-coverage" />
           </button>
         }
 

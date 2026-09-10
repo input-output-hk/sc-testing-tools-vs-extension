@@ -1,7 +1,7 @@
 import { Range } from 'vscode';
 
 import { createRounds } from './round';
-import { clearCoverageForTest, upsertCoverage } from './coverage';
+import { clearCoverageForTest, upsertCoverage, hasCoverage } from './coverage';
 
 import type { Database, SuiteDocument, TestDocument, TestDocumentData } from '../collections';
 
@@ -228,15 +228,19 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
 }
 
 export const onTestUpdate = (database: Database, callback: (test: Test) => void): void => {
-  database.tests.update$.subscribe(changeEvent => {
+  database.tests.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
+    const testId: TestId = [
+      document.workspaceId,
+      document.packageName,
+      document.suiteName,
+      document.testId
+    ];
+    const isRunEnded =
+      document.status !== 'undetermined' &&
+      changeEvent.previousDocumentData?.isRunning && !document.isRunning;
     callback({
-      id: [
-        document.workspaceId,
-        document.packageName,
-        document.suiteName,
-        document.testId
-      ],
+      id: testId,
       name: document.name,
       group: document.group,
       status: document.status as RunStatus,
@@ -255,6 +259,7 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       time: document.time,
       percentage: document.percentage,
       type: document.type ? document.type as TestType : undefined,
+      hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
     });
   });
 }
