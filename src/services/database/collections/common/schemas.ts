@@ -10,6 +10,10 @@ import {
   TEST_ROUND_ID_MAX_LENGTH,
 } from '../common/constants';
 
+export const booleanSchema = {
+  type: 'boolean',
+} as const;
+
 export const numberSchema = {
   type: 'number',
 } as const;

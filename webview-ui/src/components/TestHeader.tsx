@@ -1,26 +1,26 @@
 import TestStatusIcon from './TestStatusIcon';
 import Tooltip from './Tooltip';
 
+import { formatRunTime } from '../utils/format';
+
 interface Props {
   test: Test;
 }
 
-const formatTestTime = (time: number): string => {
-  if (time < 1000) {
-    return `${time.toFixed(2)}ms`;
-  } else {
-    return `${(time / 1000).toFixed(2)}s`;
-  }
-};
-
 const TestHeader: React.FC<Props> = ({ test }) => (
   <div>
     <div className="flex justify-between items-center mb-1.5">
-      <TestStatusIcon status={test.status} />
+      <TestStatusIcon
+        status={{
+          status: test.status,
+          isWaiting: test.isWaiting,
+          isRunning: test.isRunning
+        }}
+      />
       <span className="flex-1 ml-1.5 text-base-06 font-semibold text-[15.6px]">{test.name}</span>
       {test.time !== undefined && test.time > 0 &&
         <span className="flex-none text-base-06 font-medium">
-          {formatTestTime(test.time)}
+          {formatRunTime(test.time)}
         </span>
       }
     </div>

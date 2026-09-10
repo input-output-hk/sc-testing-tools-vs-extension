@@ -7,6 +7,7 @@ import {
 } from 'rxdb';
 
 import {
+  booleanSchema,
   numberSchema,
   stringSchema,
   suiteIdSchema,
@@ -30,6 +31,9 @@ const suiteSchemaLiteral = {
     packageName: packageNameSchema,
     suiteName: suiteNameSchema,
     status: stringSchema,
+    isWaiting: booleanSchema,
+    isRunning: booleanSchema,
+    isStatic: booleanSchema,
     time: numberSchema,
     treeVersion: {
       type: 'number',
@@ -43,17 +47,16 @@ const suiteSchemaLiteral = {
     'packageName',
     'suiteName',
     'status',
+    'isWaiting',
+    'isRunning',
+    'isStatic',
     'treeVersion',
   ],
-  indexes: [
-    'workspaceId',
-    ['workspaceId', 'packageName'],
-    'status',
-  ]
 } as const;
 
 const schemaTyped = toTypedRxJsonSchema(suiteSchemaLiteral);
 type SuiteDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const suiteSchema: RxJsonSchema<SuiteDocType> = suiteSchemaLiteral;
 export type SuiteDocument = RxDocument<SuiteDocType>;
+export type SuiteDocumentData = SuiteDocType;
 export type SuiteCollection = RxCollection<SuiteDocType>;

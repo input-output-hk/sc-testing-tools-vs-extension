@@ -8,6 +8,10 @@ export const getPackage = async (database: Database, packageId: TestPackageId): 
   if (document === null) throw new Error(`Package not found for id: ${packageId.join(':')}`);
 
   return {
+    id: [
+      document.workspaceId,
+      document.packageName
+    ],
     name: document.packageName,
     packagePath: document.packagePath,
     workspace: {

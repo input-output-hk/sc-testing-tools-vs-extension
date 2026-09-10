@@ -7,14 +7,14 @@ import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
   getGroupTests,
-  getGroupTestIds,
+  getGroupTestRunnableIds,
   getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
   isTestRunnable,
   sortTreeNodes,
-  formatTestTime,
 } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewGroupProps {
   suiteId: TestSuiteId;
@@ -62,7 +62,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
       onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suiteName, [...path, node.name]);
     },
     onToggleSelection: (selected) => {
-      onUpdateSelection(getGroupTestIds(node), selected);
+      onUpdateSelection(getGroupTestRunnableIds(node), selected);
     },
   });
 
@@ -78,7 +78,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTest(getGroupTestIds(node));
+    onRunTest(getGroupTestRunnableIds(node));
   };
 
   const handleContextMenu = (event: React.MouseEvent): void => {
@@ -102,9 +102,9 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
               ({Object.keys(node.nodes).length})
             </span>
           }
-          {time > 0 && status !== 'running' && status !== 'waiting' &&
+          {time > 0 && !status.isRunning && !status.isWaiting &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(time)}
+              {formatRunTime(time)}
             </span>
           }
         </span>
