@@ -5,6 +5,7 @@ import TestJob from '../TestJob';
 import TreeViewFilter from '../TreeViewFilter';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
+import Tooltip from '../../../../components/Tooltip';
 import { packageMatchesFilter } from '../../utils/treeUtils';
 
 interface TreeViewProps {
@@ -22,6 +23,12 @@ interface TreeViewProps {
   onOpenTestResult: (testId: TestId) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
+
+const renderTruncatedNodeName = ({ activeAnchor }: { activeAnchor: Element | null }): string | null => {
+  if (activeAnchor === null) return null;
+  if (activeAnchor.scrollWidth <= activeAnchor.clientWidth + 1) return null;
+  return activeAnchor.getAttribute('data-node-name');
+};
 
 const TreeView: React.FC<TreeViewProps> = ({
   testJob,
@@ -113,6 +120,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
       />
+      <Tooltip id="tree-node-action" place="left" />
+      <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />
     </div>
   );
 };
