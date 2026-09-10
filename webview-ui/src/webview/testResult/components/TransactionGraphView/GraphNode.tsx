@@ -20,16 +20,16 @@ interface GraphNodeUTxOData extends GraphNodeUTxO {
 }
 
 interface GraphNodeRowProps {
-  id: string;
   label: string;
   value?: GraphNodeValue<string|undefined>;
+  copyButton?: boolean;
 }
 
 interface GraphNodeFooterProps {
   onViewDetails: () => void;
 }
 
-const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ id, label, value }) => {
+const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ label, value, copyButton }) => {
   const currentIsEmpty = value?.current === undefined || value?.current === '';
   const previousIsEmpty = value?.previous === undefined || value?.previous === '';
   if (value === undefined || currentIsEmpty && previousIsEmpty) return;
@@ -42,7 +42,7 @@ const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ id, label, value }) => {
       <p className="flex flex-row items-center gap-1">
         {isModified && <i className="codicon codicon-edit text-yellow-04" style={{ fontSize: '11px' }} />}
         <span className="text-base-06">{label}</span>
-        {!currentIsEmpty && <CopyButton id={id} text={value.current!} />}
+        {!currentIsEmpty && copyButton && <CopyButton text={value.current!} />}
       </p>
       {isModified && hasPrevious && <p className="text-base-06 opacity-70 line-through truncate">{value.previous}</p>}
       <p className={`${!isModified ? 'text-blue-05' : 'text-yellow-04'} truncate`}>{value.current}</p>
@@ -76,12 +76,11 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => {
         </div>
         <div className="p-2 bg-base-18">
           <GraphNodeRow
-            id={`${data.id.current}-transaction-id`}
+            copyButton
             label="Transaction ID"
             value={data.id}
           />
           <GraphNodeRow
-            id={`${data.id.current}-mints`}
             label="Mints"
             value={{
               current: txValueToString(data.mint.current),
@@ -89,7 +88,6 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => {
             }}
           />
           <GraphNodeRow
-            id={`${data.id.current}-fee`}
             label="Fee"
             value={{
               current: `${data.fee.current} lovelace`,
@@ -97,7 +95,6 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => {
             }}
           />
           <GraphNodeRow
-            id={`${data.id.current}-signers`}
             label="Signers"
             value={{
               current: data.signers.current?.join(', '),
@@ -154,17 +151,16 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => {
         </div>
         <div className="p-2 bg-base-18">
           <GraphNodeRow
-            id={`${data.utxo.current}-address`}
+            copyButton
             label="Address"
             value={data.address}
           />
           <GraphNodeRow
-            id={`${data.utxo.current}-utxo`}
+            copyButton
             label="UTxO"
             value={data.utxo}
           />
           <GraphNodeRow
-            id={`${data.utxo.current}-amount`}
             label="Amount"
             value={{
               current: txValueToString(data.value.current),
@@ -172,12 +168,11 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => {
             }}
           />
           <GraphNodeRow
-            id={`${data.utxo.current}-redeemer`}
             label="Redeemer"
             value={data.redeemer}
           />
           <GraphNodeRow
-            id={`${data.utxo.current}-datum`}
+            copyButton
             label="Datum"
             value={data.datum}
           />
