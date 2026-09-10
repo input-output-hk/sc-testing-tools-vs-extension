@@ -106,7 +106,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           disabled={!isRunnable}
           onClickCapture={handleBuildSuite}
           data-tooltip-id="tree-node-action"
-          data-tooltip-content="Refresh Tests"
+          data-tooltip-content="Refresh Test Tree"
         >
           <i className="codicon codicon-refresh" />
         </button>

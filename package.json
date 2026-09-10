@@ -31,7 +31,7 @@
     "commands": [
       {
         "command": "pbt-extension.buildAllTestSuites",
-        "title": "Refresh Tests",
+        "title": "Refresh Test Tree",
         "icon": "$(refresh)"
       },
       {
