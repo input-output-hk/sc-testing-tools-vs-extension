@@ -9,8 +9,10 @@ interface Props {
   mode: GraphMode;
   testRoundIndex: number;
   testRounds: Array<TestRound>;
+  explorerOpen: boolean;
   onSelectRound: (index: number) => void;
   onSelectMode: (mode: GraphMode) => void;
+  onToggleExplorer: () => void;
 }
 
 interface TxButtonProps {
@@ -39,10 +41,18 @@ const TxButton: React.FC<TxButtonProps> = ({ round, mode, onSelectMode }) => (
     </VscodeButtonGroup>
 );
 
-const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, mode, onSelectMode }) => (
+const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, mode, onSelectMode, explorerOpen, onToggleExplorer }) => {
+  const handleToggleExplorer = (): void => {
+    onToggleExplorer();
+  };
+
+  return (
   <div className="flex-none p-2 flex flex-row justify-between items-center gap-2 bg-base-18">
     <div className="flex-none flex flex-row items-center gap-2">
-      <button className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer">
+      <button
+        onClick={handleToggleExplorer}
+        className={`ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer ${explorerOpen ? 'bg-base-16' : ''}`}
+      >
         <i className="codicon codicon-map text-[#FFFFFFCC] active:text-white" />
       </button>
     </div>
@@ -68,6 +78,7 @@ const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, m
       </VscodeSingleSelect>
     </div>
   </div>
-);
+  );
+};
 
 export default Toolbar;

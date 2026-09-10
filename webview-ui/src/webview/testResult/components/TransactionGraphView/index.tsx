@@ -3,6 +3,7 @@ import { useState, forwardRef, useImperativeHandle } from 'react';
 import Toolbar from './Toolbar';
 import GraphTimeline from './GraphTimeline';
 import Graph from './Graph';
+import GraphTxExplorer from './GraphTxExplorer';
 
 interface Handle {
   showRoundNode: (round: TestRound, nodeId?: string) => void;
@@ -20,6 +21,8 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
   const [testRoundIndex, setTestRoundIndex] = useState<number>(0);
   const [nodeId, setNodeId] = useState<string|null>(null);
   const [stepIndex, setStepIndex] = useState<number>(0);
+  const [explorerOpen, setExplorerOpen] = useState<boolean>(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string|null>(null);
 
   if (test === null || test.id.join(':') != props.test.id.join(':')) {
     setMode('result-graph');
@@ -27,16 +30,27 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
     setTestRoundIndex(0);
     setNodeId(null);
     setStepIndex(0);
+    setExplorerOpen(false);
+    setSelectedNodeId(null);
   }
 
   const onSelectRound = (index: number, nodeId?: string): void => {
     setTestRoundIndex(index);
     setNodeId(nodeId ? nodeId : null);
     setStepIndex(0);
+    setSelectedNodeId(null);
   };
 
   const onSelectMode = (newMode: GraphMode): void => {
     setMode(newMode);
+  };
+
+  const onToggleExplorer = (): void => {
+    setExplorerOpen(open => !open);
+  };
+
+  const onSelectTx = (txNodeId: string): void => {
+    setSelectedNodeId(txNodeId);
   };
 
   useImperativeHandle(ref, () => ({
@@ -54,25 +68,39 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
         mode={mode}
         testRoundIndex={testRoundIndex}
         testRounds={props.testRounds}
+        explorerOpen={explorerOpen}
         onSelectRound={onSelectRound}
         onSelectMode={onSelectMode}
+        onToggleExplorer={onToggleExplorer}
       />
-      <div className="flex-1 relative bg-base-19">
-        {mode === 'attack-timeline' &&
-          <GraphTimeline
+      <div className="flex-1 flex flex-row bg-base-19">
+        {explorerOpen &&
+          <GraphTxExplorer
+            mode={mode}
+            round={props.testRounds[testRoundIndex]}
             stepIndex={stepIndex}
-            round={props.testRounds[testRoundIndex] as ThreatModelTestRound}
-            onSelectStep={setStepIndex}
+            selectedNodeId={selectedNodeId}
+            onSelectTx={onSelectTx}
+            onClose={onToggleExplorer}
           />
         }
-        <Graph
-          mode={mode}
-          round={props.testRounds[testRoundIndex]}
-          nodeId={nodeId || undefined}
-          stepIndex={stepIndex}
-          onViewNodeDetails={console.log}
-          isActive={props.isActive}
-        />
+        <div className="flex-1 relative">
+          {mode === 'attack-timeline' &&
+            <GraphTimeline
+              stepIndex={stepIndex}
+              round={props.testRounds[testRoundIndex] as ThreatModelTestRound}
+              onSelectStep={setStepIndex}
+            />
+          }
+          <Graph
+            mode={mode}
+            round={props.testRounds[testRoundIndex]}
+            nodeId={selectedNodeId || nodeId || undefined}
+            stepIndex={stepIndex}
+            onViewNodeDetails={console.log}
+            isActive={props.isActive}
+          />
+        </div>
       </div>
     </div>
   );
