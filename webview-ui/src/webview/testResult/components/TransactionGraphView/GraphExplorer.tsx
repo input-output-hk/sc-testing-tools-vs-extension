@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { VscodeTree, VscodeTreeItem } from '@vscode-elements/react-elements';
 
-import { mapTestRoundToGraphData } from '../../utils/reactFlowMapper';
+import { mapTestRoundToGraphTxs } from '../../utils/reactFlowMapper';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 
 interface Props {
@@ -26,8 +26,6 @@ interface ExplorerRowProps {
   onSelect: (nodeId: string) => void;
 }
 
-const noop = (): void => {};
-
 const formatTxIndexLabel = (index: number): string => `Transaction #${index + 1}`;
 
 const formatTxIdLabel = (id: string): string => {
@@ -36,19 +34,13 @@ const formatTxIdLabel = (id: string): string => {
   return `${id.slice(0, 4)}...${id.slice(-4)}`;
 };
 
-const mapRoundToTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Array<ExplorerTx> => {
-  const { nodes } = mapTestRoundToGraphData(mode, round, stepIndex, noop);
-  return Object.values(nodes)
-    .filter(node => node.type === 'tx')
-    .map(node => node.data as unknown as GraphNodeTx)
-    .sort((a, b) => a.index - b.index)
-    .map(data => ({
-      nodeId: `tx-${data.id.current}`,
-      indexLabel: formatTxIndexLabel(data.index),
-      idLabel: formatTxIdLabel(data.id.current),
-      valid: data.status === 'success',
-    }));
-};
+const mapRoundToTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Array<ExplorerTx> =>
+  mapTestRoundToGraphTxs(mode, round, stepIndex).map(data => ({
+    nodeId: `tx-${data.id.current}`,
+    indexLabel: formatTxIndexLabel(data.index),
+    idLabel: formatTxIdLabel(data.id.current),
+    valid: data.status === 'success',
+  }));
 
 const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => {
   const treeItemRef = useTreeItemState({
