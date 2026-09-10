@@ -50,7 +50,7 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
           onClick={onBuild}
         >
           <i className="codicon codicon-refresh" />
-          <span>Refresh Tests</span>
+          <span>Refresh Test Tree</span>
         </button>
       }
       {hasLocation &&
