@@ -155,7 +155,8 @@ export const onTestSuiteUpdate = (
           )
         } : undefined,
         time: testDocument.time,
-        percentage: testDocument.percentage
+        percentage: testDocument.percentage,
+        type: testDocument.type ? testDocument.type as TestType : undefined,
       }));
 
       const packageId: TestPackageId = [document.workspaceId, document.packageName];
