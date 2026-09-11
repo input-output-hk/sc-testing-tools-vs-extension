@@ -81,7 +81,7 @@ const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId
         <button
           type="button"
           onClick={handleClose}
-          className="p-[3px] rounded-full border-0 bg-transparent hover:bg-base-17 active:bg-base-16 cursor-pointer"
+          className="flex items-center justify-center p-[3px] rounded-full border-0 bg-transparent hover:bg-base-17 active:bg-base-16 cursor-pointer"
         >
           <i className="codicon codicon-arrow-left text-base-06" />
         </button>
