@@ -11,6 +11,7 @@ interface Props {
   testRounds: Array<TestRound>;
   onSelectRound: (index: number) => void;
   onSelectMode: (mode: GraphMode) => void;
+  onOpenExplorer: () => void;
 }
 
 interface TxButtonProps {
@@ -39,10 +40,13 @@ const TxButton: React.FC<TxButtonProps> = ({ round, mode, onSelectMode }) => (
     </VscodeButtonGroup>
 );
 
-const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, mode, onSelectMode }) => (
+const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, mode, onSelectMode, onOpenExplorer }) => (
   <div className="flex-none p-2 flex flex-row justify-between items-center gap-2 bg-base-18">
     <div className="flex-none flex flex-row items-center gap-2">
-      <button className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer">
+      <button
+        type="button" onClick={onOpenExplorer}
+        className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer"
+      >
         <i className="codicon codicon-map text-[#FFFFFFCC] active:text-white" />
       </button>
     </div>
