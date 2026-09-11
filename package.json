@@ -31,13 +31,18 @@
     "commands": [
       {
         "command": "pbt-extension.buildAllTestSuites",
-        "title": "Refresh all test suites",
+        "title": "Refresh Test Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "pbt-extension.runAllTests",
-        "title": "Run All",
+        "title": "Run Tests",
         "icon": "$(run-all)"
+      },
+      {
+        "command": "pbt-extension.stopTestRun",
+        "title": "Stop",
+        "icon": "$(debug-stop)"
       },
       {
         "command": "pbt-extension.refreshTestConfiguration",
@@ -59,13 +64,18 @@
       "view/title": [
         {
           "command": "pbt-extension.buildAllTestSuites",
-          "when": "view == pbt-test-tree",
+          "when": "view == pbt-test-tree && !pbt.activeTestRun",
           "group": "navigation@1"
         },
         {
           "command": "pbt-extension.runAllTests",
-          "when": "view == pbt-test-tree",
+          "when": "view == pbt-test-tree && !pbt.activeTestRun",
           "group": "navigation@2"
+        },
+        {
+          "command": "pbt-extension.stopTestRun",
+          "when": "view == pbt-test-tree && pbt.activeTestRun",
+          "group": "navigation@3"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",
@@ -142,12 +152,14 @@
     "@types/async": "^3.2.25",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
+    "drizzle-kit": "^1.0.0-rc.4",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
     "ajv": "^8.20.0",
     "async": "^3.2.6",
+    "drizzle-orm": "^1.0.0-rc.4",
     "rxdb": "^17.4.0",
     "tree-sitter-haskell": "^0.23.1",
     "vscode-jsonrpc": "^8.2.1",

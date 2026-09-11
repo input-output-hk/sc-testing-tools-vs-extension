@@ -2,7 +2,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { isTestRunnable, formatTestTime } from '../../utils/treeUtils';
+import { isTestRunnable } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewTestProps {
   node: TestTreeTestNode;
@@ -10,6 +11,7 @@ interface TreeViewTestProps {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -20,6 +22,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onRunTest,
   onUpdateSelection,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -28,7 +31,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
-      onUpdateSelection([node.test.id], selected);
+      if (isRunnable) onUpdateSelection([node.test.id], selected);
     },
   });
 
@@ -46,6 +49,13 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     if (isRunnable) onRunTest([node.test.id]);
   };
 
+  const handleShowCoverage = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    onShowCoverage(node.test.id, node.test.name);
+  };
+
   const handleShowTestLocation = (event: React.MouseEvent): void => {
     if ((event.target as HTMLElement).closest('button')) return;
     if (node.test.location !== undefined) onShowTestLocation(node.test.id);
@@ -59,13 +69,24 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} onClickCapture={handleShowTestLocation} onContextMenu={handleContextMenu}>
-      <TestStatusIcon status={node.test.status} isThreatModel={isThreatModel} />
+      <TestStatusIcon
+        status={{
+          status: node.test.status,
+          isWaiting: node.test.isWaiting,
+          isRunning: node.test.isRunning
+        }}
+        isThreatModel={isThreatModel}
+      />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={node.test.name}
+        >
           {node.test.name}
           {(node.test.time !== undefined && node.test.time > 0) &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(node.test.time)}
+              {formatRunTime(node.test.time)}
             </span>
            || (node.test.percentage !== undefined && node.test.percentage > 0) &&
             <span className="ml-1 opacity-60">
@@ -79,8 +100,20 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
             onClickCapture={handleOpenTestResult}
+            data-tooltip-id="tree-node-action"
+            data-tooltip-content="View Results"
           >
             <i className="codicon codicon-tasklist" />
+          </button>
+        }
+
+        {node.test.hasCoverage === true &&
+          <button
+            type="button"
+            className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
+            onClickCapture={handleShowCoverage}
+          >
+            <i className="codicon codicon-coverage" />
           </button>
         }
 
@@ -91,6 +124,8 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunTest}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Test"
         >
           <i className="codicon codicon-play" />
         </button>

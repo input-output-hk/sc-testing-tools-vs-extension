@@ -73,4 +73,5 @@ const schemaTyped = toTypedRxJsonSchema(coverageSchemaLiteral);
 type CoverageDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const coverageSchema: RxJsonSchema<CoverageDocType> = coverageSchemaLiteral;
 export type CoverageDocument = RxDocument<CoverageDocType>;
+export type CoverageDocumentData = CoverageDocType;
 export type CoverageCollection = RxCollection<CoverageDocType>;

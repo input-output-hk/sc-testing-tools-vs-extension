@@ -1,7 +1,7 @@
-import type { Database, RoundDocument } from '../collections';
+import type { Database, RoundDocument, RoundDocumentData } from '../collections';
 
-const mapRound = (round: TestRound): Partial<RoundDocument> => {
-  const document: Partial<RoundDocument> = {
+const mapRound = (round: TestRound): RoundDocumentData => {
+  const document: RoundDocumentData = {
     id: round.testId.join(':') + ':' + round.id.toString(),
     workspaceId: round.testId[0],
     packageName: round.testId[1],
@@ -26,11 +26,11 @@ const mapRound = (round: TestRound): Partial<RoundDocument> => {
   }
 
   return document;
-}
+};
 
 export const createRounds = async (database: Database, rounds: Array<TestRound>): Promise<void> => {
   await database.rounds.bulkUpsert(rounds.map(mapRound));
-}
+};
 
 const mapDocument = (document: RoundDocument): TestRound => {
   const round: TestRound = {
@@ -59,9 +59,7 @@ const mapDocument = (document: RoundDocument): TestRound => {
 export const getTestRounds = async (database: Database, id: TestId): Promise<Array<TestRound>> => {
   const [workspaceId, packageName, suiteName, testId] = id;
   const roundDocuments: Array<RoundDocument> = await database.rounds.find({
-    selector: {
-      workspaceId, packageName, suiteName, testId
-    }
+    selector: { workspaceId, packageName, suiteName, testId }
   }).exec();
   return roundDocuments.map(mapDocument);
-}
+};

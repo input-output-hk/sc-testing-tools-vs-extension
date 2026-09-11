@@ -5,11 +5,8 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import {
-  isRunnableStatus,
-  nodeMatchesFilter,
-  formatTestTime
-} from '../../utils/treeUtils';
+import { nodeMatchesFilter } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewSuiteProps {
   packageId: TestPackageId;
@@ -26,6 +23,7 @@ interface TreeViewSuiteProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -39,12 +37,13 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
   const [workspaceId, packageName] = packageId;
   const suiteId: TestSuiteId = [workspaceId, packageName, suite.name];
-  const isRunnable = isRunnableStatus(suite.status);
+  const isRunnable = !suite.isRunning && !suite.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -84,13 +83,23 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={suite.isOpen} onContextMenu={handleContextMenu}>
-      <TestStatusIcon status={suite.status} />
+      <TestStatusIcon
+        status={{
+          status: suite.status,
+          isWaiting: suite.isWaiting,
+          isRunning: suite.isRunning
+        }}
+      />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={suite.name}
+        >
           {suite.name}
           {suite.time !== undefined && suite.time > 0 &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(suite.time)}
+              {formatRunTime(suite.time)}
             </span>
           }
         </span>
@@ -101,6 +110,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleBuildSuite}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Refresh Test Tree"
         >
           <i className="codicon codicon-refresh" />
         </button>
@@ -111,6 +122,8 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunSuite}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>
@@ -128,6 +141,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
           onContextMenu={onContextMenu}
         />
