@@ -55,7 +55,7 @@ const Graph: React.FC<Props> = (props) => {
     if (props.isActive) {
       const nodes: Array<string> | null = props.nodeId ? [props.nodeId] : stepNodes; 
       if (nodes !== null && nodes.length > 0) {
-        requestAnimationFrame(() =>
+        setTimeout(() =>
           reactFlowInstance.current?.fitView({
             nodes: nodes.map(id => ({ id })),
             duration: 300,

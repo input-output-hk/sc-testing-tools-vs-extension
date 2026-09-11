@@ -427,31 +427,3 @@ export const mapTestRoundToGraphData = (
 
   return graphData;
 }
-
-// Same tx-selection rules as mapTransitionTestRoundToGraphData /
-// mapThreatModelTestRoundToGraphData (round type, stepIndex/attack-timeline
-// truncation, modified-tx fallback), but without building inputs, outputs,
-// edges or node positions — for callers that only need the tx list itself
-// (e.g. the Graph Explorer panel), not the full ReactFlow layout.
-export const mapTestRoundToGraphTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Array<GraphNodeTx> => {
-  const graphTxs: Array<GraphNodeTx> = [];
-
-  if (round.type === 'positive' || round.type === 'negative') {
-    for (const [index, transition] of (round as TransitionTestRound).transitions.entries()) {
-      if (!transition.tx) continue;
-      graphTxs.push(mapTxToGraphTx(transition.tx, index, mode, transition.result.status));
-    }
-    return graphTxs;
-  }
-
-  for (const [index, trace] of (round as ThreatModelTestRound).traces.entries()) {
-    if (mode === 'attack-timeline' && index > stepIndex) break;
-    const status: GraphNodeTx['status'] = trace.outcome.status === 'passed' ? 'success' : 'failure';
-    graphTxs.push(
-      mode === 'result-graph' || index < stepIndex
-        ? mapTxToGraphTx(trace.tx, index, mode, status)
-        : mapModifiedTxToGraphTx(trace.tx, trace.modifiedTx, trace.modifications, index, mode, status)
-    );
-  }
-  return graphTxs;
-};
