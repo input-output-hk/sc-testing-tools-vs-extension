@@ -36,7 +36,7 @@ const mapDocument = (document: RoundDocument): TestRound => {
   const round: TestRound = {
     id: parseInt(document.roundId),
     testId: [document.workspaceId, document.packageName, document.suiteName, document.testId],
-    type: document.type as 'positive' | 'negative' | 'threat-model' | undefined,
+    type: document.type,
     status: document.status as TestRoundStatus,
   };
 

@@ -27,6 +27,16 @@ export const finalStringSchema = {
   final: true,
 } as const;
 
+export const runStatusSchema = {
+  type: 'string',
+  enum: ['undetermined', 'valid', 'invalid'],
+} as const;
+
+export const testTypeSchema = {
+  type: 'string',
+  enum: ['unit-test', 'positive', 'negative', 'threat-model'],
+} as const;
+
 export const workspaceIdSchema = {
   type: 'string',
   maxLength: WORKSPACE_ID_MAX_LENGTH,
