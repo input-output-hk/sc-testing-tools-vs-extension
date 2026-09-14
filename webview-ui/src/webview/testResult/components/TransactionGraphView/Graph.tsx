@@ -26,6 +26,21 @@ interface Props {
   isActive: boolean;
 }
 
+const mapNodeToColor = (node: Node): string => {
+  switch (node.type) {
+    case 'tx':
+      return '#73C991';
+    case 'wallet':
+      return '#569CD6';
+    case 'script':
+      return '#72642A';
+    case 'withdrawal':
+      return '#68217A';
+    default:
+      return '#FFFFFF';
+  }
+};
+
 const Graph: React.FC<Props> = (props) => {
   const [mode, setMode] = useState<GraphMode | null>(null);
   const [stepIndex, setStepIndex] = useState<number | null>(null);
@@ -94,7 +109,7 @@ const Graph: React.FC<Props> = (props) => {
       colorMode="dark"
       nodes={Object.values(nodes)}
       edges={Object.values(edges)}
-      nodeTypes={{ tx: GraphNode, utxo: GraphNode }}
+      nodeTypes={{ tx: GraphNode, wallet: GraphNode, script: GraphNode, withdrawal: GraphNode }}
       onEdgeMouseEnter={(_, edge) => onActiveEdge(edge.id)}
       onEdgeMouseLeave={(_, edge) => onInactiveEdge(edge.id)}
     >
@@ -102,7 +117,7 @@ const Graph: React.FC<Props> = (props) => {
         pannable={true}
         bgColor="rgba(60, 60, 60, 0.9)"
         maskColor="rgba(40, 40, 40, 0.6)"
-        nodeColor={node => node.type === 'tx' ? '#73C991' : '#569CD6'}
+        nodeColor={mapNodeToColor}
         nodeComponent={MiniMapNode}
       />
       <Controls showInteractive={false} />

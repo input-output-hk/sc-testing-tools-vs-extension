@@ -26,7 +26,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
 
   for (let i = 0; i < graphTxs.length; i++) {
     const tx = graphTxs[i].tx;
-    const txId = `tx-${tx.id.current}`;
+    const txId = `tx-${tx.identifier}`;
     const iColN = i * 2;
     const tColN = iColN + 1;
     const oColN = tColN + 1;
@@ -52,7 +52,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
 
     for (let j = 0; j < graphTxs[i].inputs.length; j++) {
       const txHandler = `${txId}-i-${j}`;
-      const utxoId = `utxo-${graphTxs[i].inputs[j].utxo.current}`;
+      const utxoId = `utxo-${graphTxs[i].inputs[j].identifier}`;
       if (nodes[utxoId] !== undefined) {
         nodes[utxoId]['data'] = {
           ...nodes[utxoId]['data'],
@@ -62,7 +62,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
       } else {
         nodes[utxoId] = {
           id: utxoId,
-          type: 'utxo',
+          type: graphTxs[i].inputs[j].type,
           data: {
             ...graphTxs[i].inputs[j],
             consumed: true,
@@ -97,7 +97,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
 
     for (let j = 0; j < graphTxs[i].outputs.length; j++) {
       const txHandler = `${txId}-o-${j}`;
-      const utxoId = `utxo-${graphTxs[i].outputs[j].utxo.current}`;
+      const utxoId = `utxo-${graphTxs[i].outputs[j].identifier}`;
       if (nodes[utxoId] !== undefined) {
         nodes[utxoId]['data'] = {
           ...nodes[utxoId]['data'],
@@ -107,8 +107,49 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
       } else {
         nodes[utxoId] = {
           id: utxoId,
-          type: 'utxo',
+          type: graphTxs[i].outputs[j].type,
           data: graphTxs[i].outputs[j],
+          zIndex: 10,
+          initialWidth: GRAPH_NODE_WIDTH,
+          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
+          position: {
+            x: oColN * COLUMN_WIDTH,
+            y: columns[oColN].length * ROW_HEIGHT
+          }
+        };
+        columns[oColN].push(nodes[utxoId]);
+      }
+      const edgeId = `edge-${txHandler}-to-${utxoId}`;
+      edges[edgeId] = {
+        id: edgeId,
+        type: 'smoothstep',
+        source: txId,
+        sourceHandle: txHandler,
+        target: utxoId,
+        selectable: true,
+        pathOptions: {
+          borderRadius: 40
+        },
+        markerEnd: {
+          type: MarkerType.Arrow,
+          height: 20, width: 20
+        },
+      } as Edge;
+    }
+
+    for (let j = 0; j < graphTxs[i].withdrawals.length; j++) {
+      const txHandler = `${txId}-w-${j}`;
+      const utxoId = `utxo-${graphTxs[i].withdrawals[j].identifier}`;
+      if (nodes[utxoId] !== undefined) {
+        nodes[utxoId]['data'] = {
+          ...nodes[utxoId]['data'],
+          ...graphTxs[i].withdrawals[j],
+        };
+      } else {
+        nodes[utxoId] = {
+          id: utxoId,
+          type: graphTxs[i].withdrawals[j].type,
+          data: graphTxs[i].withdrawals[j],
           zIndex: 10,
           initialWidth: GRAPH_NODE_WIDTH,
           initialHeight: GRAPH_UTXO_NODE_HEIGHT,
@@ -151,14 +192,18 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
   return { edges, nodes };
 };
 
-const mapTxToGraphTx = (tx: Tx, index: number, mode: GraphMode, status: GraphNodeTx['status']): GraphNodeTx => ({
-  type: 'tx', index, mode, status,
+const mapTxToGraphTx = (tx: Tx, index: number, status: GraphNodeTx['status']): GraphNodeTx => ({
+  identifier: tx.id ?? '',
+  label: `Transaction #${index + 1}`,
+  type: 'tx',
+  status,
   id: { current: tx.id ?? '', previous: tx.id ?? '' },
   fee: { current: tx.fee, previous: tx.fee },
   signers: { current: tx.signers, previous: tx.signers },
   mint: { current: tx.mint, previous: tx.mint },
   inputCount: tx.inputs.length,
   outputCount: tx.outputs.length,
+  withdrawalCount: tx.withdrawals.length,
 });
 
 const mapModifiedTxToGraphTx = (
@@ -166,15 +211,18 @@ const mapModifiedTxToGraphTx = (
   modifiedTx: Tx | undefined,
   modifications: Array<TxMod>,
   index: number,
-  mode: GraphMode,
   status: GraphNodeTx['status']
 ): GraphNodeTx => {
-  if (!modifiedTx) return mapTxToGraphTx(tx, index, mode, status);
+  if (!modifiedTx) return mapTxToGraphTx(tx, index, status);
   
   const graphTx: GraphNodeTx = {
-    type: 'tx', index, mode, status,
+    identifier: tx.id ?? '',
+    label: `Transaction #${index + 1}`,
+    type: 'tx',
+    status,
     inputCount: tx.inputs.length,
     outputCount: tx.outputs.length,
+    withdrawalCount: tx.withdrawals.length,
     id: {
       current: modifiedTx.id ?? '',
       previous: tx.id ?? '',
@@ -205,25 +253,28 @@ const mapModifiedTxToGraphTx = (
   return graphTx;
 };
 
-const mapTxInputToGraphUTxO = (input: TxInput, index: number, mode: GraphMode): GraphNodeUTxO => ({
-  type: 'utxo', index, mode, consumed: false,
+const mapTxInputToGraphUTxO = (input: TxInput): GraphNodeUTxO => ({
+  identifier: input.utxo,
+  label: input.addressLabel ?? input.addressType,
+  type: input.addressType === 'script' ? 'script' : 'wallet',
   address: { current: input.address, previous: input.address },
   utxo: { current: input.utxo, previous: input.utxo },
   value: { current: input.value, previous: input.value },
   redeemer: { current: input.redeemerRaw, previous: input.redeemerRaw },
+  consumed: false,
 });
 
 const mapModifiedTxInputToGraphUTxO = (
   input: TxInput,
   modifiedInput: TxInput | undefined,
-  modifications: Array<TxMod>,
-  index: number,
-  mode: GraphMode
+  modifications: Array<TxMod>
 ): GraphNodeUTxO => {
-  if (!modifiedInput) return mapTxInputToGraphUTxO(input, index, mode);
+  if (!modifiedInput) return mapTxInputToGraphUTxO(input);
   
   const graphUtxo: GraphNodeUTxO = {
-    type: 'utxo', index, mode, consumed: false,
+    identifier: input.utxo,
+    label: input.addressLabel ?? input.addressType,
+    type: input.addressType === 'script' ? 'script' : 'wallet',
     address: {
       current: modifiedInput.address,
       previous: input.address,
@@ -240,6 +291,7 @@ const mapModifiedTxInputToGraphUTxO = (
       current: modifiedInput.redeemerRaw,
       previous: input.redeemerRaw,
     },
+    consumed: false,
   };
 
   for (const mod of modifications) {
@@ -262,24 +314,28 @@ const mapModifiedTxInputToGraphUTxO = (
   return graphUtxo;
 };
 
-const mapTxOutputToGraphUTxO = (output: TxOutput, mode: GraphMode): GraphNodeUTxO => ({
-  type: 'utxo', index: output.index, mode, consumed: false,
+const mapTxOutputToGraphUTxO = (output: TxOutput): GraphNodeUTxO => ({
+  identifier: output.utxo,
+  label: output.addressLabel ?? output.addressType,
+  type: output.addressType === 'script' ? 'script' : 'wallet',
   address: { current: output.address, previous: output.address },
   utxo: { current: output.utxo, previous: output.utxo },
   value: { current: output.value, previous: output.value },
   datum: { current: output.datum, previous: output.datum },
+  consumed: false,
 });
 
 const mapModifiedTxOutputToGraphUTxO = (
   output: TxOutput,
   modifiedOutput: TxOutput | undefined,
-  modifications: Array<TxMod>,
-  mode: GraphMode
+  modifications: Array<TxMod>
 ): GraphNodeUTxO => {
-  if (!modifiedOutput) return mapTxOutputToGraphUTxO(output, mode);
+  if (!modifiedOutput) return mapTxOutputToGraphUTxO(output);
   
   const graphUtxo: GraphNodeUTxO = {
-    type: 'utxo', index: output.index, mode, consumed: false,
+    identifier: output.utxo,
+    label: output.addressLabel ?? output.addressType,
+    type: output.addressType === 'script' ? 'script' : 'wallet',
     address: {
       current: modifiedOutput.address,
       previous: output.address,
@@ -296,6 +352,7 @@ const mapModifiedTxOutputToGraphUTxO = (
       current: modifiedOutput.datum,
       previous: output.datum,
     },
+    consumed: false,
   };
 
   for (const mod of modifications) {
@@ -324,24 +381,35 @@ const mapModifiedTxOutputToGraphUTxO = (
   return graphUtxo;
 };
 
-const mapTransitionTestRoundToGraphData = (mode: GraphMode, round: TransitionTestRound): GraphData => {
+const mapTxWithdrawalToGraphUTxO = (withdrawal: TxWithdrawal): GraphNodeUTxO => ({
+  identifier: withdrawal.stakeAddress,
+  label: withdrawal.addressLabel ?? 'withdrawal',
+  type: 'withdrawal',
+  stakeAddress: { current: withdrawal.stakeAddress, previous: withdrawal.stakeAddress },
+  redeemer: { current: withdrawal.redeemerRaw, previous: withdrawal.redeemerRaw },
+  amount: { current: withdrawal.amount, previous: withdrawal.amount },
+  consumed: false,
+});
+
+const mapTransitionTestRoundToGraphData = (round: TransitionTestRound): GraphData => {
   const graphTxs: Array<GraphTx> = [];
   const stepNodes: Array<string> = [];
 
   for (const [index, transition] of round.transitions.entries()) {
     if (!transition.tx) continue;
     graphTxs.push({
-      tx: mapTxToGraphTx(transition.tx, index, mode, transition.result.status),
-      inputs: transition.tx.inputs.map((input, index) => mapTxInputToGraphUTxO(input, index, mode)),
-      outputs: transition.tx.outputs.map(output => mapTxOutputToGraphUTxO(output, mode)),
+      tx: mapTxToGraphTx(transition.tx, index, transition.result.status),
+      inputs: transition.tx.inputs.map(mapTxInputToGraphUTxO),
+      outputs: transition.tx.outputs.map(mapTxOutputToGraphUTxO),
+      withdrawals: transition.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
     });
   }
 
   if (graphTxs.length > 0) {
     stepNodes.push(...[
-      `tx-${graphTxs[0].tx.id.current}`,
-      ...graphTxs[0].inputs.map(({ utxo }) => `utxo-${utxo.current}`),
-      ...graphTxs[0].outputs.map(({ utxo }) => `utxo-${utxo.current}`)
+      `tx-${graphTxs[0].tx.identifier}`,
+      ...graphTxs[0].inputs.map(({ identifier }) => `utxo-${identifier}`),
+      ...graphTxs[0].outputs.map(({ identifier }) => `utxo-${identifier}`)
     ]);
   }
 
@@ -366,24 +434,25 @@ const mapThreatModelTestRoundToGraphData = (
     const status: GraphNodeTx['status'] = trace.outcome.status === 'passed' ? 'success' : 'failure';
     if (mode === 'result-graph' || index < stepIndex) {
       graphTxs.push({
-        tx: mapTxToGraphTx(trace.tx, index, mode, status),
-        inputs: trace.tx.inputs.map((input, index) => mapTxInputToGraphUTxO(input, index, mode)),
-        outputs: trace.tx.outputs.map(output => mapTxOutputToGraphUTxO(output, mode)),
+        tx: mapTxToGraphTx(trace.tx, index, status),
+        inputs: trace.tx.inputs.map(mapTxInputToGraphUTxO),
+        outputs: trace.tx.outputs.map(mapTxOutputToGraphUTxO),
+        withdrawals: trace.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
       });
     } else {
       graphTxs.push({
         tx: mapModifiedTxToGraphTx(
-          trace.tx, trace.modifiedTx, trace.modifications,
-          index, mode, status,
+          trace.tx, trace.modifiedTx, trace.modifications, index, status
         ),
         inputs: trace.tx.inputs.map((input, index) => {
           const modifiedInput = trace.modifiedTx?.inputs[index];
-          return mapModifiedTxInputToGraphUTxO(input, modifiedInput, trace.modifications, index, mode);
+          return mapModifiedTxInputToGraphUTxO(input, modifiedInput, trace.modifications);
         }),
         outputs: trace.tx.outputs.map((output, index) => {
           const modifiedOutput = trace.modifiedTx?.outputs[index];
-          return mapModifiedTxOutputToGraphUTxO(output, modifiedOutput, trace.modifications, mode);
+          return mapModifiedTxOutputToGraphUTxO(output, modifiedOutput, trace.modifications);
         }),
+        withdrawals: trace.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
       });
     }
   }
@@ -391,9 +460,9 @@ const mapThreatModelTestRoundToGraphData = (
   if (graphTxs.length > 0) {
     const index = graphTxs.length > stepIndex ? stepIndex : 0;
     stepNodes.push(...[
-      `tx-${graphTxs[index].tx.id.current}`,
-      ...graphTxs[index].inputs.map(({ utxo }) => `utxo-${utxo.current}`),
-      ...graphTxs[index].outputs.map(({ utxo }) => `utxo-${utxo.current}`)
+      `tx-${graphTxs[index].tx.identifier}`,
+      ...graphTxs[index].inputs.map(({ identifier }) => `utxo-${identifier}`),
+      ...graphTxs[index].outputs.map(({ identifier }) => `utxo-${identifier}`)
     ]);
   }
 
@@ -413,7 +482,7 @@ export const mapTestRoundToGraphData = (
 
   if (round.type === 'positive' || round.type === 'negative') {
     graphData = mapTransitionTestRoundToGraphData(
-      mode, round as TransitionTestRound
+      round as TransitionTestRound
     );
   } else {
     graphData = mapThreatModelTestRoundToGraphData(

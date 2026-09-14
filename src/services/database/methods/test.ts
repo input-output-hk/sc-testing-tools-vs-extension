@@ -208,7 +208,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     id: testId,
     name: testDocument.name,
     group: testDocument.group,
-    status: testDocument.status as RunStatus,
+    status: testDocument.status,
     isWaiting: testDocument.isWaiting,
     isRunning: testDocument.isRunning,
     isStatic: testDocument.isStatic,
@@ -223,7 +223,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     } : undefined,
     time: testDocument.time,
     percentage: testDocument.percentage,
-    type: testDocument.type ? testDocument.type as TestType : undefined,
+    type: testDocument.type,
   };
 }
 
@@ -243,7 +243,7 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       id: testId,
       name: document.name,
       group: document.group,
-      status: document.status as RunStatus,
+      status: document.status,
       isWaiting: document.isWaiting,
       isRunning: document.isRunning,
       isStatic: document.isStatic,
@@ -258,7 +258,7 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       } : undefined,
       time: document.time,
       percentage: document.percentage,
-      type: document.type ? document.type as TestType : undefined,
+      type: document.type,
       hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
     });
   });

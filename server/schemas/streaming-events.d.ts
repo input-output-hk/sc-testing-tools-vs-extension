@@ -82,6 +82,8 @@ export type TxMod =
     }
   | {
       address: string | null;
+      addressLabel: string | null;
+      addressType: AddressType | null;
       datum: string | null;
       index: number;
       referenceScript: string | null;
@@ -91,6 +93,8 @@ export type TxMod =
     }
   | {
       address: string | null;
+      addressLabel: string | null;
+      addressType: AddressType | null;
       datum: string | null;
       referenceScript: string | null;
       type: "changeInput";
@@ -115,6 +119,8 @@ export type TxMod =
     }
   | {
       address: string;
+      addressLabel: string | null;
+      addressType: AddressType;
       datum: string | null;
       referenceScript: string;
       type: "addOutput";
@@ -123,6 +129,8 @@ export type TxMod =
     }
   | {
       address: string;
+      addressLabel: string | null;
+      addressType: AddressType;
       datum: string | null;
       isReferenceInput: boolean;
       referenceScript: string;
@@ -176,6 +184,10 @@ export type TxMod =
       type: "replaceTx";
       [k: string]: unknown;
     };
+/**
+ * Whether an address's credential is a public key ("public-key") or a script ("script"), so a client doesn't have to parse the address itself to find out.
+ */
+export type AddressType = "public-key" | "script";
 export type ThreatModelTraceOutcome =
   | {
       status: "passed";
@@ -189,6 +201,11 @@ export type ThreatModelTraceOutcome =
   | {
       reason: string;
       status: "skipped";
+      [k: string]: unknown;
+    }
+  | {
+      reason: string;
+      status: "skipped_phase1";
       [k: string]: unknown;
     }
   | {
@@ -271,6 +288,7 @@ export interface ThreatModelSummary {
   name: string;
   passed: number;
   skipped: number;
+  skipped_phase1: number;
   tested: number;
   total: number;
   [k: string]: unknown;
@@ -312,6 +330,7 @@ export interface TxSummary {
   outputs: TxOutputSummary[];
   signers: (string | null)[];
   validRange: string | null;
+  withdrawals: TxWithdrawalSummary[];
   [k: string]: unknown;
 }
 /**
@@ -319,6 +338,8 @@ export interface TxSummary {
  */
 export interface TxInputSummary {
   address: string;
+  addressLabel: string | null;
+  addressType: AddressType;
   redeemerConstr: number | null;
   redeemerKind: string | null;
   redeemerPayload: unknown;
@@ -329,9 +350,25 @@ export interface TxInputSummary {
 }
 export interface TxOutputSummary {
   address: string;
+  addressLabel: string | null;
+  addressType: AddressType;
   datum: string | null;
   utxo: string;
   value: ValueSummary;
+  [k: string]: unknown;
+}
+/**
+ * Tier 1 (redeemerRaw, redeemerConstr) is always present for script-witnessed withdrawals; Tier 2 (redeemerKind, redeemerPayload) is only populated when the TestingInterface instance overrides redeemerTagger. All four redeemer fields are nullable (null for key-witnessed withdrawals, or when Tier 2 is not opted in). A zero "amount" is how a script attached to the stake credential can be triggered to run without spending or creating any UTxO (the "withdraw zero trick").
+ */
+export interface TxWithdrawalSummary {
+  addressLabel: string | null;
+  addressType: AddressType;
+  amount: number;
+  redeemerConstr: number | null;
+  redeemerKind: string | null;
+  redeemerPayload: unknown;
+  redeemerRaw: string | null;
+  stakeAddress: string;
   [k: string]: unknown;
 }
 export interface Transition {

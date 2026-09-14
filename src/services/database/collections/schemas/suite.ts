@@ -9,7 +9,7 @@ import {
 import {
   booleanSchema,
   numberSchema,
-  stringSchema,
+  runStatusSchema,
   suiteIdSchema,
   workspaceIdSchema,
   packageNameSchema,
@@ -30,7 +30,7 @@ const suiteSchemaLiteral = {
     workspaceId: workspaceIdSchema,
     packageName: packageNameSchema,
     suiteName: suiteNameSchema,
-    status: stringSchema,
+    status: runStatusSchema,
     isWaiting: booleanSchema,
     isRunning: booleanSchema,
     isStatic: booleanSchema,

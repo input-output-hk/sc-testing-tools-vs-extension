@@ -10,6 +10,8 @@ import {
   booleanSchema,
   numberSchema,
   stringSchema,
+  runStatusSchema,
+  testTypeSchema,
   rangeSchema,
   testIdSchema,
   fullTestIdSchema,
@@ -38,11 +40,11 @@ const testSchemaLiteral = {
       type: 'array',
       items: stringSchema
     },
-    status: stringSchema,
+    status: runStatusSchema,
     isWaiting: booleanSchema,
     isRunning: booleanSchema,
     isStatic: booleanSchema,
-    type: stringSchema,
+    type: testTypeSchema,
     location: {
       type: 'object',
       properties: {
