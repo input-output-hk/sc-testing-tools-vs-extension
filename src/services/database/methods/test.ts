@@ -227,7 +227,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
   };
 }
 
-export const onTestUpdate = (database: Database, callback: (test: Test) => void): void => {
+export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpdate) => void): void => {
   database.tests.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
     const testId: TestId = [
@@ -240,26 +240,29 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       document.status !== 'undetermined' &&
       changeEvent.previousDocumentData?.isRunning && !document.isRunning;
     callback({
-      id: testId,
-      name: document.name,
-      group: document.group,
-      status: document.status,
-      isWaiting: document.isWaiting,
-      isRunning: document.isRunning,
-      isStatic: document.isStatic,
-      location: document.location ? {
-        uri: document.location.uri,
-        range: new Range(
-          document.location.range.start.line,
-          document.location.range.start.character,
-          document.location.range.end.line,
-          document.location.range.end.character
-        )
-      } : undefined,
-      time: document.time,
-      percentage: document.percentage,
-      type: document.type,
-      hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
+      type: 'test',
+      test: {
+        id: testId,
+        name: document.name,
+        group: document.group,
+        status: document.status,
+        isWaiting: document.isWaiting,
+        isRunning: document.isRunning,
+        isStatic: document.isStatic,
+        location: document.location ? {
+          uri: document.location.uri,
+          range: new Range(
+            document.location.range.start.line,
+            document.location.range.start.character,
+            document.location.range.end.line,
+            document.location.range.end.character
+          )
+        } : undefined,
+        time: document.time,
+        percentage: document.percentage,
+        type: document.type,
+        hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
+      }
     });
   });
 }

@@ -131,6 +131,12 @@ export default class TestStore {
     this.testOpenState[id.join(':')] = isOpen;
   }
 
+  public collapseTestTree(): void {
+    for (const key of Object.keys(this.testOpenState)) {
+      this.testOpenState[key] = false;
+    }
+  }
+
   public updateOpenCoverage(
     isOpen: boolean,
     path: Array<string>
@@ -200,6 +206,10 @@ export default class TestStore {
     await this.database!.handleTestRunStop();
   }
 
+  public async clearTestTreeResults(): Promise<void> {
+    await this.database!.clearTestTreeResults();
+  }
+
   public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {
     try {
       const packageId: TestPackageId = [testId[0], testId[1]];
@@ -248,11 +258,8 @@ export default class TestStore {
     this.testJob.subscribe(callback);
   }
 
-  public onTestUpdate(callback: (test: Test) => void): void {
+  public onTestTreeUpdate(callback: (payload: TestTreeUpdate) => void): void {
     this.database.onTestUpdate(callback);
-  }
-
-  public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
     this.database.onTestSuiteUpdate(this.testOpenState, callback);
   }
 
