@@ -2,13 +2,17 @@
   "name": "pbt-extension",
   "private": true,
   "publisher": "iog",
+  "license": "Apache-2.0",
   "displayName": "PBT",
-  "description": "",
+  "description": "Run property-based and threat-model tests for Plinth smart contracts, and explore results, transaction graphs, and script coverage.",
   "icon": "images/pbt-logo.png",
   "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension/issues"
   },
   "engines": {
     "vscode": "^1.118.0"
@@ -129,7 +133,76 @@
           "icon": "images/pbt-icon.svg"
         }
       ]
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "pbt-walkthrough",
+        "title": "PBT Extension Walkthrough",
+        "description": "A walkthrough for getting started with PBT.",
+        "steps": [
+          {
+            "id": "viewdocs",
+            "title": "View Documentation",
+            "description": "Documentation can be found on the README in the GitHub repository. It contains detailed information about the extension's features, configuration options, and usage instructions.\n You can also find the documentation in the **Extensions** view in the Side Bar, find **PBT**, and navigate to the extension page.\n[Open the PBT repository](https://github.com/input-output-hk/sc-testing-tools-vs-extension)",
+            "completionEvents": [
+              "onLink:https://github.com/input-output-hk/sc-testing-tools-vs-extension"
+            ],
+            "media": {
+              "image": "images/viewdocs.svg",
+              "altText": "An editor window with an arrow pointing to a documentation page"
+            }
+          },
+          {
+            "id": "environmentsetup",
+            "title": "Set Up Your Environment",
+            "description": "PBT runs your test suites using either Docker or Nix. you **MUST HAVE** one of them installed and working in order for the extension to run.\n**Docker** (the default): install Docker Desktop or Docker Engine and make sure it is actually running. \n**Nix**: install Nix. \nChoose which one PBT uses with the `pbt-extension.executionMode` setting, then open the **Test Run Configuration** view to confirm your choice is detected.\n[Choose your execution mode](command:workbench.action.openSettings?%5B%22pbt-extension.executionMode%22%5D)",
+            "completionEvents": [
+              "onView:pbt-test-run-configuration"
+            ],
+            "media": {
+              "image": "images/environmentsetup.svg",
+              "altText": "The VS Code Settings editor showing the PBT execution mode set to docker"
+            }
+          },
+          {
+            "id": "backendtool",
+            "title": "Install the Backend Tool",
+            "description": "This extension is the user interface. Test suites are built and executed by the PBT backend tool, which has to be available on your machine before the extension can run anything.\nPBT invokes the backend through whichever execution mode you selected in the previous step, so finish that step first.\nThe backend tool lives in its own repository, and its README covers how to install it.\n[Open the backend tool repository](https://github.com/input-output-hk/sc-testing-tools)\nOnce the backend is in place, you are all set to start using the extension.",
+            "completionEvents": [
+              "onLink:https://github.com/input-output-hk/sc-testing-tools"
+            ],
+            "media": {
+              "image": "images/backendtool.svg",
+              "altText": "An editor window with an arrow pointing to the backend tool running inside a container"
+            }
+          },
+          {
+            "id": "reportanissue",
+            "title": "Get Help and Report Issues",
+            "description": "If something is not working as expected, please open an issue on our repository as a support request and we will take a look.\nIt helps us a lot if you include your operating system, whether you are running in **Docker** or **Nix** mode, and the exact error message PBT showed you.\n[Open a support request](https://github.com/input-output-hk/sc-testing-tools-vs-extension/issues/new)",
+            "completionEvents": [
+              "onLink:https://github.com/input-output-hk/sc-testing-tools-vs-extension/issues/new"
+            ],
+            "media": {
+              "image": "images/reportanissue.svg",
+              "altText": "An error in the extension becoming an issue on the repository"
+            }
+          },
+          {
+            "id": "contribute",
+            "title": "Contribute to PBT",
+            "description": "PBT is open source under the Apache 2.0 licence, and contributions are welcome.\nYou can help by reporting bugs, suggesting features, improving the documentation, or opening a pull request. The contribute page lists issues that are a good place to start.\n[See how to contribute](https://github.com/input-output-hk/sc-testing-tools-vs-extension/contribute)",
+            "completionEvents": [
+              "onLink:https://github.com/input-output-hk/sc-testing-tools-vs-extension/contribute"
+            ],
+            "media": {
+              "image": "images/contribute.svg",
+              "altText": "Local changes opened as a pull request and merged into the project"
+            }
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -1,0 +1,71 @@
+<svg viewBox="0 0 800 450" width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .panel    { fill: var(--vscode-editorWidget-background, #252526); }
+    .edge     { stroke: var(--vscode-panel-border, #454545); stroke-width: 1.5; fill: none; }
+    .dot      { fill: var(--vscode-panel-border, #454545); }
+    .line     { fill: var(--vscode-descriptionForeground, #9d9d9d); }
+    .strong   { fill: var(--vscode-foreground, #cccccc); }
+    .arrow    { stroke: var(--vscode-textLink-foreground, #3794ff); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .errorbg  { fill: var(--vscode-inputValidation-errorBackground, #5a1d1d); }
+    .errorbd  { stroke: var(--vscode-inputValidation-errorBorder, #be1100); stroke-width: 1.5; fill: none; }
+    .error    { fill: var(--vscode-editorError-foreground, #f14c4c); }
+    .glyph    { fill: var(--vscode-editorWidget-background, #252526); }
+    .issue    { stroke: var(--vscode-charts-green, #89d185); stroke-width: 3; fill: none; }
+    .issuedot { fill: var(--vscode-charts-green, #89d185); }
+    .btn      { fill: var(--vscode-button-background, #0e639c); }
+    .btnlabel { fill: var(--vscode-button-foreground, #ffffff); }
+  </style>
+
+  <!-- Something went wrong in the extension -->
+  <g>
+    <rect x="45" y="115" width="250" height="220" rx="8" class="panel"/>
+    <rect x="45" y="115" width="250" height="220" rx="8" class="edge"/>
+    <line x1="45" y1="143" x2="295" y2="143" class="edge"/>
+    <circle cx="68" cy="129" r="4" class="dot"/>
+    <circle cx="84" cy="129" r="4" class="dot"/>
+    <circle cx="100" cy="129" r="4" class="dot"/>
+
+    <rect x="62" y="163" width="216" height="44" rx="6" class="errorbg"/>
+    <rect x="62" y="163" width="216" height="44" rx="6" class="errorbd"/>
+    <circle cx="88" cy="185" r="11" class="error"/>
+    <rect x="86.5" y="178" width="3" height="9" rx="1.5" class="glyph"/>
+    <circle cx="88" cy="191" r="1.8" class="glyph"/>
+    <rect x="110" y="176" width="140" height="7" rx="3.5" class="line"/>
+    <rect x="110" y="190" width="100" height="7" rx="3.5" class="line"/>
+
+    <g class="line">
+      <rect x="62" y="230" width="180" height="8" rx="4"/>
+      <rect x="62" y="255" width="140" height="8" rx="4"/>
+      <rect x="62" y="280" width="165" height="8" rx="4"/>
+    </g>
+  </g>
+
+  <!-- Becomes a support request -->
+  <g>
+    <line x1="325" y1="225" x2="388" y2="225" class="arrow"/>
+    <path d="M380 212 L400 225 L380 238" class="arrow"/>
+  </g>
+
+  <!-- An issue on the repository -->
+  <g>
+    <rect x="435" y="115" width="320" height="220" rx="8" class="panel"/>
+    <rect x="435" y="115" width="320" height="220" rx="8" class="edge"/>
+    <line x1="435" y1="143" x2="755" y2="143" class="edge"/>
+
+    <circle cx="468" cy="172" r="10" class="issue"/>
+    <circle cx="468" cy="172" r="3.5" class="issuedot"/>
+    <rect x="492" y="165" width="150" height="13" rx="6" class="strong"/>
+    <rect x="492" y="187" width="95" height="7" rx="3.5" class="line"/>
+
+    <line x1="455" y1="212" x2="735" y2="212" class="edge"/>
+
+    <g class="line">
+      <rect x="455" y="232" width="250" height="8" rx="4"/>
+      <rect x="455" y="255" width="215" height="8" rx="4"/>
+      <rect x="455" y="278" width="235" height="8" rx="4"/>
+    </g>
+
+    <rect x="645" y="298" width="90" height="26" rx="5" class="btn"/>
+    <rect x="662" y="308" width="56" height="6" rx="3" class="btnlabel"/>
+  </g>
+</svg>
