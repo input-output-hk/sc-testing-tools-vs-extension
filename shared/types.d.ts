@@ -459,7 +459,18 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
 
 // Webview message
 
-type TestSuiteUpdate = {
+type TestTreeUpdate =
+| { type: 'test', test: Test }
+| { type: 'suite', suite: TestTreeSuiteUpdate }
+| { type: 'tree', packages: Array<TestTreePackageUpdate> };
+
+type TestTreePackageUpdate = {
+  packageId: TestPackageId;
+  suites: Array<TestTreeSuiteUpdate>;
+  isOpen: boolean;
+};
+
+type TestTreeSuiteUpdate = {
   suiteId: TestSuiteId;
   name?: string;
   status?: RunStatus;
@@ -471,7 +482,7 @@ type TestSuiteUpdate = {
   isOpen?: boolean;
 };
 
-type TestTreeUpdate = {
+type TestTreeUpdateOpenState = {
   isOpen: boolean;
   workspaceId: string;
   packageName: string;
@@ -495,8 +506,7 @@ type TestResult = {
 
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
-  | { type: "test-tree-update", payload: { test: Test } }
-  | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
+  | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
@@ -514,7 +524,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
-  | { type: "test-tree-update", payload: TestTreeUpdate }
+  | { type: "test-tree-update-open-state", payload: TestTreeUpdateOpenState }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
   | { type: "coverage-show-all" }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }

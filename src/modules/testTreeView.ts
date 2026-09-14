@@ -26,6 +26,12 @@ export default class TestTreeView {
     const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
     context.extension.subscriptions.push(stopTestRunCommand);
 
+    const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestTree', this.collapseAll.bind(this));
+    context.extension.subscriptions.push(collapseAllCommand);
+
+    const clearTestTreeResultsCommand = vscode.commands.registerCommand('pbt-extension.clearTestTreeResults', this.clearResults.bind(this));
+    context.extension.subscriptions.push(clearTestTreeResultsCommand);
+
     vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
@@ -33,8 +39,7 @@ export default class TestTreeView {
     this.webview = webview;
 
     this.context.store.testStore.onTestJobUpdate(this.sendTestJobUpdate.bind(this));
-    this.context.store.testStore.onTestUpdate(this.sendTestUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
+    this.context.store.testStore.onTestTreeUpdate(this.sendTestTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -66,8 +71,8 @@ export default class TestTreeView {
           case 'test-tree-show-location':
             this.showTestLocation(message.payload.testId);
             break;
-          case 'test-tree-update':
-            this.updateTestTree(message.payload);
+          case 'test-tree-update-open-state':
+            this.updateTestTreeOpenState(message.payload);
             break;
         }
       },
@@ -155,6 +160,16 @@ export default class TestTreeView {
     await this.context.store.testStore.stopTestRun();
   }
 
+  private async collapseAll(): Promise<void> {
+    this.context.store.testStore.collapseTestTree();
+    this.fetchTestTree();
+  }
+
+  private async clearResults(): Promise<void> {
+    this.context.store.testStore.clearTestTreeResults();
+    this.fetchTestTree();
+  }
+
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
   }
@@ -169,7 +184,7 @@ export default class TestTreeView {
     }
   }
 
-  private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {
+  private updateTestTreeOpenState({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdateOpenState): void {
     this.context.store.testStore.updateOpenTestTreeNode(
       isOpen, workspaceId, packageName, suiteName, path
     );
@@ -184,15 +199,9 @@ export default class TestTreeView {
     }
   }
 
-  private sendTestUpdate(test: Test): void {
+  private sendTestTreeUpdate(payload: TestTreeUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-update', payload: { test } } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private sendTestSuiteUpdate(payload: TestSuiteUpdate): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-update', payload } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-update', payload } as ExtensionToWebviewMessage);
     }
   }
 }

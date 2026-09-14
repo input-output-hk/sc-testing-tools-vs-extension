@@ -34,7 +34,7 @@ export default class TestConfigurationView {
 
     // title-bar refresh button (view/title menu) so a user can re-check dependencies
     // without reloading the whole extension after fixing a Docker/Nix problem
-    const refreshCommand = vscode.commands.registerCommand('pbt-extension.refreshTestConfiguration', () => this.refresh());
+    const refreshCommand = vscode.commands.registerCommand('pbt-extension.refreshTestConfiguration', this.refresh.bind(this));
     context.extension.subscriptions.push(refreshCommand);
   }
 

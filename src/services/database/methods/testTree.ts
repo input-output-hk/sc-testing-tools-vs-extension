@@ -167,3 +167,13 @@ export const fetchTestTree = async (database: Database, openState: Record<string
 
   return testTree;
 }
+
+export const handleTestRunStop = async (database: Database): Promise<void> => {
+  database.suites.find().update({ $set: { isWaiting: false, isRunning: false } });
+  database.tests.find().update({ $set: { isWaiting: false, isRunning: false } });
+};
+
+export const clearTestTreeResults = async (database: Database): Promise<void> => {
+  await database.suites.find().update({ $set: { status: 'undetermined', time: undefined } });
+  await database.tests.find().update({ $set: { status: 'undetermined', time: undefined } });
+}

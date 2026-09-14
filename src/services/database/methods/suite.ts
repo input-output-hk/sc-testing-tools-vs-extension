@@ -98,12 +98,12 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
 export const onTestSuiteUpdate = (
   database: Database,
   openState: Record<string, boolean>,
-  callback: (params: TestSuiteUpdate) => void
+  callback: (payload: TestTreeUpdate) => void
 ): void => {
   database.suites.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
 
-    const update: TestSuiteUpdate = {
+    const update: TestTreeSuiteUpdate = {
       suiteId: [document.workspaceId, document.packageName, document.suiteName]
     };
 
@@ -172,6 +172,6 @@ export const onTestSuiteUpdate = (
       update.isOpen = openState[suiteId.join(':')] ?? false;
     }
 
-    callback(update);
+    callback({ type: 'suite', suite: update });
   });
 }

@@ -7,6 +7,7 @@ import TreeView from './components/TreeView';
 import {
   updateTest,
   updateTestSuite,
+  updatePackages,
   updateOpenTestTreeNode
 } from './utils/treeUpdateUtils';
 
@@ -39,13 +40,14 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-tree-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
-          return updateTest(testTree, message.payload);
-        });
-      }
-      if (message.type === 'test-tree-suite-update') {
-        setTestTree(testTree => {
-          if (!testTree) return testTree;
-          return updateTestSuite(testTree, message.payload);
+          switch (message.payload.type) {
+            case 'test':
+              return updateTest(testTree, message.payload.test);
+            case 'suite':
+              return updateTestSuite(testTree, message.payload.suite);
+            case 'tree':
+              return updatePackages(testTree, message.payload.packages);
+          }
         });
       }
       if (message.type === 'test-tree-test-run-update') {
@@ -86,7 +88,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     });
 
     vscode.postMessage({
-      type: 'test-tree-update',
+      type: 'test-tree-update-open-state',
       payload: { isOpen, workspaceId, packageName, suiteName, path }
     } as WebviewToExtensionMessage);
   };
