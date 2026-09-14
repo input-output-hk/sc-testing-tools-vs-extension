@@ -191,9 +191,9 @@
           {
             "id": "contribute",
             "title": "Contribute to PBT",
-            "description": "PBT is open source under the Apache 2.0 licence, and contributions are welcome.\nYou can help by reporting bugs, suggesting features, improving the documentation, or opening a pull request. The contribute page lists issues that are a good place to start.\n[See how to contribute](https://github.com/input-output-hk/sc-testing-tools-vs-extension/contribute)",
+            "description": "PBT is open source under the Apache 2.0 licence, and contributions are welcome.\nCommunity contributions are currently managed through GitHub Issues, so you can help by reporting bugs, suggesting improvements, or telling us where the documentation falls short. The Cardano High Assurance team reviews and triages everything that comes in.\nBefore opening a new issue, please check whether an existing one already covers it.\n[Read the contributing guide](https://github.com/input-output-hk/sc-testing-tools-vs-extension/blob/main/CONTRIBUTING.md)",
             "completionEvents": [
-              "onLink:https://github.com/input-output-hk/sc-testing-tools-vs-extension/contribute"
+              "onLink:https://github.com/input-output-hk/sc-testing-tools-vs-extension/blob/main/CONTRIBUTING.md"
             ],
             "media": {
               "image": "images/contribute.svg",
