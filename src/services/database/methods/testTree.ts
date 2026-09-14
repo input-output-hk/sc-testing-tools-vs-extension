@@ -114,7 +114,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
       const suiteNode: TestSuite = {
         id: suiteId,
         name: suiteDocument.suiteName,
-        status: suiteDocument.status as RunStatus,
+        status: suiteDocument.status,
         isWaiting: suiteDocument.isWaiting,
         isRunning: suiteDocument.isRunning,
         isStatic: suiteDocument.isStatic,
@@ -141,7 +141,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         ],
         name: testDocument.name,
         group: testDocument.group,
-        status: testDocument.status as RunStatus,
+        status: testDocument.status,
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
@@ -156,7 +156,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         } : undefined,
         time: testDocument.time,
         percentage: testDocument.percentage,
-        type: testDocument.type ? testDocument.type as TestType : undefined
+        type: testDocument.type
       }));
 
       suiteNode.tests = createTestTree(suiteId, openState, tests);

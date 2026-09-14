@@ -37,6 +37,52 @@ const valueSchema = {
   required: ['lovelace', 'assets'],
 } as const;
 
+const addressTypeSchema = {
+  type: 'string',
+  enum: ['public-key', 'script'],
+} as const;
+
+const testRoundStatusSchema = {
+  type: 'string',
+  enum: ['success', 'failure', 'discarded'],
+} as const;
+
+const testRoundTypeSchema = {
+  type: 'string',
+  enum: ['positive', 'negative', 'threat-model'],
+} as const;
+
+const transitionResultStatusSchema = {
+  type: 'string',
+  enum: ['success', 'failure'],
+} as const;
+
+const threatModelOutcomeStatusSchema = {
+  type: 'string',
+  enum: ['passed', 'failed', 'skipped', 'skipped_phase1', 'error'],
+} as const;
+
+const txModTypeSchema = {
+  type: 'string',
+  enum: [
+    'removeInput',
+    'removeOutput',
+    'changeOutput',
+    'changeInput',
+    'changeScriptInput',
+    'changeValidityRange',
+    'addOutput',
+    'addInput',
+    'addReferenceScriptInput',
+    'addPlutusScriptInput',
+    'addPlutusScriptReferenceInput',
+    'addSimpleScriptInput',
+    'addPlutusScriptMint',
+    'removeRequiredSigner',
+    'replaceTx',
+  ],
+} as const;
+
 const txSchema = {
   type: 'object',
   properties: {
@@ -48,6 +94,8 @@ const txSchema = {
         type: 'object',
         properties: {
           address: stringSchema,
+          addressLabel: stringSchema,
+          addressType: addressTypeSchema,
           utxo: stringSchema,
           value: valueSchema,
           redeemerConstr: numberSchema,
@@ -55,7 +103,7 @@ const txSchema = {
           redeemerPayload: { type: 'object' },
           redeemerRaw: stringSchema,
         },
-        required: ['address', 'utxo', 'value'],
+        required: ['address', 'addressType', 'utxo', 'value'],
       },
     },
     outputs: {
@@ -65,11 +113,13 @@ const txSchema = {
         properties: {
           index: numberSchema,
           address: stringSchema,
+          addressLabel: stringSchema,
+          addressType: addressTypeSchema,
           utxo: stringSchema,
           value: valueSchema,
           datum: stringSchema,
         },
-        required: ['index', 'address', 'utxo', 'value'],
+        required: ['index', 'address', 'addressType', 'utxo', 'value'],
       },
     },
     mint: valueSchema,
@@ -77,8 +127,25 @@ const txSchema = {
       type: 'array',
       items: stringSchema
     },
+    withdrawals: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          addressLabel: stringSchema,
+          addressType: addressTypeSchema,
+          amount: numberSchema,
+          redeemerConstr: numberSchema,
+          redeemerKind: stringSchema,
+          redeemerPayload: { type: 'object' },
+          redeemerRaw: stringSchema,
+          stakeAddress: stringSchema,
+        },
+        required: ['addressType', 'amount', 'stakeAddress'],
+      },
+    },
   },
-  required: ['fee', 'inputs', 'outputs'],
+  required: ['fee', 'inputs', 'outputs', 'withdrawals'],
 } as const;
 
 const transitionSchema = {
@@ -88,7 +155,7 @@ const transitionSchema = {
     result: {
       type: 'object',
       properties: {
-        status: stringSchema,
+        status: transitionResultStatusSchema,
         txId: stringSchema,
         error: stringSchema,
       },
@@ -107,12 +174,18 @@ const traceSchema = {
     modifiedTx: txSchema,
     modifications: {
       type: 'array',
-      items: { type: 'object' },
+      items: {
+        type: 'object',
+        properties: {
+          type: txModTypeSchema,
+        },
+        required: ['type'],
+      },
     },
     outcome: {
       type: 'object',
       properties: {
-        status: stringSchema,
+        status: threatModelOutcomeStatusSchema,
         reason: stringSchema,
         message: stringSchema,
       },
@@ -142,12 +215,12 @@ const roundSchemaLiteral = {
     status: {
       type: 'object',
       properties: {
-        status: stringSchema,
+        status: testRoundStatusSchema,
         message: stringSchema,
       },
       required: ['status'],
     },
-    type: stringSchema,
+    type: testRoundTypeSchema,
     transitions: {
       type: 'array',
       items: transitionSchema,
