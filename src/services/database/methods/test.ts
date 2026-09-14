@@ -1,5 +1,3 @@
-import { Range } from 'vscode';
-
 import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage, hasCoverage } from './coverage';
 
@@ -214,12 +212,16 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     isStatic: testDocument.isStatic,
     location: testDocument.location ? {
       uri: testDocument.location.uri,
-      range: new Range(
-        testDocument.location.range.start.line,
-        testDocument.location.range.start.character,
-        testDocument.location.range.end.line,
-        testDocument.location.range.end.character
-      )
+      range: {
+        start: {
+          line: testDocument.location.range.start.line,
+          character: testDocument.location.range.start.character,
+        },
+        end: {
+          line: testDocument.location.range.end.line,
+          character: testDocument.location.range.end.character,
+        },
+      },
     } : undefined,
     time: testDocument.time,
     percentage: testDocument.percentage,
@@ -249,12 +251,16 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       isStatic: document.isStatic,
       location: document.location ? {
         uri: document.location.uri,
-        range: new Range(
-          document.location.range.start.line,
-          document.location.range.start.character,
-          document.location.range.end.line,
-          document.location.range.end.character
-        )
+        range: {
+          start: {
+            line: document.location.range.start.line,
+            character: document.location.range.start.character,
+          },
+          end: {
+            line: document.location.range.end.line,
+            character: document.location.range.end.character,
+          },
+        },
       } : undefined,
       time: document.time,
       percentage: document.percentage,

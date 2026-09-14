@@ -1,5 +1,3 @@
-import { Range } from 'vscode';
-
 import { updateSuiteTests } from './test';
 import { upsertCoverage } from './coverage';
 import { createTestTree } from '../../../utils/testTree';
@@ -147,12 +145,16 @@ export const onTestSuiteUpdate = (
         isStatic: testDocument.isStatic,
         location: testDocument.location ? {
           uri: testDocument.location.uri,
-          range: new Range(
-            testDocument.location.range.start.line,
-            testDocument.location.range.start.character,
-            testDocument.location.range.end.line,
-            testDocument.location.range.end.character
-          )
+          range: {
+            start: {
+              line: testDocument.location.range.start.line,
+              character: testDocument.location.range.start.character,
+            },
+            end: {
+              line: testDocument.location.range.end.line,
+              character: testDocument.location.range.end.character,
+            },
+          },
         } : undefined,
         time: testDocument.time,
         percentage: testDocument.percentage,

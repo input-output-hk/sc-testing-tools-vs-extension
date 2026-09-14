@@ -26,6 +26,18 @@ export default class TestTreeView {
     const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
     context.extension.subscriptions.push(stopTestRunCommand);
 
+    const collapseAllTestsCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTests', this.collapseAllTests.bind(this));
+    context.extension.subscriptions.push(collapseAllTestsCommand);
+
+    const clearAllResultsCommand = vscode.commands.registerCommand('pbt-extension.clearAllResults', this.clearAllResults.bind(this));
+    context.extension.subscriptions.push(clearAllResultsCommand);
+
+    const sortByLocationCommand = vscode.commands.registerCommand('pbt-extension.sortByLocation', this.sortByLocation.bind(this));
+    context.extension.subscriptions.push(sortByLocationCommand);
+
+    const sortByStatusCommand = vscode.commands.registerCommand('pbt-extension.sortByStatus', this.sortByStatus.bind(this));
+    context.extension.subscriptions.push(sortByStatusCommand);
+
     vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
@@ -153,6 +165,28 @@ export default class TestTreeView {
 
   private async stopTestRun(): Promise<void> {
     await this.context.store.testStore.stopTestRun();
+  }
+
+  private collapseAllTests(): void {
+    vscode.window.showInformationMessage('Collapse All Tests — not implemented yet');
+  }
+
+  private clearAllResults(): void {
+    vscode.window.showInformationMessage('Clear all Results — not implemented yet');
+  }
+
+  private sortByLocation(): void {
+    this.sendSortToWebview('location');
+  }
+
+  private sortByStatus(): void {
+    this.sendSortToWebview('status');
+  }
+
+  private sendSortToWebview(sortBy: SortBy): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-tree-set-sort', payload: { sortBy } } as ExtensionToWebviewMessage);
+    }
   }
 
   private openTestResults(testId: TestId): void {

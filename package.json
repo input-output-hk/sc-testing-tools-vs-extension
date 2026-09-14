@@ -58,6 +58,22 @@
         "command": "pbt-extension.collapseAllTestCoverage",
         "title": "Collapse All",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "pbt-extension.collapseAllTests",
+        "title": "Collapse All Tests"
+      },
+      {
+        "command": "pbt-extension.clearAllResults",
+        "title": "Clear all Results"
+      },
+      {
+        "command": "pbt-extension.sortByLocation",
+        "title": "Sort by Location"
+      },
+      {
+        "command": "pbt-extension.sortByStatus",
+        "title": "Sort by Status"
       }
     ],
     "menus": {
@@ -91,6 +107,26 @@
           "command": "pbt-extension.closeTestCoverage",
           "when": "view == pbt-test-coverage",
           "group": "navigation@2"
+        },
+        {
+          "command": "pbt-extension.collapseAllTests",
+          "when": "view == pbt-test-tree",
+          "group": "2_bulk"
+        },
+        {
+          "command": "pbt-extension.clearAllResults",
+          "when": "view == pbt-test-tree",
+          "group": "2_bulk"
+        },
+        {
+          "command": "pbt-extension.sortByLocation",
+          "when": "view == pbt-test-tree",
+          "group": "3_sort"
+        },
+        {
+          "command": "pbt-extension.sortByStatus",
+          "when": "view == pbt-test-tree",
+          "group": "3_sort"
         }
       ]
     },

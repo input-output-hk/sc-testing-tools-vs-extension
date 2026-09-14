@@ -150,6 +150,8 @@ type TestTreeFilter = {
   status?: RunStatus;
 }
 
+type SortBy = "id" | "status" | "location";
+
 // Test Result
 
 type TestRound = {
@@ -471,7 +473,8 @@ type ExtensionToWebviewMessage =
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
   | { type: "status-missing-dependency", payload: { error: DependencyError } }
-  | { type: "status-empty-workspaces" };
+  | { type: "status-empty-workspaces" }
+  | { type: "test-tree-set-sort", payload: { sortBy: SortBy } };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }

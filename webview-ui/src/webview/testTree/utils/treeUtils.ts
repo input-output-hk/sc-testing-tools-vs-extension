@@ -99,7 +99,33 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
 export const isTestRunnable = (test: Test): boolean =>
   !test.isStatic && !test.isRunning && !test.isWaiting;
 
-export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
+const STATUS_ORDER: Record<RunStatus, number> = { invalid: 0, valid: 1, undetermined: 2 };
+
+const compareTestsById = (a: Test, b: Test): number => {
+  const [,,, testIdA] = a.id;
+  const [,,, testIdB] = b.id;
+  return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
+};
+
+const compareTestsByStatus = (a: Test, b: Test): number =>
+  STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || compareTestsById(a, b);
+
+const compareTestsByLocation = (a: Test, b: Test): number => {
+  const hasA = a.location?.range?.start !== undefined;
+  const hasB = b.location?.range?.start !== undefined;
+  if (!hasA || !hasB) return (hasA ? -1 : 0) - (hasB ? -1 : 0) || compareTestsById(a, b);
+  return a.location!.uri.localeCompare(b.location!.uri)
+    || a.location!.range.start.line - b.location!.range.start.line
+    || compareTestsById(a, b);
+};
+
+export const getTestComparator = (sortBy: SortBy): (a: Test, b: Test) => number => {
+  if (sortBy === 'status') return compareTestsByStatus;
+  if (sortBy === 'location') return compareTestsByLocation;
+  return compareTestsById;
+};
+
+export const sortTreeNodes = (sortBy: SortBy) => (a: TestTreeNode, b: TestTreeNode): number => {
   if (a.type === 'group' && b.type === 'test') {
     return +1;
   } else if (a.type === 'test' && b.type === 'group') {
@@ -109,8 +135,6 @@ export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
     const groupB = b as TestTreeGroupNode;
     return groupA.name.localeCompare(groupB.name);
   } else {
-    const [,,, testIdA] = (a as TestTreeTestNode).test.id;
-    const [,,, testIdB] = (b as TestTreeTestNode).test.id;
-    return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
+    return getTestComparator(sortBy)((a as TestTreeTestNode).test, (b as TestTreeTestNode).test);
   }
 };
