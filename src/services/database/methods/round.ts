@@ -32,6 +32,10 @@ export const createRounds = async (database: Database, rounds: Array<TestRound>)
   await database.rounds.bulkUpsert(rounds.map(mapRound));
 };
 
+export const clearAllRounds = async (database: Database): Promise<void> => {
+  await database.rounds.find().remove();
+};
+
 const mapDocument = (document: RoundDocument): TestRound => {
   const round: TestRound = {
     id: parseInt(document.roundId),

@@ -117,6 +117,10 @@ export const upsertCoverage = async (
   }
 }
 
+export const clearAllCoverage = async (database: Database): Promise<void> => {
+  await database.coverage.find().remove();
+};
+
 export const clearCoverageForTest = async (database: Database, id: TestId): Promise<void> => {
   const [workspaceId, packageName, suiteName, testId] = id;
   const documents: Array<CoverageDocument> = await database.coverage.find({

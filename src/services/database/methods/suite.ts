@@ -15,6 +15,12 @@ export const handleTestSuiteBuild = async (database: Database, testSuiteId: Test
     .update({ $set: { isWaiting: true } });
 }
 
+export const clearAllSuiteResults = async (database: Database): Promise<void> => {
+  await database.suites
+    .find({ selector: { status: { $ne: 'undetermined' } } })
+    .update({ $set: { status: 'undetermined', time: undefined, isRunning: false, isWaiting: false } });
+}
+
 export const handleTestSuiteBuildErrorEvent = async (database: Database, testJob: TestBuildJob): Promise<void> => {
   const { workspace: { id: workspaceId }, packageName, suiteName } = testJob.params;
   await database.suites

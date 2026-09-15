@@ -195,6 +195,20 @@ export const handleTestRun = async (database: Database, testIds: Array<RunnableT
     .update({ $set: { isWaiting: true, time: undefined } });
 }
 
+export const clearAllTestResults = async (database: Database): Promise<void> => {
+  await database.tests
+    .find({ selector: { status: { $ne: 'undetermined' } } })
+    .update({
+      $set: {
+        status: 'undetermined',
+        time: undefined,
+        percentage: undefined,
+        isRunning: false,
+        isWaiting: false,
+      }
+    });
+}
+
 export const getTest = async (database: Database, testId: TestId): Promise<Test> => {
   const testDocument: TestDocument | null = await database.tests.findOne({
     selector: { id: testId.join(':') }

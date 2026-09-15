@@ -23,7 +23,8 @@ import {
   handleTestSuiteBuild,
   handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
-  onTestSuiteUpdate
+  onTestSuiteUpdate,
+  clearAllSuiteResults
 } from './methods/suite';
 
 import {
@@ -32,18 +33,21 @@ import {
   handleTestRunErrorEvent,
   handleTestRun,
   getTest,
-  onTestUpdate
+  onTestUpdate,
+  clearAllTestResults
 } from './methods/test';
 
 import {
   getCoverage,
   getCoverageForFile,
   getCoverageForTest,
-  onCoverageUpdate
+  onCoverageUpdate,
+  clearAllCoverage
 } from './methods/coverage';
 
 import {
-  getTestRounds
+  getTestRounds,
+  clearAllRounds
 } from './methods/round';
 
 addRxPlugin(RxDBUpdatePlugin);
@@ -87,6 +91,13 @@ export default class Database {
 
   public async handleTestRunStop(): Promise<void> {
     return await handleTestRunStop(this.database!);
+  }
+
+  public async clearAllResults(): Promise<void> {
+    await clearAllTestResults(this.database!);
+    await clearAllSuiteResults(this.database!);
+    await clearAllRounds(this.database!);
+    await clearAllCoverage(this.database!);
   }
 
   public async storeStaticTestTree(testTree: StaticTestTree): Promise<void> {

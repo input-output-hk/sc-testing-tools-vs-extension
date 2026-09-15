@@ -168,11 +168,12 @@ export default class TestTreeView {
   }
 
   private collapseAllTests(): void {
-    vscode.window.showInformationMessage('Collapse All Tests — not implemented yet');
+    this.context.store.testStore.collapseAllTests();
+    this.fetchTestTree();
   }
 
-  private clearAllResults(): void {
-    vscode.window.showInformationMessage('Clear all Results — not implemented yet');
+  private async clearAllResults(): Promise<void> {
+    await this.context.store.testStore.clearAllResults();
   }
 
   private sortByLocation(): void {

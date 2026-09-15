@@ -131,6 +131,16 @@ export default class TestStore {
     this.testOpenState[id.join(':')] = isOpen;
   }
 
+  public collapseAllTests(): void {
+    for (const key of Object.keys(this.testOpenState)) {
+      this.testOpenState[key] = false;
+    }
+  }
+
+  public async clearAllResults(): Promise<void> {
+    await this.database!.clearAllResults();
+  }
+
   public updateOpenCoverage(
     isOpen: boolean,
     path: Array<string>
