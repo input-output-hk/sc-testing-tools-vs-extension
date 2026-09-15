@@ -14,7 +14,7 @@ export default class TestResultView {
 
   public activate(context: PbtContext) {
     this.context = context;
-    this.context.store.testStore.onTestUpdate(this.onTestUpdate.bind(this));
+    this.context.store.testStore.onTestTreeUpdate(this.onTestTreUpdate.bind(this));
   }
 
   public open(testId: TestId): void {
@@ -76,17 +76,20 @@ export default class TestResultView {
     });
   }
 
-  private onTestUpdate(test: Test): void {
-    if (
-      this.panel !== null &&
-      this.testResult !== null &&
-      test.id.join(':') === this.testResult.test.id.join(':') &&
-      test.status !== this.testResult.test.status
-    ) {
-      if (test.status !== "valid" && test.status !== "invalid") {
-        this.updateTest(test);
-      } else {
-        this.updateTestRounds(test);
+  private onTestTreUpdate(payload: TestTreeUpdate): void {
+    if (payload.type === 'test') {
+      const test = payload.test;
+      if (
+        this.panel !== null &&
+        this.testResult !== null &&
+        test.id.join(':') === this.testResult.test.id.join(':') &&
+        test.status !== this.testResult.test.status
+      ) {
+        if (test.status !== "valid" && test.status !== "invalid") {
+          this.updateTest(test);
+        } else {
+          this.updateTestRounds(test);
+        }
       }
     }
   }

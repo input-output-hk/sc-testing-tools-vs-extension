@@ -206,7 +206,8 @@ type ThreatModelTrace = {
   targetTxIndex: number;
 };
 
-type ThreatModelOutcome = {
+type ThreatModelOutcome =
+{
   status: "passed";
 } | {
   reason: string;
@@ -215,9 +216,14 @@ type ThreatModelOutcome = {
   reason: string;
   status: "skipped";
 } | {
+  reason: string;
+  status: "skipped_phase1";
+} | {
   message: string;
   status: "error";
 };
+
+type TxAddressType = "public-key" | "script";
 
 type Tx = {
   id?: string;
@@ -226,10 +232,13 @@ type Tx = {
   outputs: Array<TxOutput>;
   mint?: TxValue;
   signers?: Array<string>;
+  withdrawals: Array<TxWithdrawal>;
 };
 
 type TxInput = {
   address: string;
+  addressLabel?: string;
+  addressType: TxAddressType;
   utxo: string;
   value: TxValue;
   redeemerConstr?: number;
@@ -241,6 +250,8 @@ type TxInput = {
 type TxOutput = {
   index: number;
   address: string;
+  addressLabel?: string;
+  addressType: TxAddressType;
   utxo: string;
   value: TxValue;
   datum?: string;
@@ -257,80 +268,100 @@ type TxAsset = {
   quantity: number;
 };
 
-type TxMod = {
+type TxWithdrawal = {
+  addressLabel?: string;
+  addressType: TxAddressType;
+  amount: number;
+  redeemerConstr?: number;
+  redeemerKind?: string;
+  redeemerPayload?: unknown;
+  redeemerRaw?: string;
+  stakeAddress: string;
+};
+
+type TxMod =
+{
   type: "removeInput";
   utxo: string;
 } | {
+  index: number;
   type: "removeOutput";
-  index: number;
 } | {
-  type: "changeOutput";
-  index: number;
   address: string | null;
+  addressLabel: string | null;
+  addressType: TxAddressType | null;
+  datum: string | null;
+  index: number;
+  referenceScript: string | null;
+  type: "changeOutput";
   value: TxValue | null;
+} | {
+  address: string | null;
+  addressLabel: string | null;
+  addressType: TxAddressType | null;
   datum: string | null;
   referenceScript: string | null;
-} | {
   type: "changeInput";
   utxo: string;
-  address: string | null;
   value: TxValue | null;
-  datum: string | null;
-  referenceScript: string | null;
 } | {
-  type: "changeScriptInput";
-  utxo: string;
-  value: TxValue | null;
   datum: string | null;
   redeemer: string | null;
   referenceScript: string | null;
+  type: "changeScriptInput";
+  utxo: string;
+  value: TxValue | null;
 } | {
-  type: "changeValidityRange";
   lowerBound: string | null;
+  type: "changeValidityRange";
   upperBound: string | null;
 } | {
-  type: "addOutput";
   address: string;
-  value: TxValue;
+  addressLabel: string | null;
+  addressType: TxAddressType;
   datum: string | null;
   referenceScript: string;
-} | {
-  type: "addInput";
-  address: string;
+  type: "addOutput";
   value: TxValue;
+} | {
+  address: string;
+  addressLabel: string | null;
+  addressType: TxAddressType;
+  datum: string | null;
   isReferenceInput: boolean;
   referenceScript: string;
-  datum: string | null;
-} | {
-  type: "addReferenceScriptInput";
+  type: "addInput";
   value: TxValue;
+} | {
+  datum: string | null;
   redeemer: string;
   scriptHash: string;
-  datum: string | null;
+  type: "addReferenceScriptInput";
+  value: TxValue;
 } | {
+  datum: string | null;
+  redeemer: string;
+  referenceScript: string;
   type: "addPlutusScriptInput";
   value: TxValue;
-  redeemer: string;
-  referenceScript: string;
-  datum: string | null;
 } | {
+  datum: string | null;
+  referenceScript: string;
   type: "addPlutusScriptReferenceInput";
   value: TxValue;
-  referenceScript: string;
-  datum: string | null;
 } | {
+  isReferenceInput: boolean;
+  referenceScript: string;
   type: "addSimpleScriptInput";
   value: TxValue;
-  referenceScript: string;
-  isReferenceInput: boolean;
 } | {
-  type: "addPlutusScriptMint";
-  quantity: number;
   assetName: string;
+  quantity: number;
   redeemer: string;
+  type: "addPlutusScriptMint";
 } | {
-  type: "removeRequiredSigner";
   keyHash: string;
+  type: "removeRequiredSigner";
 } | {
   type: "replaceTx";
 };
@@ -341,7 +372,9 @@ type GraphMode = "result-graph" | "attack-timeline";
 type GraphStatus = "success" | "failure";
 
 type GraphNode = {
-  type: "tx" | "utxo";
+  type: "tx" | "wallet" | "script" | "withdrawal";
+  identifier: string;
+  label: string;
 };
 
 type GraphNodeValue<T> = {
@@ -351,11 +384,10 @@ type GraphNodeValue<T> = {
 
 type GraphNodeTx = GraphNode & {
   type: "tx";
-  index: number;
-  mode: GraphMode;
   status: GraphStatus;
   inputCount: number;
   outputCount: number;
+  withdrawalCount: number;
   id: GraphNodeValue<string>;
   mint: GraphNodeValue<TxValue|undefined>;
   fee: GraphNodeValue<number>;
@@ -363,13 +395,13 @@ type GraphNodeTx = GraphNode & {
 };
 
 type GraphNodeUTxO = GraphNode & {
-  type: "utxo";
-  index: number;
-  mode: GraphMode;
+  type: "wallet" | "script" | "withdrawal";
   consumed: boolean;
-  address: GraphNodeValue<string>;
-  utxo: GraphNodeValue<string>;
-  value: GraphNodeValue<TxValue>;
+  address?: GraphNodeValue<string>;
+  stakeAddress?: GraphNodeValue<string>;
+  utxo?: GraphNodeValue<string>;
+  value?: GraphNodeValue<TxValue>;
+  amount?: GraphNodeValue<number>;
   redeemer?: GraphNodeValue<string|undefined>;
   datum?: GraphNodeValue<string|undefined>;
 };
@@ -378,6 +410,7 @@ type GraphTx = {
   tx: GraphNodeTx;
   inputs: Array<GraphNodeUTxO>;
   outputs: Array<GraphNodeUTxO>;
+  withdrawals: Array<GraphNodeUTxO>;
 };
 
 // Coverage
@@ -428,7 +461,18 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
 
 // Webview message
 
-type TestSuiteUpdate = {
+type TestTreeUpdate =
+| { type: 'test', test: Test }
+| { type: 'suite', suite: TestTreeSuiteUpdate }
+| { type: 'tree', packages: Array<TestTreePackageUpdate> };
+
+type TestTreePackageUpdate = {
+  packageId: TestPackageId;
+  suites: Array<TestTreeSuiteUpdate>;
+  isOpen: boolean;
+};
+
+type TestTreeSuiteUpdate = {
   suiteId: TestSuiteId;
   name?: string;
   status?: RunStatus;
@@ -440,7 +484,7 @@ type TestSuiteUpdate = {
   isOpen?: boolean;
 };
 
-type TestTreeUpdate = {
+type TestTreeUpdateOpenState = {
   isOpen: boolean;
   workspaceId: string;
   packageName: string;
@@ -464,8 +508,7 @@ type TestResult = {
 
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
-  | { type: "test-tree-update", payload: { test: Test } }
-  | { type: "test-tree-suite-update", payload: TestSuiteUpdate }
+  | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
@@ -484,7 +527,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
-  | { type: "test-tree-update", payload: TestTreeUpdate }
+  | { type: "test-tree-update-open-state", payload: TestTreeUpdateOpenState }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
   | { type: "coverage-show-all" }
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }

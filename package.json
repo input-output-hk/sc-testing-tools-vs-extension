@@ -31,32 +31,42 @@
     "commands": [
       {
         "command": "pbt-extension.buildAllTestSuites",
-        "title": "Refresh Test Tree",
+        "title": "PBT: Refresh Test Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "pbt-extension.runAllTests",
-        "title": "Run Tests",
+        "title": "PBT: Run All Tests",
         "icon": "$(run-all)"
       },
       {
         "command": "pbt-extension.stopTestRun",
-        "title": "Stop",
+        "title": "PBT: Stop All Tests",
         "icon": "$(debug-stop)"
       },
       {
+        "command": "pbt-extension.clearTestTreeResults",
+        "title": "PBT: Clear Test Tree Results",
+        "icon": "$(trash)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
-        "title": "Refresh",
+        "title": "PBT: Refresh Test Configuration",
         "icon": "$(refresh)"
       },
       {
         "command": "pbt-extension.closeTestCoverage",
-        "title": "Close",
+        "title": "PBT: Close Test Coverage",
         "icon": "$(close)"
       },
       {
+        "command": "pbt-extension.collapseAllTestTree",
+        "title": "PBT: Collapse All Test Tree",
+        "icon": "$(collapse-all)"
+      },
+      {
         "command": "pbt-extension.collapseAllTestCoverage",
-        "title": "Collapse All",
+        "title": "PBT: Collapse All Coverage",
         "icon": "$(collapse-all)"
       },
       {

@@ -1,4 +1,15 @@
-export const updateTestSuite = (testTree: TestTree, update: TestSuiteUpdate): TestTree => {
+export const updatePackages = (testTree: TestTree, packages: Array<TestTreePackageUpdate>): TestTree => {
+  let updatedTestTree: TestTree = { ...testTree };
+  for (const packageUpdate of packages) {
+    updatedTestTree.packages[packageUpdate.packageId.join(':')].isOpen = packageUpdate.isOpen;
+    for (const suiteUpdate of packageUpdate.suites) {
+      updatedTestTree = updateTestSuite(updatedTestTree, suiteUpdate);
+    }
+  }
+  return updatedTestTree;
+};
+
+export const updateTestSuite = (testTree: TestTree, update: TestTreeSuiteUpdate): TestTree => {
   const [workspaceId, packageName, suiteName] = update.suiteId;
   const packageId = `${workspaceId}:${packageName}`;
 
@@ -67,7 +78,7 @@ const updateTestNodeMap = (nodes: TestTreeNodeMap, test: Test): { nodes: TestTre
   };
 };
 
-export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTree => {
+export const updateTest = (testTree: TestTree, test: Test): TestTree => {
   const [workspaceId, packageName, suiteName] = test.id;
   const packageId = `${workspaceId}:${packageName}`;
 

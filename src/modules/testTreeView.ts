@@ -45,8 +45,7 @@ export default class TestTreeView {
     this.webview = webview;
 
     this.context.store.testStore.onTestJobUpdate(this.sendTestJobUpdate.bind(this));
-    this.context.store.testStore.onTestUpdate(this.sendTestUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
+    this.context.store.testStore.onTestTreeUpdate(this.sendTestTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -78,8 +77,8 @@ export default class TestTreeView {
           case 'test-tree-show-location':
             this.showTestLocation(message.payload.testId);
             break;
-          case 'test-tree-update':
-            this.updateTestTree(message.payload);
+          case 'test-tree-update-open-state':
+            this.updateTestTreeOpenState(message.payload);
             break;
         }
       },
@@ -168,11 +167,13 @@ export default class TestTreeView {
   }
 
   private collapseAllTests(): void {
-    vscode.window.showInformationMessage('Collapse All Tests — not implemented yet');
+    this.context.store.testStore.collapseTestTree();
+    this.fetchTestTree();
   }
 
-  private clearAllResults(): void {
-    vscode.window.showInformationMessage('Clear all Results — not implemented yet');
+  private async clearAllResults(): Promise<void> {
+    await this.context.store.testStore.clearTestTreeResults();
+    this.fetchTestTree();
   }
 
   private sortByLocation(): void {
@@ -203,7 +204,7 @@ export default class TestTreeView {
     }
   }
 
-  private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {
+  private updateTestTreeOpenState({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdateOpenState): void {
     this.context.store.testStore.updateOpenTestTreeNode(
       isOpen, workspaceId, packageName, suiteName, path
     );
@@ -218,15 +219,9 @@ export default class TestTreeView {
     }
   }
 
-  private sendTestUpdate(test: Test): void {
+  private sendTestTreeUpdate(payload: TestTreeUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-update', payload: { test } } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private sendTestSuiteUpdate(payload: TestSuiteUpdate): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-update', payload } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-update', payload } as ExtensionToWebviewMessage);
     }
   }
 }

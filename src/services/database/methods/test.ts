@@ -206,7 +206,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     id: testId,
     name: testDocument.name,
     group: testDocument.group,
-    status: testDocument.status as RunStatus,
+    status: testDocument.status,
     isWaiting: testDocument.isWaiting,
     isRunning: testDocument.isRunning,
     isStatic: testDocument.isStatic,
@@ -225,11 +225,11 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     } : undefined,
     time: testDocument.time,
     percentage: testDocument.percentage,
-    type: testDocument.type ? testDocument.type as TestType : undefined,
+    type: testDocument.type,
   };
 }
 
-export const onTestUpdate = (database: Database, callback: (test: Test) => void): void => {
+export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpdate) => void): void => {
   database.tests.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
     const testId: TestId = [
@@ -242,30 +242,33 @@ export const onTestUpdate = (database: Database, callback: (test: Test) => void)
       document.status !== 'undetermined' &&
       changeEvent.previousDocumentData?.isRunning && !document.isRunning;
     callback({
-      id: testId,
-      name: document.name,
-      group: document.group,
-      status: document.status as RunStatus,
-      isWaiting: document.isWaiting,
-      isRunning: document.isRunning,
-      isStatic: document.isStatic,
-      location: document.location ? {
-        uri: document.location.uri,
-        range: {
-          start: {
-            line: document.location.range.start.line,
-            character: document.location.range.start.character,
+      type: 'test',
+      test: {
+        id: testId,
+        name: document.name,
+        group: document.group,
+        status: document.status,
+        isWaiting: document.isWaiting,
+        isRunning: document.isRunning,
+        isStatic: document.isStatic,
+        location: document.location ? {
+          uri: document.location.uri,
+          range: {
+            start: {
+              line: document.location.range.start.line,
+              character: document.location.range.start.character,
+            },
+            end: {
+              line: document.location.range.end.line,
+              character: document.location.range.end.character,
+            },
           },
-          end: {
-            line: document.location.range.end.line,
-            character: document.location.range.end.character,
-          },
-        },
-      } : undefined,
-      time: document.time,
-      percentage: document.percentage,
-      type: document.type ? document.type as TestType : undefined,
-      hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
+        } : undefined,
+        time: document.time,
+        percentage: document.percentage,
+        type: document.type,
+        hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
+      }
     });
   });
 }

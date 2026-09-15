@@ -96,12 +96,12 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
 export const onTestSuiteUpdate = (
   database: Database,
   openState: Record<string, boolean>,
-  callback: (params: TestSuiteUpdate) => void
+  callback: (payload: TestTreeUpdate) => void
 ): void => {
   database.suites.update$.subscribe(async changeEvent => {
     const document = changeEvent.documentData;
 
-    const update: TestSuiteUpdate = {
+    const update: TestTreeSuiteUpdate = {
       suiteId: [document.workspaceId, document.packageName, document.suiteName]
     };
 
@@ -110,7 +110,7 @@ export const onTestSuiteUpdate = (
     }
 
     if (document.status !== changeEvent.previousDocumentData?.status) {
-      update.status = document.status as RunStatus;
+      update.status = document.status;
     }
 
     if (document.isWaiting !== changeEvent.previousDocumentData?.isWaiting) {
@@ -139,7 +139,7 @@ export const onTestSuiteUpdate = (
         ],
         name: testDocument.name,
         group: testDocument.group,
-        status: testDocument.status as RunStatus,
+        status: testDocument.status,
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
@@ -158,14 +158,14 @@ export const onTestSuiteUpdate = (
         } : undefined,
         time: testDocument.time,
         percentage: testDocument.percentage,
-        type: testDocument.type ? testDocument.type as TestType : undefined,
+        type: testDocument.type,
       }));
 
       const packageId: TestPackageId = [document.workspaceId, document.packageName];
       const suiteId: TestSuiteId = [...packageId, document.suiteName];
 
       update.name = document.suiteName;
-      update.status = document.status as RunStatus;
+      update.status = document.status;
       update.isWaiting = document.isWaiting;
       update.isRunning = document.isRunning;
       update.isStatic = document.isStatic;
@@ -174,6 +174,6 @@ export const onTestSuiteUpdate = (
       update.isOpen = openState[suiteId.join(':')] ?? false;
     }
 
-    callback(update);
+    callback({ type: 'suite', suite: update });
   });
 }

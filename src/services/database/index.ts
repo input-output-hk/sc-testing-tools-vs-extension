@@ -6,13 +6,11 @@ import { databaseCollections, type DatabaseCollections } from './collections';
 
 import {
   fetchTestTree,
+  clearTestTreeResults,
+  handleTestRunStop,
   storeStaticTestTree,
   storeStaticTestSuite
 } from './methods/testTree';
-
-import {
-  handleTestRunStop
-} from './methods/testRun';
 
 import {
   getPackage
@@ -101,6 +99,10 @@ export default class Database {
     return await fetchTestTree(this.database!, openState);
   }
 
+  public async clearTestTreeResults(): Promise<void> {
+    return await clearTestTreeResults(this.database!);
+  }
+
   public async handleTestRun(testIds: Array<RunnableTestId>): Promise<void> {
     return await handleTestRun(this.database!, testIds);
   }
@@ -137,11 +139,11 @@ export default class Database {
     return await getAllTestSuitesIds(this.database!);
   }
 
-  public onTestUpdate(callback: (test: Test) => void): void {
+  public onTestUpdate(callback: (payload: TestTreeUpdate) => void): void {
     onTestUpdate(this.database!, callback);
   }
 
-  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: (params: TestSuiteUpdate) => void): void {
+  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: (payload: TestTreeUpdate) => void): void {
     onTestSuiteUpdate(this.database!, openState, callback);
   }
 
