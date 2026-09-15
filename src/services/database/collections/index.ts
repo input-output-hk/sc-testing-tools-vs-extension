@@ -3,31 +3,36 @@ import { RxDatabase } from 'rxdb';
 import {
   packageSchema,
   type PackageCollection,
-  type PackageDocument
+  type PackageDocument,
+  type PackageDocumentData
 } from './schemas/package';
 
 import {
   suiteSchema,
   type SuiteCollection,
-  type SuiteDocument
+  type SuiteDocument,
+  type SuiteDocumentData
 } from './schemas/suite';
 
 import {
   testSchema,
   type TestCollection,
-  type TestDocument
+  type TestDocument,
+  type TestDocumentData
 } from './schemas/test';
 
 import {
   coverageSchema,
   type CoverageCollection,
-  type CoverageDocument
+  type CoverageDocument,
+  type CoverageDocumentData
 } from './schemas/coverage';
 
 import {
   roundSchema,
   type RoundCollection,
-  type RoundDocument
+  type RoundDocument,
+  type RoundDocumentData
 } from './schemas/round';
 
 export const databaseCollections = {
@@ -60,8 +65,13 @@ export type Database = RxDatabase<DatabaseCollections>;
 
 export type {
   PackageDocument,
+  PackageDocumentData,
   SuiteDocument,
+  SuiteDocumentData,
   TestDocument,
+  TestDocumentData,
   CoverageDocument,
+  CoverageDocumentData,
   RoundDocument,
+  RoundDocumentData,
 };

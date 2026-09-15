@@ -9,9 +9,8 @@ import {
   suiteMatchesFilter,
   getPackageTime,
   getPackageStatus,
-  isRunnableStatus,
-  formatTestTime
 } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
@@ -27,6 +26,7 @@ interface TreeViewPackageProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -39,13 +39,14 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
   const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
   const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
-  const isRunnable = isRunnableStatus(status);
+  const isRunnable = !status.isRunning && !status.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -86,11 +87,15 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     <VscodeTreeItem ref={treeItemRef} open={testPackage.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={status} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={testPackage.name}
+        >
           {testPackage.name}
           {time > 0 &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(time)}
+              {formatRunTime(time)}
             </span>
           }
         </span>
@@ -101,6 +106,8 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleBuildPackage}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Refresh Test Tree"
         >
           <i className="codicon codicon-refresh" />
         </button>
@@ -111,6 +118,8 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunPackage}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>
@@ -126,6 +135,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
           onContextMenu={onContextMenu}
         />

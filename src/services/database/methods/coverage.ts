@@ -94,7 +94,8 @@ export const upsertCoverage = async (
           statements: Object.entries(fileCoverage.statements)
             .filter(([, testIds]) => testIds.length > 0)
             .map(([rangeKey, testIds]) => ({
-              range: keyToRange(rangeKey), testIds
+              range: keyToRange(rangeKey),
+              testIds: Array.from(new Set(testIds))
             })),
         });
       } else {
@@ -104,7 +105,10 @@ export const upsertCoverage = async (
           if (existingStatement) {
             existingStatement.testIds = Array.from(new Set([...existingStatement.testIds, ...testIds]));
           } else {
-            statements.push({ range: keyToRange(rangeKey), testIds });
+            statements.push({
+              range: keyToRange(rangeKey),
+              testIds: Array.from(new Set(testIds))
+            });
           }
         }
         await coverageDocument.update({ $set: { statements } });
@@ -211,6 +215,21 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
 
   return coverage;
 }
+
+export const hasCoverage = async (database: Database, id: TestId): Promise<boolean> => {
+  const [workspaceId, packageName, suiteName, testId] = id;
+
+  const count = await database.coverage.count({
+    selector: {
+      'context.workspaceId': workspaceId,
+      'context.packageName': packageName,
+      'context.suiteName': suiteName,
+      'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
+    }
+  }).exec();
+
+  return count > 0;
+};
 
 export const onCoverageUpdate = (database: Database, callback: (fileCoverage: FileCoverage) => void): void => {
   database.coverage.$.subscribe(changeEvent => {

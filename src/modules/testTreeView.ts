@@ -22,14 +22,24 @@ export default class TestTreeView {
 
     const runAllTestsCommand = vscode.commands.registerCommand('pbt-extension.runAllTests', this.runAllTests.bind(this));
     context.extension.subscriptions.push(runAllTestsCommand);
+
+    const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
+    context.extension.subscriptions.push(stopTestRunCommand);
+
+    const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestTree', this.collapseAll.bind(this));
+    context.extension.subscriptions.push(collapseAllCommand);
+
+    const clearTestTreeResultsCommand = vscode.commands.registerCommand('pbt-extension.clearTestTreeResults', this.clearResults.bind(this));
+    context.extension.subscriptions.push(clearTestTreeResultsCommand);
+
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
-    this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteTreeUpdate(this.sendTestSuiteTreeUpdate.bind(this));
+    this.context.store.testStore.onTestJobUpdate(this.sendTestJobUpdate.bind(this));
+    this.context.store.testStore.onTestTreeUpdate(this.sendTestTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -55,11 +65,14 @@ export default class TestTreeView {
           case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
+          case 'test-tree-show-coverage':
+            this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName);
+            break;
           case 'test-tree-show-location':
             this.showTestLocation(message.payload.testId);
             break;
-          case 'test-tree-update':
-            this.updateTestTree(message.payload);
+          case 'test-tree-update-open-state':
+            this.updateTestTreeOpenState(message.payload);
             break;
         }
       },
@@ -82,9 +95,6 @@ export default class TestTreeView {
   private fetchTestTree(): void {
     this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
-    }).catch((error: unknown) => {
-      this.showError('Test discovery failed', error instanceof Error ? error.message : String(error));
-      this.sendTestTreeErrorToWebview();
     });
   }
 
@@ -128,26 +138,36 @@ export default class TestTreeView {
 
   private async runTest(testIds: Array<RunnableTestId>): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     this.context.store.testStore.runTest(testIds);
   }
 
   private async buildTestSuite(suiteId: TestSuiteId): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     this.context.store.testStore.buildTestSuite(suiteId);
   }
 
   private async buildAllTestSuites(): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     await this.context.store.testStore.buildAllTestSuites();
   }
 
   private async runAllTests(): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
     await this.context.store.testStore.runAllTests();
+  }
+
+  private async stopTestRun(): Promise<void> {
+    await this.context.store.testStore.stopTestRun();
+  }
+
+  private async collapseAll(): Promise<void> {
+    this.context.store.testStore.collapseTestTree();
+    this.fetchTestTree();
+  }
+
+  private async clearResults(): Promise<void> {
+    this.context.store.testStore.clearTestTreeResults();
+    this.fetchTestTree();
   }
 
   private openTestResults(testId: TestId): void {
@@ -164,41 +184,24 @@ export default class TestTreeView {
     }
   }
 
-  private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {
+  private updateTestTreeOpenState({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdateOpenState): void {
     this.context.store.testStore.updateOpenTestTreeNode(
       isOpen, workspaceId, packageName, suiteName, path
     );
   }
 
-  private sendTestUpdateToWebview(test: Test): void {
+  private sendTestJobUpdate(job: TestJob | null): void {
+    const notActiveTestRun = job === null || job.isLast && job.status !== 'running' && job.status !== 'waiting';
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', !notActiveTestRun);
+
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-update', payload: { test } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-test-run-update', payload: { job } } as ExtensionToWebviewMessage);
     }
   }
 
-  private sendTestSuiteTreeUpdate({ packageId, suite }: TestSuiteTreeUpdate): void {
+  private sendTestTreeUpdate(payload: TestTreeUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-tree-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-update', payload } as ExtensionToWebviewMessage);
     }
-  }
-
-  private sendTestSuiteUpdate({ suiteId, status, time }: TestSuiteUpdate): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-tree-suite-update', payload: { suiteId, status, time } } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private showError(title: string, message: string): void {
-    this.context.outputChannel.appendLine(`> ERROR: ${title}`);
-    this.context.outputChannel.appendLine(message);
-    this.context.outputChannel.show(true);
-
-    this.context.statusBarItem.text = `$(error) ${title}`;
-    this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-    this.context.statusBarItem.show();
-  }
-
-  private clearError(): void {
-    this.context.statusBarItem.hide();
   }
 }

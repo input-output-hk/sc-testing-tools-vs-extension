@@ -1,18 +1,32 @@
-export const updateTestSuiteTree = (testTree: TestTree, { packageId, suite }: TestSuiteTreeUpdate): TestTree => {
-  const packageNode = testTree.packages[packageId.join(':')];
+export const updatePackages = (testTree: TestTree, packages: Array<TestTreePackageUpdate>): TestTree => {
+  let updatedTestTree: TestTree = { ...testTree };
+  for (const packageUpdate of packages) {
+    updatedTestTree.packages[packageUpdate.packageId.join(':')].isOpen = packageUpdate.isOpen;
+    for (const suiteUpdate of packageUpdate.suites) {
+      updatedTestTree = updateTestSuite(updatedTestTree, suiteUpdate);
+    }
+  }
+  return updatedTestTree;
+};
+
+export const updateTestSuite = (testTree: TestTree, update: TestTreeSuiteUpdate): TestTree => {
+  const [workspaceId, packageName, suiteName] = update.suiteId;
+  const packageId = `${workspaceId}:${packageName}`;
+
+  const packageNode = testTree.packages[packageId];
   if (!packageNode) return testTree;
 
   return {
     ...testTree,
     packages: {
       ...testTree.packages,
-      [packageId.join(':')]: {
+      [packageId]: {
         ...packageNode,
         suites: {
           ...packageNode.suites,
-          [suite.name]: {
-            ...packageNode.suites[suite.name],
-            ...suite
+          [suiteName]: {
+            ...packageNode.suites[suiteName],
+            ...update,
           },
         },
       },
@@ -64,7 +78,7 @@ const updateTestNodeMap = (nodes: TestTreeNodeMap, test: Test): { nodes: TestTre
   };
 };
 
-export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTree => {
+export const updateTest = (testTree: TestTree, test: Test): TestTree => {
   const [workspaceId, packageName, suiteName] = test.id;
   const packageId = `${workspaceId}:${packageName}`;
 
@@ -88,38 +102,6 @@ export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTr
           [suiteName]: {
             ...suiteNode,
             tests: updatedTestTreeNodeMap.nodes,
-          },
-        },
-      },
-    },
-  };
-};
-
-export const updateTestSuite = (
-  testTree: TestTree,
-  { suiteId, status, time }: TestSuiteUpdate,
-): TestTree => {
-  const [workspaceId, packageName, suiteName] = suiteId;
-  const packageId = `${workspaceId}:${packageName}`;
-
-  const packageNode = testTree.packages[packageId];
-  if (!packageNode) return testTree;
-
-  const suiteNode = packageNode.suites[suiteName];
-  if (!suiteNode || suiteNode.status === status) return testTree;
-
-  return {
-    ...testTree,
-    packages: {
-      ...testTree.packages,
-      [packageId]: {
-        ...packageNode,
-        suites: {
-          ...packageNode.suites,
-          [suiteName]: {
-            ...suiteNode,
-            status,
-            time,
           },
         },
       },

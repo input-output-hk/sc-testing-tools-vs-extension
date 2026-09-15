@@ -57,7 +57,10 @@ const parseTestSuiteStartedEvent = (
         id: [workspaceId, packageName, suiteName, testItem.id.toString()],
         name: testItem.name,
         group: testItem.path,
-        status: isBuild ? 'undetermined' : 'waiting',
+        status: 'undetermined',
+        isWaiting: !isBuild,
+        isRunning: false,
+        isStatic: false,
         location: testItem.srcLoc ? {
           uri: testItem.srcLoc.file,
           range: {
@@ -124,7 +127,7 @@ const parseTestStartedEvent = (
     eventType: 'test-update',
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: 0,
       time: 0,
     },
@@ -141,7 +144,7 @@ const parseTestProgressEvent = (
     eventType: 'test-update',
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: event.percent * 100,
       time: 0,
     },
@@ -172,6 +175,8 @@ const mapScTx = (tx: ScTx | null): Tx | undefined => {
     fee: tx.fee,
     inputs: tx.inputs.map(input => ({
       address: input.address,
+      addressLabel: input.addressLabel || undefined,
+      addressType: input.addressType,
       utxo: input.utxo,
       value: input.value,
       redeemerConstr: input.redeemerConstr || undefined,
@@ -182,12 +187,24 @@ const mapScTx = (tx: ScTx | null): Tx | undefined => {
     outputs: tx.outputs.map((output, index) => ({
       index,
       address: output.address,
+      addressLabel: output.addressLabel || undefined,
+      addressType: output.addressType,
       utxo: output.utxo,
       value: output.value,
       datum: output.datum || undefined,
     })),
     mint: tx.mint || undefined,
     signers: tx.signers.filter(signer => signer !== null),
+    withdrawals: tx.withdrawals.map(withdrawal => ({
+      addressLabel: withdrawal.addressLabel || undefined,
+      addressType: withdrawal.addressType,
+      amount: withdrawal.amount,
+      redeemerConstr: withdrawal.redeemerConstr || undefined,
+      redeemerKind: withdrawal.redeemerKind || undefined,
+      redeemerPayload: withdrawal.redeemerPayload || undefined,
+      redeemerRaw: withdrawal.redeemerRaw || undefined,
+      stakeAddress: withdrawal.stakeAddress,
+    })),
   };
 };
 

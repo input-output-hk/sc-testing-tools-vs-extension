@@ -5,8 +5,11 @@ import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 import { databaseCollections, type DatabaseCollections } from './collections';
 
 import {
-  handleTestTree,
-  buildTestTree
+  fetchTestTree,
+  clearTestTreeResults,
+  handleTestRunStop,
+  storeStaticTestTree,
+  storeStaticTestSuite
 } from './methods/testTree';
 
 import {
@@ -18,8 +21,7 @@ import {
   handleTestSuiteBuild,
   handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
-  onTestSuiteUpdate,
-  onTestSuiteTreeUpdate,
+  onTestSuiteUpdate
 } from './methods/suite';
 
 import {
@@ -68,20 +70,37 @@ export default class Database {
     return await handleTestContextEvent(this.database!, event);
   }
 
-  public async handleTestRunErrorEvent(event: TestRunErrorEvent, prefetchTree: TestTree | null): Promise<void> {
-    return await handleTestRunErrorEvent(this.database!, event, prefetchTree);
+  public async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    //
   }
 
-  public async handleTestSuiteBuildErrorEvent(event: TestSuiteBuildErrorEvent, prefetchTree: TestTree | null): Promise<void> {
-    return await handleTestSuiteBuildErrorEvent(this.database!, event, prefetchTree);
+  public async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
+    if (event.payload.job.type === 'build') {
+      return await handleTestSuiteBuildErrorEvent(this.database!, event.payload.job as TestBuildJob);
+    }
+    if (event.payload.job.type === 'run') {
+      return await handleTestRunErrorEvent(this.database!, event.payload.job as TestRunJob, event.payload.failedTestRun!);
+    }
   }
 
-  public async handleTestTree(testTree: TestTree): Promise<void> {
-    return await handleTestTree(this.database!, testTree);
+  public async handleTestRunStop(): Promise<void> {
+    return await handleTestRunStop(this.database!);
   }
 
-  public async buildTestTree(prefetchTree: TestTree, openState: Record<string, boolean>): Promise<TestTree> {
-    return await buildTestTree(this.database!, prefetchTree, openState);
+  public async storeStaticTestTree(testTree: StaticTestTree): Promise<void> {
+    return await storeStaticTestTree(this.database!, testTree);
+  }
+
+  public async storeStaticTestSuite(testSuite: StaticTestSuite): Promise<void> {
+    return await storeStaticTestSuite(this.database!, testSuite);
+  }
+
+  public async fetchTestTree(openState: Record<string, boolean>): Promise<TestTree> {
+    return await fetchTestTree(this.database!, openState);
+  }
+
+  public async clearTestTreeResults(): Promise<void> {
+    return await clearTestTreeResults(this.database!);
   }
 
   public async handleTestRun(testIds: Array<RunnableTestId>): Promise<void> {
@@ -120,16 +139,12 @@ export default class Database {
     return await getAllTestSuitesIds(this.database!);
   }
 
-  public onTestUpdate(callback: (test: Test) => void): void {
+  public onTestUpdate(callback: (payload: TestTreeUpdate) => void): void {
     onTestUpdate(this.database!, callback);
   }
 
-  public onTestSuiteTreeUpdate(openState: Record<string, boolean>, callback: (params: TestSuiteTreeUpdate) => void): void {
-    onTestSuiteTreeUpdate(this.database!, openState, callback);
-  }
-
-  public onTestSuiteUpdate(callback: (params: TestSuiteUpdate) => void): void {
-    onTestSuiteUpdate(this.database!, callback);
+  public onTestSuiteUpdate(openState: Record<string, boolean>, callback: (payload: TestTreeUpdate) => void): void {
+    onTestSuiteUpdate(this.database!, openState, callback);
   }
 
   public onCoverageUpdate(callback: (fileCoverage: FileCoverage) => void): void {

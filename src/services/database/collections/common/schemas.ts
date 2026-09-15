@@ -10,6 +10,10 @@ import {
   TEST_ROUND_ID_MAX_LENGTH,
 } from '../common/constants';
 
+export const booleanSchema = {
+  type: 'boolean',
+} as const;
+
 export const numberSchema = {
   type: 'number',
 } as const;
@@ -21,6 +25,16 @@ export const stringSchema = {
 export const finalStringSchema = {
   type: 'string',
   final: true,
+} as const;
+
+export const runStatusSchema = {
+  type: 'string',
+  enum: ['undetermined', 'valid', 'invalid'],
+} as const;
+
+export const testTypeSchema = {
+  type: 'string',
+  enum: ['unit-test', 'positive', 'negative', 'threat-model'],
 } as const;
 
 export const workspaceIdSchema = {

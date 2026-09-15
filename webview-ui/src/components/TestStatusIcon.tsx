@@ -1,13 +1,14 @@
-import useSyncedSpin from '../hooks/useSyncedSpin';
+import StatusIcon from './StatusIcon';
 
 interface Props {
-  ref?: (el: HTMLElement | null) => void;
-  status: RunStatus;
+  status: RunStatusContext;
   isThreatModel?: boolean;
 }
 
-const mapTestStatusToIcon = (status: RunStatus, isThreatModel?: boolean): string => {
-  switch (status) {
+const mapTestStatusToClassName = (status: RunStatusContext, isThreatModel?: boolean): string => {
+  if (status.isRunning) return 'codicon-loading';
+  if (status.isWaiting) return 'codicon-history text-yellow-02';
+  switch (status.status) {
     case 'undetermined':
       return isThreatModel === true ? 'codicon-debug-step-over text-[var(--vscode-testing-iconSkipped)]' : 'codicon-circle text-[var(--vscode-testing-iconUnset)]';
     case 'valid':
@@ -31,9 +32,10 @@ const SpinningTestStatusIcon: React.FC<Props> = ({ status, isThreatModel }) => {
 };
 
 const TestStatusIcon: React.FC<Props> = ({ status, isThreatModel }) => (
-  status === 'running' ?
-    <SpinningTestStatusIcon status={status} isThreatModel={isThreatModel} /> :
-    <SimpleTestStatusIcon status={status} isThreatModel={isThreatModel} />
+  <StatusIcon
+    className={mapTestStatusToClassName(status, isThreatModel)}
+    animated={status.isRunning}
+  />
 );
 
 export default TestStatusIcon;

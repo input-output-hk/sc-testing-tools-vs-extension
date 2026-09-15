@@ -1,6 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
 
 import { txValueToString } from '../../utils/txUtils';
+import CopyButton from '../../../../components/CopyButton';
 
 interface GraphNodeProps {
   data: GraphNodeData;
@@ -21,24 +22,27 @@ interface GraphNodeUTxOData extends GraphNodeUTxO {
 interface GraphNodeRowProps {
   label: string;
   value?: GraphNodeValue<string|undefined>;
+  copyButton?: boolean;
 }
 
 interface GraphNodeFooterProps {
   onViewDetails: () => void;
 }
 
-const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ label, value }) => {
+const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ label, value, copyButton }) => {
   const currentIsEmpty = value?.current === undefined || value?.current === '';
   const previousIsEmpty = value?.previous === undefined || value?.previous === '';
   if (value === undefined || currentIsEmpty && previousIsEmpty) return;
 
   const isModified = value.current !== value.previous;
   const hasPrevious = value.previous !== undefined && value.previous.length > 0;
+
   return (
     <div className="text-[11px] pb-2 mb-2 border-b border-b-base-13">
       <p className="flex flex-row items-center gap-1">
         {isModified && <i className="codicon codicon-edit text-yellow-04" style={{ fontSize: '11px' }} />}
         <span className="text-base-06">{label}</span>
+        {!currentIsEmpty && copyButton && <CopyButton text={value.current!} />}
       </p>
       {isModified && hasPrevious && <p className="text-base-06 opacity-70 line-through truncate">{value.previous}</p>}
       <p className={`${!isModified ? 'text-blue-05' : 'text-yellow-04'} truncate`}>{value.current}</p>
@@ -63,7 +67,7 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
     <div className="w-60 overflow-clip border border-base-13">
       <div className="flex flex-row items-center py-1 px-2 gap-1 bg-green-05">
         <span className="flex-1 text-base-01 text-[12px]">
-          {`Transaction #${data.index + 1}`}
+          {data.label}
         </span>
         {data.status !== 'success' &&
           <i className="codicon codicon-warning text-base-01" />
@@ -71,6 +75,7 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
       </div>
       <div className="p-2 bg-base-18">
         <GraphNodeRow
+          copyButton
           label="Transaction ID"
           value={data.id}
         />
@@ -104,8 +109,8 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
       {[...Array(data.inputCount)].map((_, index) =>
         <Handle
           type="target"
-          id={`tx-${data.id.current}-i-${index}`}
-          key={`tx-${data.id.current}-i-${index}`}
+          id={`tx-${data.identifier}-i-${index}`}
+          key={`tx-${data.identifier}-i-${index}`}
           position={Position.Left}
           isConnectable={false}
           style={{
@@ -119,8 +124,21 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
       {[...Array(data.outputCount)].map((_, index) =>
         <Handle
           type="source"
-          id={`tx-${data.id.current}-o-${index}`}
-          key={`tx-${data.id.current}-o-${index}`}
+          id={`tx-${data.identifier}-o-${index}`}
+          key={`tx-${data.identifier}-o-${index}`}
+          position={Position.Right}
+          isConnectable={false}
+          style={{
+            position: 'relative', top: 0, left: 0,
+            transform: 'none', background: 'white'
+          }}
+        />
+      )}
+      {[...Array(data.withdrawalCount)].map((_, index) =>
+        <Handle
+          type="source"
+          id={`tx-${data.identifier}-w-${index}`}
+          key={`tx-${data.identifier}-w-${index}`}
           position={Position.Right}
           isConnectable={false}
           style={{
@@ -133,35 +151,61 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
   </div>
 );
 
+const getUTxOColor = (data: GraphNodeUTxOData): string => {
+  switch (data.type) {
+    case "wallet":
+      return "bg-blue-09";
+    case "script":
+      return "bg-[#72642A]";
+    case "withdrawal":
+      return "bg-purple-04";
+  }
+};
+
 const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => (
   <>
     <div className="w-60 overflow-clip border border-base-13">
-      <div className="flex flex-row items-center py-1 px-2 gap-1 bg-blue-09">
-        <span className="flex-1 text-base-01 text-[12px]">
-          UTxO{data.index !== undefined ? ` #${data.index}` : ''}
+      <div className={`flex flex-row items-center py-1 px-2 gap-1 ${getUTxOColor(data)}`}>
+        <span className="flex-1 text-base-01 text-[12px] capitalize">
+          {data.label}
         </span>
       </div>
       <div className="p-2 bg-base-18">
         <GraphNodeRow
+          copyButton
           label="Address"
           value={data.address}
         />
         <GraphNodeRow
+          copyButton
+          label="Stake Address"
+          value={data.stakeAddress}
+        />
+        <GraphNodeRow
+          copyButton
           label="UTxO"
           value={data.utxo}
         />
         <GraphNodeRow
           label="Amount"
-          value={{
-            current: txValueToString(data.value.current),
-            previous: txValueToString(data.value.previous)
-          }}
+          value={
+            data.value ? {
+              current: txValueToString(data.value.current),
+              previous: txValueToString(data.value.previous)
+            } : (
+            data.amount ? {
+              current: data.amount.current.toString(),
+              previous: data.amount.previous?.toString()
+            } :
+            undefined)
+          }
         />
         <GraphNodeRow
           label="Redeemer"
           value={data.redeemer}
         />
         <GraphNodeRow
+          copyButton
           label="Datum"
           value={data.datum}
         />

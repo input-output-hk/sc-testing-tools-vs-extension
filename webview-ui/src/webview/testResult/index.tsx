@@ -52,11 +52,11 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
         <TestHeader test={test} />
       </div>
 
-      { test.status === 'running' && testRounds.length === 0 &&
+      { test.isRunning && testRounds.length === 0 &&
         <RunningIndicator />
       }
 
-      { test.status !== 'running' && testRounds.length === 0 &&
+      { !test.isRunning && testRounds.length === 0 &&
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
           <span className="text-md">This test does not have any rounds</span>
         </div>

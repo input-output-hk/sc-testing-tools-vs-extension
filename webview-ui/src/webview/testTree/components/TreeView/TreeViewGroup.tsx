@@ -7,14 +7,14 @@ import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
   getGroupTests,
-  getGroupTestIds,
+  getGroupTestRunnableIds,
   getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
   isTestRunnable,
   sortTreeNodes,
-  formatTestTime,
 } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewGroupProps {
   suiteId: TestSuiteId;
@@ -31,6 +31,7 @@ interface TreeViewGroupProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
@@ -44,6 +45,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
   onShowTestLocation,
   onContextMenu,
 }) => {
@@ -62,7 +64,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
       onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suiteName, [...path, node.name]);
     },
     onToggleSelection: (selected) => {
-      onUpdateSelection(getGroupTestIds(node), selected);
+      onUpdateSelection(getGroupTestRunnableIds(node), selected);
     },
   });
 
@@ -78,7 +80,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTest(getGroupTestIds(node));
+    onRunTest(getGroupTestRunnableIds(node));
   };
 
   const handleContextMenu = (event: React.MouseEvent): void => {
@@ -91,16 +93,20 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
       <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={node.name}
+        >
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
               ({Object.keys(node.nodes).length})
             </span>
           }
-          {time > 0 && status !== 'running' && status !== 'waiting' &&
+          {time > 0 && !status.isRunning && !status.isWaiting &&
             <span className="ml-1 opacity-60">
-              {formatTestTime(time)}
+              {formatRunTime(time)}
             </span>
           }
         </span>
@@ -111,6 +117,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunGroup}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>
@@ -128,6 +136,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
           onContextMenu={onContextMenu}
         />

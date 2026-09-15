@@ -7,8 +7,11 @@ import {
 } from 'rxdb';
 
 import {
+  booleanSchema,
   numberSchema,
   stringSchema,
+  runStatusSchema,
+  testTypeSchema,
   rangeSchema,
   testIdSchema,
   fullTestIdSchema,
@@ -37,8 +40,11 @@ const testSchemaLiteral = {
       type: 'array',
       items: stringSchema
     },
-    status: stringSchema,
-    type: stringSchema,
+    status: runStatusSchema,
+    isWaiting: booleanSchema,
+    isRunning: booleanSchema,
+    isStatic: booleanSchema,
+    type: testTypeSchema,
     location: {
       type: 'object',
       properties: {
@@ -63,11 +69,13 @@ const testSchemaLiteral = {
     'name',
     'group',
     'status',
+    'isWaiting',
+    'isRunning',
+    'isStatic',
   ],
   indexes: [
-    'workspaceId',
-    ['workspaceId', 'packageName'],
     ['workspaceId', 'packageName', 'suiteName'],
+    ['workspaceId', 'packageName', 'suiteName', 'isStatic'],
   ],
 } as const;
 
@@ -75,4 +83,5 @@ const schemaTyped = toTypedRxJsonSchema(testSchemaLiteral);
 type TestDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const testSchema: RxJsonSchema<TestDocType> = testSchemaLiteral;
 export type TestDocument = RxDocument<TestDocType>;
+export type TestDocumentData = TestDocType;
 export type TestCollection = RxCollection<TestDocType>;

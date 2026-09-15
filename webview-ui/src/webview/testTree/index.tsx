@@ -7,7 +7,7 @@ import TreeView from './components/TreeView';
 import {
   updateTest,
   updateTestSuite,
-  updateTestSuiteTree,
+  updatePackages,
   updateOpenTestTreeNode
 } from './utils/treeUpdateUtils';
 
@@ -20,6 +20,7 @@ interface Props {
 const TestTreeView: React.FC<Props> = ({ vscode }) => {
   const [activeView, setActiveView] = useState<null | 'empty-workspaces' | 'empty-tree' | 'tree' | 'error'>(null);
   const [testTree, setTestTree] = useState<TestTree | null>(null);
+  const [testJob, setTestJob] = useState<TestJob | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -36,23 +37,21 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         setTestTree(message.payload.testTree);
         setActiveView(Object.keys(message.payload.testTree.packages).length ? 'tree' : 'empty-tree');
       }
-      if (message.type === 'test-tree-suite-tree-update') {
-        setTestTree(testTree => {
-          if (!testTree) return testTree;
-          return updateTestSuiteTree({ ...testTree }, message.payload);
-        });
-      }
       if (message.type === 'test-tree-update') {
         setTestTree(testTree => {
           if (!testTree) return testTree;
-          return updateTest(testTree, message.payload);
+          switch (message.payload.type) {
+            case 'test':
+              return updateTest(testTree, message.payload.test);
+            case 'suite':
+              return updateTestSuite(testTree, message.payload.suite);
+            case 'tree':
+              return updatePackages(testTree, message.payload.packages);
+          }
         });
       }
-      if (message.type === 'test-tree-suite-update') {
-        setTestTree(testTree => {
-          if (!testTree) return testTree;
-          return updateTestSuite(testTree, message.payload);
-        });
+      if (message.type === 'test-tree-test-run-update') {
+        setTestJob(message.payload.job);
       }
     };
 
@@ -89,13 +88,17 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     });
 
     vscode.postMessage({
-      type: 'test-tree-update',
+      type: 'test-tree-update-open-state',
       payload: { isOpen, workspaceId, packageName, suiteName, path }
     } as WebviewToExtensionMessage);
   };
 
   const onOpenTestResult = (testId: TestId) => {
     vscode.postMessage({ type: 'test-tree-open-results', payload: { testId } } as WebviewToExtensionMessage);
+  };
+
+  const onShowCoverage = (testId: TestId, testName: string) => {
+    vscode.postMessage({ type: 'test-tree-show-coverage', payload: { testId, testName } } as WebviewToExtensionMessage);
   };
 
   const onShowTestLocation = (testId: TestId) => {
@@ -121,11 +124,13 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       }
       {activeView === 'tree' && testTree !== null &&
         <TreeView
+          testJob={testJob}
           testTree={testTree}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
         />
       }

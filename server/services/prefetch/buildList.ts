@@ -9,24 +9,20 @@ import { getParser, ModuleCache } from './static/parser';
 import { extractSuite, type ExtractedSuite } from './static/suites';
 import type { ExtractedNode } from './static/synthesize';
 
-interface StaticTreeBuildResult {
-  tests: TestTreeNodeMap;
-}
-
 export async function buildWorkspacePackages(
   workspace: Workspace,
   discoveredPackages: Array<ParsedCabalPackage>,
-): Promise<TestPackageMap> {
+): Promise<StaticTestTree['packages']> {
   const parser = await getParser();
   const moduleCache = new ModuleCache(parser);
-
-  const packageMap: TestPackageMap = {};
+  const packageMap: StaticTestTree['packages'] = {};
 
   for (const discoveredPackage of discoveredPackages) {
     const packageId = `${workspace.id}:${discoveredPackage.name}`;
 
     if (!hasOwnKey(packageMap, packageId)) {
       packageMap[packageId] = {
+        id: [workspace.id, discoveredPackage.name],
         name: discoveredPackage.name,
         packagePath: discoveredPackage.packagePath,
         workspace,
@@ -44,11 +40,7 @@ export async function buildWorkspacePackages(
         moduleCache,
       );
 
-      if (!suite) {
-        continue;
-      }
-
-      if (!hasOwnKey(packageNode.suites, suite.name)) {
+      if (suite && !hasOwnKey(packageNode.suites, suite.name)) {
         packageNode.suites[suite.name] = suite;
       }
     }
@@ -62,7 +54,7 @@ function buildSuite(
   discoveredPackage: ParsedCabalPackage,
   suiteDefinition: ParsedSuiteDefinition,
   moduleCache: ModuleCache,
-): TestSuite | null {
+): StaticTestSuite | null {
   if (suiteDefinition.entryPoint === 'MISSING' || suiteDefinition.entryPoint === 'unknown') {
     return null;
   }
@@ -88,38 +80,42 @@ function buildSuite(
     return null;
   }
 
-  const staticTree = buildStaticSuiteTree(
-    workspace,
-    discoveredPackage.name,
-    discoveredPackage.packagePath,
-    suiteDefinition.name,
-    extractedSuite,
-  );
-
   return {
+    id: [
+      workspace.id,
+      discoveredPackage.name,
+      suiteDefinition.name
+    ],
     name: suiteDefinition.name,
     status: 'undetermined',
+    isWaiting: false,
+    isRunning: false,
+    isStatic: true,
     isOpen: false,
-    tests: staticTree.tests,
+    tests: buildStaticTestList(
+      workspace,
+      discoveredPackage.name,
+      discoveredPackage.packagePath,
+      suiteDefinition.name,
+      extractedSuite,
+    ),
   };
 }
 
-function buildStaticSuiteTree(
+function buildStaticTestList(
   workspace: Workspace,
   packageName: string,
   packagePath: string,
   suiteName: string,
   extractedSuite: ExtractedSuite,
-): StaticTreeBuildResult {
-  const tests: TestTreeNodeMap = {};
-
-  const nodes = toNodeArray(extractedSuite.tree);
+): GenericMap<Test> {
+  const tests: GenericMap<Test> = {};
   const idState = { counter: 0 };
 
-  for (const node of nodes) {
-    appendExtractedNode({
+  for (const node of toNodeArray(extractedSuite.tree)) {
+    collectTests({
       node,
-      parentTree: tests,
+      tests,
       parentGroups: [],
       idState,
       workspace,
@@ -130,22 +126,19 @@ function buildStaticSuiteTree(
     });
   }
 
-  return { tests };
+  return tests;
 }
 
 function toNodeArray(tree: ExtractedSuite['tree']): Array<ExtractedNode> {
   if (tree === null) {
     return [];
   }
-  if (Array.isArray(tree)) {
-    return tree;
-  }
-  return [tree];
+  return Array.isArray(tree) ? tree : [tree];
 }
 
-function appendExtractedNode(options: {
+function collectTests(options: {
   node: ExtractedNode;
-  parentTree: TestTreeNodeMap;
+  tests: GenericMap<Test>;
   parentGroups: Array<string>;
   idState: { counter: number };
   workspace: Workspace;
@@ -156,7 +149,7 @@ function appendExtractedNode(options: {
 }): void {
   const {
     node,
-    parentTree,
+    tests,
     parentGroups,
     idState,
     workspace,
@@ -167,51 +160,29 @@ function appendExtractedNode(options: {
   } = options;
 
   if (node.kind === 'group') {
-    const groupName = normalizeNodeLabel(node.label, 'group');
-    const groupKey = makeUniqueTreeKey(parentTree, groupName);
-
-    const groupNode: TestTreeGroupNode = {
-      type: 'group',
-      name: groupName,
-      isOpen: false,
-      nodes: {},
-    };
-
-    parentTree[groupKey] = groupNode;
-
+    const groupName = normalizeNodeLabel(node.label, node.kind);
     for (const child of node.children ?? []) {
-      appendExtractedNode({
+      collectTests({
+        ...options,
         node: child,
-        parentTree: groupNode.nodes,
         parentGroups: [...parentGroups, groupName],
-        idState,
-        workspace,
-        packageName,
-        packagePath,
-        suiteName,
-        fallbackEntryFile,
       });
     }
-
     return;
   }
 
   idState.counter += 1;
-  const testKey = `${workspace.id}:${packageName}:${suiteName}:static${idState.counter}`;
-  const testName = normalizeNodeLabel(node.label, node.kind);
-
-  const test: Test = {
+  const testKey = `${workspace.id}:${packageName}:${suiteName}:${idState.counter}`;
+  tests[testKey] = {
     id: testKey.split(':') as TestId,
-    name: testName,
+    name: normalizeNodeLabel(node.label, node.kind),
     group: parentGroups,
     status: 'undetermined',
+    isWaiting: false,
+    isRunning: false,
+    isStatic: true,
     location: buildStaticLocation(node, workspace.path, packagePath, fallbackEntryFile),
   };
-
-  parentTree[testKey] = {
-    type: 'test',
-    test,
-  } as TestTreeTestNode;
 }
 
 function buildStaticLocation(
@@ -257,28 +228,10 @@ function normalizeNodeLabel(label: string | null, kind: ExtractedNode['kind']): 
   if (kind === 'group') {
     return '(group)';
   }
-
   if (kind === 'placeholder') {
     return '(dynamic placeholder)';
   }
-
   return '(unnamed test)';
-}
-
-function makeUniqueTreeKey(tree: TestTreeNodeMap, preferredKey: string): string {
-  if (!hasOwnKey(tree, preferredKey)) {
-    return preferredKey;
-  }
-
-  let suffix = 2;
-  let key = `${preferredKey} (${suffix})`;
-
-  while (hasOwnKey(tree, key)) {
-    suffix += 1;
-    key = `${preferredKey} (${suffix})`;
-  }
-
-  return key;
 }
 
 function normalizePathSlashes(value: string): string {

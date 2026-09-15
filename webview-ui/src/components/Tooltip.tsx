@@ -1,22 +1,24 @@
 import { Tooltip as ReactTooltip, type PlacesType, type PositionStrategy } from 'react-tooltip';
 
 interface Props {
-  content: string;
+  content?: string;
   id: string;
   place?: PlacesType;
-  maxWidth?: string;
   positionStrategy?: PositionStrategy;
   delayShow?: number;
+  maxWidth?: string;
+  render?: React.ComponentProps<typeof ReactTooltip>['render'];
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', positionStrategy, delayShow = 300 }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', positionStrategy, delayShow = 300, render }) => {
 
   return (
     <>
       <ReactTooltip
         id={`${id}-tooltip`}
-        anchorSelect={`#${id}`}
+        anchorSelect={content !== undefined ? `#${id}` : undefined}
         content={content}
+        render={render}
         place={place}
         positionStrategy={positionStrategy}
         delayShow={delayShow}

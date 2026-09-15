@@ -1,8 +1,8 @@
-import { buildWorkspacePackages } from './buildTree';
+import { buildWorkspacePackages } from './buildList';
 import { discoverPackagesForWorkspace } from './discover';
 
-export async function prefetch(workspaces: Array<Workspace>): Promise<TestTree> {
-  const packages: TestPackageMap = {};
+export async function prefetch(workspaces: Array<Workspace>): Promise<StaticTestTree> {
+  const packages: StaticTestTree['packages'] = {};
 
   for (const workspace of workspaces) {
     const discoveredPackages = await discoverPackagesForWorkspace(workspace.path);
@@ -14,8 +14,8 @@ export async function prefetch(workspaces: Array<Workspace>): Promise<TestTree> 
 }
 
 function mergePackages(
-  target: TestPackageMap,
-  source: TestPackageMap,
+  target: StaticTestTree['packages'],
+  source: StaticTestTree['packages'],
 ): void {
   for (const [packageId, sourcePackage] of Object.entries(source)) {
     const existing = target[packageId];
