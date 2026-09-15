@@ -64,12 +64,7 @@ const TestHeader: React.FC<Props> = ({ test }) => (
         maxWidth="300px"
         place="bottom-end"
       />
-      <Tooltip
-        content={[test.id[1], test.id[2], ...test.group.slice(0, -1)].join(' / ')}
-        id="test-header-path"
-        maxWidth="300px"
-        place="bottom-end"
-      />
+    </span>
     </div>
   </div>
 );
