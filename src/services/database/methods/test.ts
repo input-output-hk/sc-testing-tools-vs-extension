@@ -1,3 +1,5 @@
+import { Range } from 'vscode';
+
 import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage, hasCoverage } from './coverage';
 
@@ -253,16 +255,12 @@ export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpd
         isStatic: document.isStatic,
         location: document.location ? {
           uri: document.location.uri,
-          range: {
-            start: {
-              line: document.location.range.start.line,
-              character: document.location.range.start.character,
-            },
-            end: {
-              line: document.location.range.end.line,
-              character: document.location.range.end.character,
-            },
-          },
+          range: new Range(
+            document.location.range.start.line,
+            document.location.range.start.character,
+            document.location.range.end.line,
+            document.location.range.end.character
+          )
         } : undefined,
         time: document.time,
         percentage: document.percentage,

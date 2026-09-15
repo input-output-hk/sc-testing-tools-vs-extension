@@ -99,16 +99,21 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
 export const isTestRunnable = (test: Test): boolean =>
   !test.isStatic && !test.isRunning && !test.isWaiting;
 
-const STATUS_ORDER: Record<RunStatus, number> = { invalid: 0, valid: 1, undetermined: 2 };
-
 const compareTestsById = (a: Test, b: Test): number => {
   const [,,, testIdA] = a.id;
   const [,,, testIdB] = b.id;
   return parseInt(testIdA.replace('static', '')) - parseInt(testIdB.replace('static', ''));
 };
 
+const getStatusRank = (test: Test): number => {
+  if (test.isWaiting) return 2;
+  if (test.status === 'valid') return 0;
+  if (test.status === 'invalid') return 1;
+  return 3;
+};
+
 const compareTestsByStatus = (a: Test, b: Test): number =>
-  STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || compareTestsById(a, b);
+  getStatusRank(a) - getStatusRank(b) || compareTestsById(a, b);
 
 const compareTestsByLocation = (a: Test, b: Test): number => {
   const hasA = a.location?.range?.start !== undefined;
