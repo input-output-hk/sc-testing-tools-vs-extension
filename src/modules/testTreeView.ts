@@ -26,11 +26,17 @@ export default class TestTreeView {
     const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
     context.extension.subscriptions.push(stopTestRunCommand);
 
-    const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestTree', this.collapseAll.bind(this));
-    context.extension.subscriptions.push(collapseAllCommand);
+    const collapseAllTestsCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTests', this.collapseAllTests.bind(this));
+    context.extension.subscriptions.push(collapseAllTestsCommand);
 
-    const clearTestTreeResultsCommand = vscode.commands.registerCommand('pbt-extension.clearTestTreeResults', this.clearResults.bind(this));
-    context.extension.subscriptions.push(clearTestTreeResultsCommand);
+    const clearAllResultsCommand = vscode.commands.registerCommand('pbt-extension.clearAllResults', this.clearAllResults.bind(this));
+    context.extension.subscriptions.push(clearAllResultsCommand);
+
+    const sortByLocationCommand = vscode.commands.registerCommand('pbt-extension.sortByLocation', this.sortByLocation.bind(this));
+    context.extension.subscriptions.push(sortByLocationCommand);
+
+    const sortByStatusCommand = vscode.commands.registerCommand('pbt-extension.sortByStatus', this.sortByStatus.bind(this));
+    context.extension.subscriptions.push(sortByStatusCommand);
 
     vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
@@ -160,14 +166,28 @@ export default class TestTreeView {
     await this.context.store.testStore.stopTestRun();
   }
 
-  private async collapseAll(): Promise<void> {
+  private collapseAllTests(): void {
     this.context.store.testStore.collapseTestTree();
     this.fetchTestTree();
   }
 
-  private async clearResults(): Promise<void> {
-    this.context.store.testStore.clearTestTreeResults();
+  private async clearAllResults(): Promise<void> {
+    await this.context.store.testStore.clearTestTreeResults();
     this.fetchTestTree();
+  }
+
+  private sortByLocation(): void {
+    this.sendSortToWebview('location');
+  }
+
+  private sortByStatus(): void {
+    this.sendSortToWebview('status');
+  }
+
+  private sendSortToWebview(sortBy: SortBy): void {
+    if (this.webview !== null) {
+      this.webview.postMessage({ type: 'test-tree-set-sort', payload: { sortBy } } as ExtensionToWebviewMessage);
+    }
   }
 
   private openTestResults(testId: TestId): void {
