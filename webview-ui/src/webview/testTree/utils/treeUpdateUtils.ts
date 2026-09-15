@@ -1,14 +1,3 @@
-export const updatePackages = (testTree: TestTree, packages: Array<TestTreePackageUpdate>): TestTree => {
-  let updatedTestTree: TestTree = { ...testTree };
-  for (const packageUpdate of packages) {
-    updatedTestTree.packages[packageUpdate.packageId.join(':')].isOpen = packageUpdate.isOpen;
-    for (const suiteUpdate of packageUpdate.suites) {
-      updatedTestTree = updateTestSuite(updatedTestTree, suiteUpdate);
-    }
-  }
-  return updatedTestTree;
-};
-
 export const updateTestSuite = (testTree: TestTree, update: TestTreeSuiteUpdate): TestTree => {
   const [workspaceId, packageName, suiteName] = update.suiteId;
   const packageId = `${workspaceId}:${packageName}`;

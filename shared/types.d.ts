@@ -461,8 +461,7 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
 
 type TestTreeUpdate =
 | { type: 'test', test: Test }
-| { type: 'suite', suite: TestTreeSuiteUpdate }
-| { type: 'tree', packages: Array<TestTreePackageUpdate> };
+| { type: 'suite', suite: TestTreeSuiteUpdate };
 
 type TestTreePackageUpdate = {
   packageId: TestPackageId;
