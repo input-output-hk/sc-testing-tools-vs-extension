@@ -155,7 +155,7 @@
           {
             "id": "environmentsetup",
             "title": "Set Up Your Environment",
-            "description": "PBT runs your test suites using either Docker or Nix. you **MUST HAVE** one of them installed and working in order for the extension to run.\n**Docker** (the default): install Docker Desktop or Docker Engine and make sure it is actually running. \n**Nix**: install Nix. \nChoose which one PBT uses with the `pbt-extension.executionMode` setting, then open the **Test Run Configuration** view to confirm your choice is detected.\n[Choose your execution mode](command:workbench.action.openSettings?%5B%22pbt-extension.executionMode%22%5D)",
+            "description": "PBT runs your test suites using either Docker or Nix. you **MUST HAVE** one of them installed and working in order for the extension to run.\n**Docker**: install Docker Desktop or Docker Engine and make sure it is actually running. \n**Nix**: install Nix. \nChoose which one PBT uses with the `pbt-extension.executionMode` setting, then open the **Test Run Configuration** view to confirm your choice is detected.\n[Choose your execution mode](command:workbench.action.openSettings?%5B%22pbt-extension.executionMode%22%5D)",
             "completionEvents": [
               "onView:pbt-test-run-configuration"
             ],
