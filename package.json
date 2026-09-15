@@ -45,11 +45,6 @@
         "icon": "$(debug-stop)"
       },
       {
-        "command": "pbt-extension.clearTestTreeResults",
-        "title": "PBT: Clear Test Tree Results",
-        "icon": "$(trash)"
-      },
-      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "PBT: Refresh Test Configuration",
         "icon": "$(refresh)"
@@ -58,11 +53,6 @@
         "command": "pbt-extension.closeTestCoverage",
         "title": "PBT: Close Test Coverage",
         "icon": "$(close)"
-      },
-      {
-        "command": "pbt-extension.collapseAllTestTree",
-        "title": "PBT: Collapse All Test Tree",
-        "icon": "$(collapse-all)"
       },
       {
         "command": "pbt-extension.collapseAllTestCoverage",
