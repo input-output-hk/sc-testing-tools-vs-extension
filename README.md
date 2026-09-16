@@ -102,3 +102,14 @@ Project_Package              a package, from one .cabal file
 
 Groups can sit inside other groups, so a suite that is organized in depth keeps that structure in the tree.
 
+### 3. Open the PBT sidebar
+
+Click the PBT icon <img src="images/extensionIcon.png" alt="PBT" width="22" align="top" /> in the Activity Bar to open the main extension interaction space. Clicking this icon gives you access to three seperate views.
+
+| View | What it's for |
+|---|---|
+| **Test Panel** | The test tree, where you run tests and open additional views to inspect results |
+| **Test Run Configuration** | Allows you to configure how a test run is performed |
+| **Plinth Script Coverage** | Shows coverage results after a test run |
+
+<img src="images/initialTreeView.png" alt="The PBT sidebar with the Test Panel listing discovered packages and suites, and the Plinth Script Coverage and Test Run Configuration views below it" width="330" />
