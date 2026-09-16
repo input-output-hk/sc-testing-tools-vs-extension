@@ -7,7 +7,7 @@ interface Props {
   message: 'empty-workspaces' | 'empty-tree';
 }
 
-const MESSAGE_EMPTY_WORKSPACES = 'No folders detected in the workspace. Open a folder with the necessary test suits files for tests to appear.';
+const MESSAGE_EMPTY_WORKSPACES = 'No folders detected in the workspace. Open a folder with the necessary test suite files for tests to appear.';
 const MESSAGE_EMPTY_TREE = 'No test suites found in this workspace. Open a different folder, or add a test-suite file to the open folder.';
 
 const EmptyView: React.FC<Props> = ({ vscode, message }) => (

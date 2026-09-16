@@ -15,8 +15,10 @@
   - [2. Open your project](#2-open-your-project)
   - [3. Open the PBT sidebar](#3-open-the-pbt-sidebar)
   - [4. Choose an execution mode](#4-choose-an-execution-mode)
-  - [5. Run your tests](#5-run-your-tests)
-  - [6. Read the results](#6-read-the-results)
+  - [5. Set the number of test rounds](#5-set-the-number-of-test-rounds)
+  - [6. Run your tests](#6-run-your-tests)
+  - [7. Read the results](#7-read-the-results)
+- [Troubleshooting](#troubleshooting)
 
 ## Overview
 
@@ -35,25 +37,7 @@ Property-based testing finds the edge case you would never have thought to write
 **Docker**: install Docker Desktop or Docker Engine and make sure it is actually running. 
 **Nix**: install Nix. 
 
-**Setting your mode for every session.** Which of the two PBT uses is stored in the `pbt-extension.executionMode` setting. It accepts `docker` or `nix` and defaults to `docker`. Because PBT saves it to your User settings, the mode you choose applies to every VS Code session and every workspace until you change it again.
-
-There are two ways to set it, and both write the same value.
-
-**The Test Run Configuration view** in the PBT sidebar is the quickest way while you are working. Choose **NIX** or **Docker** under Execution Mode.
-
-<img src="images/testConfig.png" alt="The Test Run Configuration view showing Rounds Per Test and an Execution Mode choice between NIX and Docker" width="420" />
-
-**The Settings editor** lists it under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**. Searching for `pbt-extension.executionMode` takes you straight to it.
-
-<img src="images/settings.png" alt="The VS Code Settings editor filtered to pbt-extension.executionMode, with the mode set to docker" width="760" />
-
-You can also add it to `settings.json` yourself:
-
-```json
-"pbt-extension.executionMode": "docker"
-```
-
-One thing to watch: if this setting also has a Workspace value, VS Code uses that one instead, and picking a mode in the sidebar will look like it had no effect. Clear the Workspace value if the mode is not the one you selected.
+Whichever one you install is the one you tell PBT to use later, in [step 4](#4-choose-an-execution-mode).
 
 **A working sc-testing-tools setup.** This extension is the front end. It does not run your tests itself. It launches your test suites and then reads the stream of events they report back, which is what fills in the test tree, the round results, the transaction graphs, and the coverage numbers. All of that comes from [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT is built on top of.
 
@@ -102,6 +86,8 @@ Project_Package              a package, from one .cabal file
 
 Groups can sit inside other groups, so a suite that is organized in depth keeps that structure in the tree.
 
+If the Test Panel tells you no test suites were found, the folder has nothing PBT can run. See [Troubleshooting](#no-test-suites-found-in-this-workspace).
+
 ### 3. Open the PBT sidebar
 
 Click the PBT icon <img src="images/extensionIcon.png" alt="PBT" width="22" align="top" /> in the Activity Bar to open the main extension interaction space. Clicking this icon gives you access to three seperate views.
@@ -113,3 +99,39 @@ Click the PBT icon <img src="images/extensionIcon.png" alt="PBT" width="22" alig
 | **Plinth Script Coverage** | Shows coverage results after a test run |
 
 <img src="images/initialTreeView.png" alt="The PBT sidebar with the Test Panel listing discovered packages and suites, and the Plinth Script Coverage and Test Run Configuration views below it" width="330" />
+
+### 4. Choose an execution mode
+
+Tell PBT which execution mode to run your tests with. The choice is stored in the `pbt-extension.executionMode` setting, which accepts `docker` or `nix` and defaults to `docker`. PBT saves it to your User settings, so the mode you pick applies to every VS Code session and every workspace until you change it again.
+
+There are two ways to set it, and both write the same value.
+
+**The Test Run Configuration view** in the PBT sidebar is the quickest way while you are working. Choose **NIX** or **Docker** under Execution Mode.
+
+<img src="images/testConfig.png" alt="The Test Run Configuration view showing Rounds Per Test and an Execution Mode choice between NIX and Docker" width="420" />
+
+**The Settings editor** lists it under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**. Searching for `pbt-extension.executionMode` takes you straight to it.
+
+<img src="images/settings.png" alt="The VS Code Settings editor filtered to pbt-extension.executionMode, with the mode set to docker" width="760" />
+
+You can also add it to `settings.json` yourself:
+
+```json
+"pbt-extension.executionMode": "docker"
+```
+
+PBT checks that your selected mode is actually available at two points. It checks when the extension starts and when you open the PBT views, so a missing tool is reported before you try to run anything. It also checks again immediately before each test run, suite build, and tree refresh, because Docker can stop running at any time during a session. If the mode is unavailable at that moment, PBT reports the error and does not start the run.
+
+Either way the error appears in the **Test Run Configuration** view. See [Troubleshooting](#docker-not-detected-nix-not-detected-or-problem-connecting-to-docker) for what each message means, and [this note](#the-mode-i-picked-is-not-the-mode-pbt-is-using) if the mode you picked does not seem to take effect.
+
+### 5. Set the number of test rounds
+
+A property-based test does not run just once. It generates many transaction rounds and checks your property against each one, the same way QuickCheck does. More rounds means a wider search for a counterexample and a longer run.
+
+You control this in the **Test Run Configuration** view, under **Rounds Per Test**:
+
+- **Default** uses the round count defined in your test suite.
+- **Custom** lets you set the count yourself. The field starts at 100.
+
+Lower the count for a quick check while you are iterating, and raise it when you want a more thorough search for edge cases.
+
