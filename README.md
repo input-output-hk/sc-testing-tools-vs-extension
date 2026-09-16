@@ -85,3 +85,20 @@ npm run compile
 `npm run compile` builds the extension, the server, and the webview UI. Then press <kbd>F5</kbd> to launch a VS Code window with PBT loaded.
 
 
+### 2. Open your project
+
+PBT works on a Haskell/Plinth smart contract folder, so the first step is having that folder open in VS Code. Either open a workspace that already contains the folder, or open the folder in the workspace you are already in.
+
+From there, PBT scans on its own. There is no command to run and nothing to configure.
+
+The scan looks for `.cabal` files anywhere in your workspace, reads the test-suites declared in each one, and builds the test tree from what it finds:
+
+```
+Project_Package              a package, from one .cabal file
+└── TestSuite1               a test-suite declared in that package
+    └── Group1               a group of related tests
+        └── Positive Tests   an individual test
+```
+
+Groups can sit inside other groups, so a suite that is organized in depth keeps that structure in the tree.
+
