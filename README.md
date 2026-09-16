@@ -135,3 +135,47 @@ You control this in the **Test Run Configuration** view, under **Rounds Per Test
 
 Lower the count for a quick check while you are iterating, and raise it when you want a more thorough search for edge cases.
 
+### 6. Run your tests
+
+The two buttons at the top of the Test Panel act on the entire tree.
+
+<img src="images/treeHead.png" alt="The Test Panel header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
+
+**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rescans your project and rebuilds the tree. 
+
+The rows inside the tree carry their own buttons, allowing you to interact with only a subsection of the test tree rather than the whole thing. Depending on what row you are looking at you will have different buttons available to you:
+
+| Row | Buttons it has |
+|---|---|
+| Package | Refresh and run |
+| Test suite | Refresh and run |
+| Group | Run |
+| Test | Run, plus buttons for opening its results and its coverage |
+
+Right-clicking on a row will show a menu with options that perform similar actions as the buttons in the rows.
+
+**On a first run you can only run everything or specific whole suites.** Test discovery from the extension happens by reading your files directly to work out the shape of the tree, but it does not yet know the IDs the backend uses for each individual test. Without that mapping PBT cannot ask the backend for one specific test, so groups and single tests are not runnable immediately after the test tree loads.
+
+Run everything, or run a specific suite, and the test ID mapping will be filled in as results are returned. From then on you can run a single group or a single test.
+
+**Refresh after you add or rename a test.** Changing the set of tests makes the existing ID mapping stale. Once the ID mapping becomes stale, the play buttons for individual tests will become disabled and you must refresh the tree to rebuild the map. Refresh the whole tree from the header, or refresh a single package or suite from its own row.
+
+**Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button.
+
+<img src="images/runningTests.png" alt="The Test Panel during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
+
+These are the icons you will see:
+
+| Icon | Meaning |
+|---|---|
+| Yellow clock | Waiting to run |
+| Spinner | Running now |
+| Green check | Valid |
+| Red cross | Invalid, or an error occurred |
+| Dimmed circle | No result yet |
+| Dimmed step-over arrow | Skipped. This appears only on threat models |
+
+A skipped threat model is one PBT could not run because a precondition was not met, so it has no result rather than a passing or failing one.
+
+Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
+
