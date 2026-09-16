@@ -67,6 +67,8 @@ const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
               'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70')
           }
           onClick={handleFilterToggle}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Filter"
         />
         <FilterMenu
           isOpen={isMenuOpen}
