@@ -276,7 +276,7 @@ export default class TestStore {
     }
   }
 
-  public async getTestRunHistory(): Promise<Array<TestRunHistory>> {
+  public async getTestRunsHistory(): Promise<Array<TestRunHistory>> {
     return await this.history.getTestRuns();
   }
 
