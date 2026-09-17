@@ -1,7 +1,7 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "9486385f-695d-4ab4-bbee-23d18dc67d1b",
+  "id": "82a7cfe7-3e0e-4c1b-bac2-fec83c799ad1",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -69,12 +69,12 @@
       "table": "results"
     },
     {
-      "type": "integer",
+      "type": "text",
       "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
-      "name": "time",
+      "name": "type",
       "entityType": "columns",
       "table": "results"
     },
@@ -90,11 +90,21 @@
     },
     {
       "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "group",
+      "entityType": "columns",
+      "table": "results"
+    },
+    {
+      "type": "integer",
       "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
-      "name": "type",
+      "name": "time",
       "entityType": "columns",
       "table": "results"
     },

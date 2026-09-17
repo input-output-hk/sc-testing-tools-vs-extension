@@ -18,9 +18,10 @@ export const results = sqliteTable('results', {
   packageName: text('package_name').notNull(),
   suiteName: text('suite_name').notNull(),
   testId: text('test_id').notNull(),
-  time: integer('time'),
-  status: text('status', { enum: ['valid', 'invalid'] }).notNull().$type<RunStatus>(),
   type: text('type', { enum: ['unit-test', 'positive', 'negative', 'threat-model'] }).$type<TestType>(),
+  status: text('status', { enum: ['valid', 'invalid'] }).notNull().$type<RunStatus>(),
+  group: text('group', { mode: 'json' }).notNull().$type<Array<string>>(),
+  time: integer('time'),
 }, table => [
   primaryKey({
     columns: [

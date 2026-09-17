@@ -65,25 +65,48 @@ export default class TestStore {
   private async handleTestEvent(event: TestEvent): Promise<void> {
     switch (event.eventType) {
       case 'test-suite-update':
-        await this.database.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
-        await this.history.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
+        await this.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
         break;
       case 'test-update':
-        await this.database.handleTestUpdateEvent(event as TestUpdateEvent);
-        await this.history.handleTestUpdateEvent(event as TestUpdateEvent);
+        await this.handleTestUpdateEvent(event as TestUpdateEvent);
         break;
       case 'test-context':
-        await this.database.handleTestContextEvent(event as TestContextEvent);
-        await this.history.handleTestContextEvent(event as TestContextEvent);
+        await this.handleTestContextEvent(event as TestContextEvent);
         break;
       case 'test-run-update':
-        this.updateTestJob(event as TestRunUpdateEvent);
-        await this.history.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
+        await this.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
         break;
       case 'test-run-error':
-        await this.database.handleTestRunErrorEvent(event as TestRunErrorEvent);
+        await this.handleTestRunErrorEvent(event as TestRunErrorEvent);
         break;
     }
+  }
+
+  private async handleTestSuiteUpdateEvent(event: TestSuiteUpdateEvent): Promise<void> {
+    await this.database.handleTestSuiteUpdateEvent(event);
+    await this.history.handleTestSuiteUpdateEvent(event);
+  }
+
+  private async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
+    await this.database.handleTestUpdateEvent(event);
+    const test = await this.database.getTest(event.payload.id);
+    await this.history.handleTestUpdateEvent(event, test);
+  }
+
+  private async handleTestContextEvent(event: TestContextEvent): Promise<void> {
+    await this.database.handleTestContextEvent(event);
+    const test = await this.database.getTest(event.payload.context.testId);
+    await this.history.handleTestContextEvent(event, test);
+  }
+
+  private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    this.updateTestJob(event);
+    await this.history.handleTestRunUpdateEvent(event);
+    this.history.getTestRuns().then(console.log);
+  }
+
+  private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
+    await this.database.handleTestRunErrorEvent(event);
   }
 
   private setupCoverageListener(): void {
@@ -244,10 +267,6 @@ export default class TestStore {
     return { test, rounds };
   }
 
-  public async getTestRunHistory(): Promise<Array<TestRunHistory>> {
-    return await this.history.getTestRuns();
-  }
-
   public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
     const test = await this.database.getTest(testId);
     if (test.lastRunId !== undefined) {
@@ -255,6 +274,14 @@ export default class TestStore {
     } else {
       return [];
     }
+  }
+
+  public async getTestRunHistory(): Promise<Array<TestRunHistory>> {
+    return await this.history.getTestRuns();
+  }
+
+  public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
+    return await this.history.getTestRounds(runId, testId);
   }
   
   public async getCoverage(): Promise<CoverageTree> {
