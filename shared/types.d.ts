@@ -1,6 +1,12 @@
 // Test
 
-type RunStatus = "undetermined" | "waiting" | "running" | "valid" | "invalid";
+type RunStatus = "undetermined" | "valid" | "invalid";
+
+type RunStatusContext = {
+  status: RunStatus;
+  isWaiting: boolean;
+  isRunning: boolean;
+};
 
 type TestPackageId = [
   workspaceId: string,
@@ -20,16 +26,24 @@ type TestId = [
   testId: string
 ];
 
-type RunTestId = TestSuiteId | TestId;
+type RunnableTestId = TestSuiteId | TestId;
+
+type TestType = "unit-test" | "positive" | "negative" | "threat-model";
 
 type Test = {
   id: TestId;
   name: string;
   group: Array<string>;
   status: RunStatus;
+  isWaiting: boolean;
+  isRunning: boolean;
+  isStatic: boolean;
   location?: TestLocation;
   time?: number;
   percentage?: number;
+  type?: TestType;
+  lastRunId?: string;
+  hasCoverage?: boolean;
 };
 
 type TestRangePosition = {
@@ -59,36 +73,60 @@ type Workspace = {
   path: string;
 };
 
-// Test Tree
+// Generic Test Tree
 
-type TestTree = {
-  packages: TestPackageMap;
+type GenericMap<T> = Record<string, T>;
+
+type GenericTestTree<T> = {
+  packages: GenericMap<T>;
 };
 
-type TestPackageMap = Record<string, TestPackage>;
-
-type TestPackage = {
+type GenericTestPackage<T> = {
+  id: TestPackageId;
   name: string;
   packagePath: string;
   workspace: Workspace;
-  suites: TestSuiteMap;
+  suites: GenericMap<T>;
   isOpen: boolean;
 };
 
-type TestSuiteMap = Record<string, TestSuite>;
-
-type TestSuite = {
+type GenericTestSuite<T> = {
+  id: TestSuiteId;
   name: string;
   status: RunStatus;
-  tests: TestTreeNodeMap;
+  isWaiting: boolean;
+  isRunning: boolean;
+  isStatic: boolean;
+  time?: number;
   isOpen: boolean;
+  tests: GenericMap<T>;
+};
+
+// Prefetch Test Tree
+
+type StaticTestTree = GenericTestTree<StaticTestPackage>;
+
+type StaticTestPackage = GenericTestPackage<StaticTestSuite>;
+
+type StaticTestSuite = GenericTestSuite<Test> & {
+  isStatic: boolean = true;
+};
+
+// Test Tree
+
+type TestTree = GenericTestTree<TestPackage>;
+
+type TestPackage = GenericTestPackage<TestSuite>;
+
+type TestSuite = GenericTestSuite<TestTreeNode> & {
+  isStatic: boolean = false;
 };
 
 type TestTreeNode = {
   type: "group" | "test";
 };
 
-type TestTreeNodeMap = Record<string, TestTreeNode>;
+type TestTreeNodeMap = GenericMap<TestTreeNode>;
 
 type TestTreeGroupNode = TestTreeNode & {
   type: "group";
@@ -102,29 +140,50 @@ type TestTreeTestNode = TestTreeNode & {
   test: Test;
 };
 
+type TestTreeItem =
+  | { type: 'package'; packageId: TestPackageId; packageNode: TestPackage; }
+  | { type: 'suite'; suiteId: TestSuiteId; suiteNode: TestSuite; }
+  | { type: 'node'; node: TestTreeNode; };
+
+type TestTreeFilter = {
+  text?: string;
+  type?: TestType;
+  status?: RunStatus;
+}
+
 // Test Result
+
+type TestRoundType = "positive" | "negative" | "threat-model";
+
+type TestRoundStatus = "success" | "failure" | "discarded";
 
 type TestRound = {
   id: number;
+  testId: TestId;
+  type: TestRoundType;
   status: TestRoundStatus;
+};
+
+type TransitionTestRound = TestRound & {
+  type: "positive" | "negative";
   transitions: Array<TestTransition>;
 };
 
-type TestRoundStatus = {
-  status: "success";
-} | {
-  status: "failure";
-  message: string;
-} | {
-  status: "discarded";
-  message: string;
+type ThreatModelTestRound = TestRound & {
+  type: "threat-model";
+  traces: Array<ThreatModelTrace>;
+};
+
+type TestRoundData = {
+  transitions?: Array<TestTransition>;
+  traces?: Array<ThreatModelTrace>;
 };
 
 type TestTransition = {
   action: string;
   result: TestTransitionResult;
   stepIndex: number;
-  tx?: TestTx;
+  tx?: Tx;
 };
 
 type TestTransitionResult = {
@@ -135,17 +194,47 @@ type TestTransitionResult = {
   error: string;
 };
 
-type TestTx = {
+type ThreatModelTrace = {
+  tx: Tx;
+  modifiedTx?: Tx;
+  modifications: Array<TxMod>;
+  outcome: ThreatModelOutcome;
+  targetTxIndex: number;
+};
+
+type ThreatModelOutcome =
+{
+  status: "passed";
+} | {
+  reason: string;
+  status: "failed";
+} | {
+  reason: string;
+  status: "skipped";
+} | {
+  reason: string;
+  status: "skipped_phase1";
+} | {
+  message: string;
+  status: "error";
+};
+
+type TxAddressType = "public-key" | "script";
+
+type Tx = {
   id?: string;
   fee: number;
   inputs: Array<TxInput>;
   outputs: Array<TxOutput>;
   mint?: TxValue;
   signers?: Array<string>;
+  withdrawals: Array<TxWithdrawal>;
 };
 
 type TxInput = {
   address: string;
+  addressLabel?: string;
+  addressType: TxAddressType;
   utxo: string;
   value: TxValue;
   redeemerConstr?: number;
@@ -155,7 +244,10 @@ type TxInput = {
 };
 
 type TxOutput = {
+  index: number;
   address: string;
+  addressLabel?: string;
+  addressType: TxAddressType;
   utxo: string;
   value: TxValue;
   datum?: string;
@@ -172,11 +264,174 @@ type TxAsset = {
   quantity: number;
 };
 
+type TxWithdrawal = {
+  addressLabel?: string;
+  addressType: TxAddressType;
+  amount: number;
+  redeemerConstr?: number;
+  redeemerKind?: string;
+  redeemerPayload?: unknown;
+  redeemerRaw?: string;
+  stakeAddress: string;
+};
+
+type TxMod =
+{
+  type: "removeInput";
+  utxo: string;
+} | {
+  index: number;
+  type: "removeOutput";
+} | {
+  address: string | null;
+  addressLabel: string | null;
+  addressType: TxAddressType | null;
+  datum: string | null;
+  index: number;
+  referenceScript: string | null;
+  type: "changeOutput";
+  value: TxValue | null;
+} | {
+  address: string | null;
+  addressLabel: string | null;
+  addressType: TxAddressType | null;
+  datum: string | null;
+  referenceScript: string | null;
+  type: "changeInput";
+  utxo: string;
+  value: TxValue | null;
+} | {
+  datum: string | null;
+  redeemer: string | null;
+  referenceScript: string | null;
+  type: "changeScriptInput";
+  utxo: string;
+  value: TxValue | null;
+} | {
+  lowerBound: string | null;
+  type: "changeValidityRange";
+  upperBound: string | null;
+} | {
+  address: string;
+  addressLabel: string | null;
+  addressType: TxAddressType;
+  datum: string | null;
+  referenceScript: string;
+  type: "addOutput";
+  value: TxValue;
+} | {
+  address: string;
+  addressLabel: string | null;
+  addressType: TxAddressType;
+  datum: string | null;
+  isReferenceInput: boolean;
+  referenceScript: string;
+  type: "addInput";
+  value: TxValue;
+} | {
+  datum: string | null;
+  redeemer: string;
+  scriptHash: string;
+  type: "addReferenceScriptInput";
+  value: TxValue;
+} | {
+  datum: string | null;
+  redeemer: string;
+  referenceScript: string;
+  type: "addPlutusScriptInput";
+  value: TxValue;
+} | {
+  datum: string | null;
+  referenceScript: string;
+  type: "addPlutusScriptReferenceInput";
+  value: TxValue;
+} | {
+  isReferenceInput: boolean;
+  referenceScript: string;
+  type: "addSimpleScriptInput";
+  value: TxValue;
+} | {
+  assetName: string;
+  quantity: number;
+  redeemer: string;
+  type: "addPlutusScriptMint";
+} | {
+  keyHash: string;
+  type: "removeRequiredSigner";
+} | {
+  type: "replaceTx";
+};
+
+// Test Graph
+
+type GraphMode = "result-graph" | "attack-timeline";
+type GraphStatus = "success" | "failure";
+
+type GraphNode = {
+  type: "tx" | "wallet" | "script" | "withdrawal";
+  identifier: string;
+  label: string;
+};
+
+type GraphNodeValue<T> = {
+  current: T;
+  previous?: T;
+};
+
+type GraphNodeTx = GraphNode & {
+  type: "tx";
+  status: GraphStatus;
+  inputCount: number;
+  outputCount: number;
+  withdrawalCount: number;
+  id: GraphNodeValue<string>;
+  mint: GraphNodeValue<TxValue|undefined>;
+  fee: GraphNodeValue<number>;
+  signers: GraphNodeValue<Array<string>|undefined>;
+};
+
+type GraphNodeUTxO = GraphNode & {
+  type: "wallet" | "script" | "withdrawal";
+  consumed: boolean;
+  address?: GraphNodeValue<string>;
+  stakeAddress?: GraphNodeValue<string>;
+  utxo?: GraphNodeValue<string>;
+  value?: GraphNodeValue<TxValue>;
+  amount?: GraphNodeValue<number>;
+  redeemer?: GraphNodeValue<string|undefined>;
+  datum?: GraphNodeValue<string|undefined>;
+};
+
+type GraphTx = {
+  tx: GraphNodeTx;
+  inputs: Array<GraphNodeUTxO>;
+  outputs: Array<GraphNodeUTxO>;
+  withdrawals: Array<GraphNodeUTxO>;
+};
+
+// Test History
+
+type TestRunHistory = {
+  runId: string;
+  status: TestJobStatus;
+  startedOn: number;
+  finishedOn?: number;
+  tests: Array<TestResultHistory>;
+};
+
+type TestResultHistory = {
+  id: TestId;
+  type?: TestType;
+  status: RunStatus;
+  group: Array<string>;
+  time?: number;
+};
+
 // Coverage
 
-type CoverageStatements = Record<string, Array<string>>;
+type CoverageStatements = GenericMap<Array<string>>;
 
-type TestEventCoverageMap = Record<string, TestEventCoverage>;
+type TestEventCoverageMap = GenericMap<TestEventCoverage>;
 
 type TestEventCoverage = {
   workspaceId: string;
@@ -190,7 +445,8 @@ type FileCoverage = {
   fileHash: string;
   filePath: string;
   context: FileCoverageContext;
-  statements: CoverageStatements;
+  total: number;
+  covered: number;
 };
 
 type FileCoverageContext = {
@@ -200,26 +456,48 @@ type FileCoverageContext = {
   suiteName: string;
 };
 
-type FileCoverageWithStats = FileCoverage & {
-  stats: {
-    total: number;
-    covered: number;
-  };
+type CoverageTree = GenericMap<CoverageTreeNode>;
+
+type CoverageTreeNode = {
+  name: string;
+  total: number;
+  covered: number;
 };
 
-// Webview message
+type CoverageTreeFileNode = CoverageTreeNode & {
+  path: string;
+};
 
-type TestSuiteUpdate = {
+type CoverageTreeFolderNode = CoverageTreeNode & {
+  isOpen: boolean;
+  nodes: CoverageTree;
+};
+
+// Webview Message
+
+type TestTreeUpdate =
+| { type: 'test', test: Test }
+| { type: 'suite', suite: TestTreeSuiteUpdate };
+
+type TestTreePackageUpdate = {
   packageId: TestPackageId;
-  suite: TestSuite;
+  suites: Array<TestTreeSuiteUpdate>;
+  isOpen: boolean;
 };
 
-type TestSuiteStatusUpdate = {
+type TestTreeSuiteUpdate = {
   suiteId: TestSuiteId;
-  status: RunStatus;
+  name?: string;
+  status?: RunStatus;
+  isWaiting?: boolean;
+  isRunning?: boolean;
+  isStatic?: boolean;
+  time?: number;
+  tests?: TestTreeNodeMap;
+  isOpen?: boolean;
 };
 
-type TestTreeUpdate = {
+type TestTreeUpdateOpenState = {
   isOpen: boolean;
   workspaceId: string;
   packageName: string;
@@ -227,19 +505,23 @@ type TestTreeUpdate = {
   path?: Array<string>;
 };
 
+type CoverageTreeUpdate = {
+  isOpen: boolean;
+  path: Array<string>;
+};
+
+type CoverageScope =
+  | { type: "all" }
+  | { type: "test", testId: TestId, testName: string };
+
 type TestResult = {
   test: Test;
   rounds: Array<TestRound>;
 };
 
-type TestResultWithGroupTests = TestResult & {
-  groupTests: Array<Test>;
-};
-
-//TODO: update summary details type
 type TestSummaryDetails = {
-  testName: string; 
-  path: string; 
+  testName: string;
+  path: string;
   status: 'valid' | 'invalid';
   rounds?: {
     total: number;
@@ -249,64 +531,95 @@ type TestSummaryDetails = {
     };
     failed: {
       total: number;
-      failedRounds: Array<number>; 
+      failedRounds: Array<number>;
     };
     skipped: number;
   }
-  totalTime: string; 
+  totalTime: string;
 }
 
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
-  | { type: "test-update", payload: { test: Test } }
-  | { type: "test-suite-update", payload: TestSuiteUpdate }
-  | { type: "test-suite-status-update", payload: TestSuiteStatusUpdate }
-  | { type: "test-result", payload: TestResultWithGroupTests }
-  | { type: "execution-mode-config", payload: { executionMode: ExtensionMode } }
-  | { type: "test-rounds-config", payload: { rounds: number } }
-  | { type: "dependency-status", payload: { error: DependencyError } }
-  | { type: "empty-workspaces" }
+  | { type: "test-tree-update", payload: TestTreeUpdate }
+  | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
   | { type: "test-tree-error" }
-  //TODO: update message payload
-  | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails }};
+  | { type: "test-result", payload: TestResult }
+  | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails } }
+  | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
+  | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "config-test-rounds", payload: { rounds: number } }
+  | { type: "status-missing-dependency", payload: { error: DependencyError } }
+  | { type: "status-empty-workspaces" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }
-  | { type: "fetch-test-tree" }
-  | { type: "open-folder" }
-  | { type: "run-test" }
-  | { type: "run-tests", payload: { testIds: Array<RunTestId> } }
-  | { type: "open-test-results", payload: { testId: TestId } }
-  | { type: "select-test", payload: { testId: TestId } }
-  | { type: "update-test-tree", payload: TestTreeUpdate }
-  | { type: "update-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "update-test-rounds", payload: { rounds: number } };
+  | { type: "test-tree-fetch" }
+  | { type: "test-tree-open-folder" }
+  | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-tree-show-location", payload: { testId: TestId } }
+  | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
+  | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
+  | { type: "test-tree-update-open-state", payload: TestTreeUpdateOpenState }
+  | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
+  | { type: "coverage-show-all" }
+  | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
+  | { type: "coverage-open-file", payload: { filePath: string } }
+  | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }
+  | { type: "config-update-test-rounds", payload: { rounds: number } };
 
 // RPC message
 
 type ExtensionMode = "docker" | "nix";
 
-type PrefetchTestTreeParams = {
+type PrefetchParams = {
   workspaces: Array<Workspace>;
 };
 
-type BuildTestTreeParams = {
+type TestSuiteBuildParams = {
   mode: ExtensionMode;
   workspace: Workspace;
   packageName: string;
   suiteName: string;
 };
 
-type RunTestsParams = {
+type TestRunParams = {
   mode: ExtensionMode;
   workspace: Workspace;
-  testIds: Array<RunTestId>;
+  testIds: Array<RunnableTestId>;
 };
 
-type TestEventType = "test-suite-update" | "test-update" | "test-context";
+// Test Job
+
+type TestJobStatus = "waiting" | "running" | "success" | "failed";
+type TestJobType = "run" | "build";
+
+type TestJob = {
+  id: string;
+  type: TestJobType;
+  status: TestJobStatus;
+  startedOn?: number;
+  finishedOn?: number;
+  isLast?: boolean;
+  params: unknown;
+};
+
+type TestBuildJob = TestJob & {
+  type: 'build';
+  params: TestSuiteBuildParams;
+};
+
+type TestRunJob = TestJob & {
+  type: 'run';
+  params: TestRunParams;
+};
+
+// Test Event
+
+type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-update" | "test-run-error";
 
 type TestEvent = {
   eventType: TestEventType;
+  testJobId: string;
   payload: unknown;
 };
 
@@ -318,7 +631,7 @@ type TestSuiteUpdateEvent = TestEvent & {
     suiteName: string;
     runStatus: "idle" | "running" | "done";
     tests?: Array<Test>;
-    coverage?: Array<TestEventCoverage>;
+    coverageIndex?: Array<TestEventCoverage>;
   };
 };
 
@@ -327,24 +640,44 @@ type TestUpdateEvent = TestEvent & {
   payload: {
     id: TestId;
     status?: RunStatus;
+    isRunning?: boolean;
     time?: number;
     percentage?: number;
+    type?: TestType;
   };
 };
 
 type TestContextEvent = TestEvent & {
   eventType: "test-context";
   payload: {
-    id: TestId;
+    context: {
+      testId: TestId;
+      type?: TestType;
+    };
+    rounds: Array<TestRound>;
     coverage: Array<TestEventCoverage>;
-    round: TestRound;
+  };
+};
+
+type TestRunUpdateEvent = TestEvent & {
+  eventType: "test-run-update";
+  payload: {
+    job: TestJob;
+  };
+};
+
+type TestRunErrorEvent = TestEvent & {
+  eventType: "test-run-error";
+  payload: {
+    job: TestJob;
+    failedTestRun?: TestRun;
+    error: ScriptExecutionErrorData;
   };
 };
 
 // Errors
 
 type ScriptExecutionErrorData = {
-  kind: 'script-execution-error';
   scriptPath: string;
   params: Array<string>;
   exitCode: number | null;
@@ -352,15 +685,7 @@ type ScriptExecutionErrorData = {
   stdout: string;
 };
 
-type BuildTestTreeErrorData = ScriptExecutionErrorData & {
-  runParams: BuildTestTreeParams;
-};
-
-type RunTestsErrorData = ScriptExecutionErrorData & {
-  runParams: RunTestsParams & { testRun: TestRun };
-};
-
-type DependencyErrorCode = 'no-dependencies' | 'nix-not-detected' | 'docker-not-detected' | 'docker-connection';
+type DependencyErrorCode = "no-dependencies" | "nix-not-detected" | "docker-not-detected" | "docker-connection";
 
 type DependencyError = {
   hasError: boolean;

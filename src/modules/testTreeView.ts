@@ -14,35 +14,65 @@ export default class TestTreeView {
   public activate(context: PbtContext) {
     this.context = context;
     const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testTree', this.onWebviewResolved.bind(this));
-    const testTreeWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
-    context.extension.subscriptions.push(testTreeWebviewView);
+    const disposable = vscode.window.registerWebviewViewProvider('pbt-test-tree', provider);
+    context.extension.subscriptions.push(disposable);
+
+    const buildAllTestSuitesCommand = vscode.commands.registerCommand('pbt-extension.buildAllTestSuites', this.buildAllTestSuites.bind(this));
+    context.extension.subscriptions.push(buildAllTestSuitesCommand);
+
+    const runAllTestsCommand = vscode.commands.registerCommand('pbt-extension.runAllTests', this.runAllTests.bind(this));
+    context.extension.subscriptions.push(runAllTestsCommand);
+
+    const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
+    context.extension.subscriptions.push(stopTestRunCommand);
+
+    const collapseAllCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTestTree', this.collapseAll.bind(this));
+    context.extension.subscriptions.push(collapseAllCommand);
+
+    const clearTestTreeResultsCommand = vscode.commands.registerCommand('pbt-extension.clearTestTreeResults', this.clearResults.bind(this));
+    context.extension.subscriptions.push(clearTestTreeResultsCommand);
+
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
-    this.context.store.testStore.onTestUpdate(this.sendTestUpdateToWebview.bind(this));
-    this.context.store.testStore.onTestSuiteUpdate(this.sendTestSuiteUpdate.bind(this));
-    this.context.store.testStore.onTestSuiteStatusUpdate(this.sendTestSuiteStatusUpdate.bind(this));
+    this.context.store.testStore.onTestJobUpdate(this.sendTestJobUpdate.bind(this));
+    this.context.store.testStore.onTestTreeUpdate(this.sendTestTreeUpdate.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
-          case 'fetch-test-tree':
+            // surface the dependency check here too, so it's shown as soon as the extension
+            // container is open even if the user leaves the Test Run Configuration view collapsed
+            this.context.testConfigurationView.surfaceDependencyStatus();
             this.checkWorkspaceAndFetchTestTree();
             break;
-          case 'open-folder':
+          case 'test-tree-fetch':
+            this.checkWorkspaceAndFetchTestTree();
+            break;
+          case 'test-tree-open-folder':
             this.openFolder();
             break;
-          case 'run-tests':
-            this.runTests(message.payload.testIds);
+          case 'test-tree-run':
+            this.runTest(message.payload.testIds);
             break;
-          case 'open-test-results':
+          case 'test-tree-build-suite':
+            this.buildTestSuite(message.payload.suiteId);
+            break;
+          case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
             break;
-          case 'update-test-tree':
-            this.updateTestTree(message.payload);
+          case 'test-tree-show-coverage':
+            this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName);
+            break;
+          case 'test-tree-show-location':
+            this.showTestLocation(message.payload.testId);
+            break;
+          case 'test-tree-update-open-state':
+            this.updateTestTreeOpenState(message.payload);
             break;
         }
       },
@@ -65,9 +95,6 @@ export default class TestTreeView {
   private fetchTestTree(): void {
     this.context.store.testStore.getTestTree().then((testTree: TestTree) => {
       this.sendTestTreeToWebview(testTree);
-    }).catch((error: unknown) => {
-      this.showError('Test discovery failed', error instanceof Error ? error.message : String(error));
-      this.sendTestTreeErrorToWebview();
     });
   }
 
@@ -85,7 +112,7 @@ export default class TestTreeView {
 
   private noFoldersDetected(): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'empty-workspaces' } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'status-empty-workspaces' } as ExtensionToWebviewMessage);
     }
   }
 
@@ -109,52 +136,72 @@ export default class TestTreeView {
     return true;
   }
 
-  private async runTests(testIds: Array<RunTestId>): Promise<void> {
+  private async runTest(testIds: Array<RunnableTestId>): Promise<void> {
     if (!await this.ensureDependenciesReady()) return;
-    this.clearError();
-    this.context.store.testStore.runTests(testIds);
+    this.context.store.testStore.runTest(testIds);
+  }
+
+  private async buildTestSuite(suiteId: TestSuiteId): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    this.context.store.testStore.buildTestSuite(suiteId);
+  }
+
+  private async buildAllTestSuites(): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    await this.context.store.testStore.buildAllTestSuites();
+  }
+
+  private async runAllTests(): Promise<void> {
+    if (!await this.ensureDependenciesReady()) return;
+    await this.context.store.testStore.runAllTests();
+  }
+
+  private async stopTestRun(): Promise<void> {
+    await this.context.store.testStore.stopTestRun();
+  }
+
+  private async collapseAll(): Promise<void> {
+    this.context.store.testStore.collapseTestTree();
+    this.fetchTestTree();
+  }
+
+  private async clearResults(): Promise<void> {
+    this.context.store.testStore.clearTestTreeResults();
+    this.fetchTestTree();
   }
 
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
   }
 
-  private updateTestTree({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdate): void {
+  private async showTestLocation(testId: TestId): Promise<void> {
+    const location = await this.context.store.testStore.getTestLocation(testId);
+    if (location !== undefined) {
+      const document = await vscode.workspace.openTextDocument(location.path);
+      const editor = await vscode.window.showTextDocument(document);
+      editor.selection = new vscode.Selection(location.range.start, location.range.end);
+      editor.revealRange(location.range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    }
+  }
+
+  private updateTestTreeOpenState({ isOpen, workspaceId, packageName, suiteName, path }: TestTreeUpdateOpenState): void {
     this.context.store.testStore.updateOpenTestTreeNode(
       isOpen, workspaceId, packageName, suiteName, path
     );
   }
 
-  private sendTestUpdateToWebview(test: Test): void {
+  private sendTestJobUpdate(job: TestJob | null): void {
+    const notActiveTestRun = job === null || job.isLast && job.status !== 'running' && job.status !== 'waiting';
+    vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', !notActiveTestRun);
+
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-update', payload: { test } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-test-run-update', payload: { job } } as ExtensionToWebviewMessage);
     }
   }
 
-  private sendTestSuiteUpdate({ packageId, suite }: TestSuiteUpdate): void {
+  private sendTestTreeUpdate(payload: TestTreeUpdate): void {
     if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-suite-update', payload: { packageId, suite } } as ExtensionToWebviewMessage);
+      this.webview.postMessage({ type: 'test-tree-update', payload } as ExtensionToWebviewMessage);
     }
-  }
-
-  private sendTestSuiteStatusUpdate({ suiteId, status }: TestSuiteStatusUpdate): void {
-    if (this.webview !== null) {
-      this.webview.postMessage({ type: 'test-suite-status-update', payload: { suiteId, status } } as ExtensionToWebviewMessage);
-    }
-  }
-
-  private showError(title: string, message: string): void {
-    this.context.outputChannel.appendLine(`> ERROR: ${title}`);
-    this.context.outputChannel.appendLine(message);
-    this.context.outputChannel.show(true);
-
-    this.context.statusBarItem.text = `$(error) ${title}`;
-    this.context.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-    this.context.statusBarItem.show();
-    vscode.window.showErrorMessage(`${title}: ${message}`);
-  }
-
-  private clearError(): void {
-    this.context.statusBarItem.hide();
   }
 }

@@ -1,71 +1,56 @@
-/** Returns true if the node or any of its descendants match the filter string. */
-export const nodeMatchesFilter = (node: TestTreeNode, filter: string): boolean => {
-  const lowerFilter = filter.toLowerCase();
+
+export const nodeMatchesFilter = (node: TestTreeNode, filter: TestTreeFilter): boolean => {
+  const textFilter = filter.text?.toLowerCase();
   if (node.type === 'test') {
     const test = (node as TestTreeTestNode).test;
-    return test !== undefined && test.name.toLowerCase().includes(lowerFilter);
+    return test !== undefined &&
+      (textFilter === undefined || test.name.toLowerCase().includes(textFilter)) &&
+      (filter.status === undefined || test.status === filter.status) &&
+      (filter.type === undefined || test.type === filter.type);
   }
   const group = node as TestTreeGroupNode;
-  return (
-    group.name.toLowerCase().includes(lowerFilter) ||
-    Object.values(group.nodes).some((child) => nodeMatchesFilter(child, filter))
-  );
+  const text = textFilter === undefined || group.name.toLowerCase().includes(textFilter)
+    ? undefined : filter.text;
+  return Object.values(group.nodes).some((child) => nodeMatchesFilter(child, { ...filter, text }));
 };
 
-/** Returns true if the node or any of its descendants match the status filter. */
-export const nodeMatchesStatus = (node: TestTreeNode, statusFilter: RunStatus | null): boolean => {
-  if (node.type === 'test') {
-    const test = (node as TestTreeTestNode).test;
-    if (test === undefined) return false;
-    const status = test.status;
-    return statusFilter === null || status === statusFilter;
-  }
-  const group = node as TestTreeGroupNode;
-  return Object.values(group.nodes).some((child) => nodeMatchesStatus(child, statusFilter));
+export const suiteMatchesFilter = (suite: TestSuite, filter: TestTreeFilter): boolean => {
+  const text = filter.text === undefined || suite.name.toLowerCase().includes(filter.text.toLowerCase())
+    ? undefined : filter.text;
+  return Object.values(suite.tests).some((node) => nodeMatchesFilter(node, { ...filter, text }));
 };
 
-/** Returns true if the suite name or any of its descendants match the filter string. */
-export const suiteMatchesFilter = (suite: TestSuite, filter: string): boolean => {
-  const lowerFilter = filter.toLowerCase();
-  if (suite.name.toLowerCase().includes(lowerFilter)) {
-    return true;
-  }
-  return Object.values(suite.tests).some((node) => nodeMatchesFilter(node, filter));
+export const packageMatchesFilter = (testPackage: TestPackage, filter: TestTreeFilter): boolean => {
+  const text = filter.text === undefined || testPackage.name.toLowerCase().includes(filter.text.toLowerCase())
+    ? undefined : filter.text;
+  return Object.values(testPackage.suites).some((suite) => suiteMatchesFilter(suite, { ...filter, text }));
 };
 
-/** Returns true if the suite matches the status filter. */
-export const suiteMatchesStatus = (suite: TestSuite, statusFilter: RunStatus | null): boolean => {
-  if (statusFilter === null) {
-    return true;
-  }
-  return Object.values(suite.tests).some((node) => nodeMatchesStatus(node, statusFilter));
-};
+export const getPackageStatus = (testPackage: TestPackage): RunStatusContext => {
+  const suites = Object.values(testPackage.suites);
+  const context: RunStatusContext = {
+    status: 'undetermined',
+    isWaiting: false,
+    isRunning: false
+  };
 
-/** Returns true if the package name or any of its suites match the filter string. */
-export const packageMatchesFilter = (testPackage: TestPackage, filter: string): boolean => {
-  if (testPackage.name.toLowerCase().includes(filter.toLowerCase())) {
-    return true;
-  }
-  return Object.values(testPackage.suites).some((suite) => suiteMatchesFilter(suite, filter));
-};
-
-/** Returns true if any of the package's suites match the status filter. */
-export const packageMatchesStatus = (testPackage: TestPackage, statusFilter: RunStatus | null): boolean => {
-  return Object.values(testPackage.suites).some((suite) => suiteMatchesStatus(suite, statusFilter));
-};
-
-export const getPackageStatus = (testPackage: TestPackage): RunStatus => {
-  const statuses = Object.values(testPackage.suites).map((suite) => suite.status);
-
-  if (statuses.includes('running')) {
-    return 'running';
-  } else if (statuses.includes('invalid')) {
-    return 'invalid';
-  } else if (statuses.every((status) => status === 'valid')) {
-    return 'valid';
+  if (suites.some(suite => suite.isRunning)) {
+    context.isRunning = true;
+  } else if (suites.some(suite => suite.isWaiting)) {
+    context.isWaiting = true;
+  } else if (suites.some(suite => suite.status === 'invalid')) {
+    context.status = 'invalid';
+  } else if (suites.every(suite => suite.status === 'valid')) {
+    context.status = 'valid';
   }
 
-  return 'undetermined';
+  return context;
+};
+
+export const getPackageTime = (testPackage: TestPackage): number => {
+  return Object.values(testPackage.suites)
+    .map(suite => suite.time ?? 0)
+    .reduce((sum, time) => sum + time, 0);
 };
 
 export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
@@ -80,29 +65,39 @@ export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
   return tests;
 };
 
-export const getGroupTestIds = (group: TestTreeGroupNode): Array<TestId> => {
-  return getGroupTests(group).map((test) => test.id);
+export const getGroupTestRunnableIds = (group: TestTreeGroupNode): Array<TestId> => {
+  return getGroupTests(group).filter(isTestRunnable).map((test) => test.id);
 };
 
-export const getGroupStatus = (group: TestTreeGroupNode): RunStatus => {
-  const statuses = getGroupTests(group).map(test => test.status);
+export const getGroupStatus = (group: TestTreeGroupNode): RunStatusContext => {
+  const tests = getGroupTests(group);
+  const context: RunStatusContext = {
+    status: 'undetermined',
+    isWaiting: false,
+    isRunning: false
+  };
 
-  if (statuses.includes('running')) {
-    return 'running';
-  } else if (statuses.includes('invalid')) {
-    return 'invalid';
-  } else if (statuses.every((status) => status === 'waiting')) {
-    return 'waiting';
-  } else if (statuses.every((status) => status === 'valid')) {
-    return 'valid';
+  if (tests.some(test => test.isRunning)) {
+    context.isRunning = true;
+  } else if (tests.some(test => test.isWaiting)) {
+    context.isWaiting = true;
+  } else if (tests.some(test => test.status === 'invalid')) {
+    context.status = 'invalid';
+  } else if (tests.every(test => test.status === 'valid')) {
+    context.status = 'valid';
   }
 
-  return 'undetermined';
+  return context;
 };
 
-export const isRunnableTestId = (testId: RunTestId): boolean => {
-  return testId[3] === undefined || !testId[3].startsWith('static');
+export const getGroupTime = (group: TestTreeGroupNode): number => {
+  return getGroupTests(group)
+    .map(test => test.time ?? 0)
+    .reduce((sum, time) => sum + time, 0);
 };
+
+export const isTestRunnable = (test: Test): boolean =>
+  !test.isStatic && !test.isRunning && !test.isWaiting;
 
 export const sortTreeNodes = (a: TestTreeNode, b: TestTreeNode): number => {
   if (a.type === 'group' && b.type === 'test') {

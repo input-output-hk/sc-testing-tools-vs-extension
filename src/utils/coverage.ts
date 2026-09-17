@@ -43,33 +43,126 @@ export const clearCoverageForEditor = (editor: vscode.TextEditor) => {
   editor.setDecorations(uncoveredStyle, []);
 }
 
-export const getFileCoverageStats = async (fileCoverage: FileCoverage): Promise<FileCoverageWithStats> => {
-  const fileBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(fileCoverage.filePath));
-  const fileContent = Buffer.from(fileBuffer).toString('utf-8');
-  const fileLines = fileContent.split('\n');
-  const total = fileContent.length;
-  const covered = Object.entries(fileCoverage.statements).reduce((acc, [rangeKey, testIds]) => {
-    if (testIds.length > 0) {
-      const [startLine, startChar, endLine, endChar] = rangeKey.split(':').map(Number);
-      let rangeLength = 0;
-      for (let line = startLine; line <= endLine; line++) {
-        if (line === startLine && line === endLine) {
-          rangeLength += endChar - startChar;
-        } else if (line === startLine) {
-          rangeLength += fileLines[line].length - startChar + 1; // +1 for newline
-        } else if (line === endLine) {
-          rangeLength += endChar;
-        } else {
-          rangeLength += fileLines[line].length + 1; // +1 for newline
-        }
-      }
-      return acc + rangeLength;
-    }
-    return acc;
-  }, 0);
+const getFilePath = (file: FileCoverage): Array<string> => {
+  const segments = file.filePath
+    .slice(file.context.basePath.length).replace(/^[\\/]+/, '')
+    .split(/[\\/]/).filter(Boolean)
+  
+  const path = [
+    `${file.context.workspaceId}:${file.context.packageName}`,
+    file.context.suiteName,
+    ...segments
+  ];
 
-  return {
-    ...fileCoverage,
-    stats: { total, covered },
-  };
+  return path;
 }
+
+const buildCoverageTreeNode = (
+  rootNode: CoverageTreeFolderNode,
+  file: FileCoverage,
+  openState: Record<string, boolean>
+): void => {
+  const path = getFilePath(file);
+  const groups = path.slice(0, -1);
+  const fileName = path.pop()!;
+
+  let node = rootNode;
+  const currentPath: Array<string> = [];
+  for (const segment of groups) {
+    currentPath.push(segment);
+    if (!node.nodes[segment]) {
+      const nodePath = currentPath.join(':');
+      if (!Object.hasOwn(openState, nodePath)) {
+        openState[nodePath] = true;
+      }
+      node.nodes[segment] = {
+        name: segment.split(':').pop(),
+        total: 0,
+        covered: 0,
+        isOpen: openState[nodePath],
+        nodes: {},
+      } as CoverageTreeFolderNode;
+    }
+    node = node.nodes[segment] as CoverageTreeFolderNode;
+    node.covered += file.covered;
+    node.total += file.total;
+  }
+
+  node.nodes[fileName] = {
+    name: fileName,
+    path: file.filePath,
+    total: file.total,
+    covered: file.covered,  
+  } as CoverageTreeFileNode;
+};
+
+export const buildCoverageTree = (
+  files: Array<FileCoverage>,
+  openState: Record<string, boolean>
+): CoverageTree => {
+  const coverageTreeRoot: CoverageTreeFolderNode = {
+    name: 'root',
+    total: 0,
+    covered: 0,
+    isOpen: true,
+    nodes: {}
+  };
+
+  for (const file of files) {
+    buildCoverageTreeNode(coverageTreeRoot, file, openState);
+  }
+
+  return coverageTreeRoot.nodes;
+};
+
+export const updateCoverageTree = (
+  coverageTree: CoverageTree,
+  file: FileCoverage,
+  openState: Record<string, boolean>
+): void => {
+  const nodes: Array<CoverageTreeNode> = [];
+
+  let node: CoverageTreeFolderNode = {
+    name: 'root',
+    total: 0,
+    covered: 0,
+    isOpen: true,
+    nodes: coverageTree,
+  };
+  
+  const path = getFilePath(file);
+  const groups = path.slice(0, -1);
+  const fileName = path.pop()!;
+  
+  const currentPath: Array<string> = [];
+  for (const segment of groups) {
+    currentPath.push(segment);
+    if (!node.nodes[segment]) {
+      const nodePath = currentPath.join(':');
+      if (!Object.hasOwn(openState, nodePath)) {
+        openState[nodePath] = true;
+      }
+      node.nodes[segment] = {
+        name: segment.split(':').pop(),
+        total: 0,
+        covered: 0,
+        isOpen: openState[nodePath],
+        nodes: {},
+      } as CoverageTreeFolderNode;
+    }
+    node = node.nodes[segment] as CoverageTreeFolderNode;
+    nodes.unshift(node);
+  }
+
+  node.nodes[fileName] = {
+    name: fileName,
+    path: file.filePath,
+    total: file.total,
+    covered: file.covered,  
+  } as CoverageTreeFileNode;
+
+  for (const node of nodes as Array<CoverageTreeFolderNode>) {
+    node.total = Object.values(node.nodes).reduce((sum, node) => sum + node.total, 0);
+    node.covered = Object.values(node.nodes).reduce((sum, node) => sum + node.covered, 0);
+  }
+};

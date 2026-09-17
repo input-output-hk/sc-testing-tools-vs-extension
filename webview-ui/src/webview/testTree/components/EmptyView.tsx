@@ -17,7 +17,7 @@ const EmptyView: React.FC<Props> = ({ vscode, message }) => (
     </p>
     <VscodeButton
       className="mt-4 w-full max-w-[300px]"
-      onClick={() => vscode.postMessage({ type: 'open-folder' } as WebviewToExtensionMessage)}
+      onClick={() => vscode.postMessage({ type: 'test-tree-open-folder' } as WebviewToExtensionMessage)}
     >
       Open Folder
     </VscodeButton>

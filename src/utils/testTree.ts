@@ -1,4 +1,18 @@
 
+const getTestTreeGroupNode = (
+  nodes: TestTreeNodeMap,
+  group: string,
+  isOpen: boolean
+): TestTreeGroupNode => {
+  if (nodes[group] !== undefined) {
+    return nodes[group] as TestTreeGroupNode;
+  }
+
+  const newNode = { type: 'group', isOpen, name: group, nodes: {} } as TestTreeGroupNode;
+  nodes[group] = newNode;
+  return newNode;
+};
+
 const createTestTreeNode = (
   suiteId: TestSuiteId,
   openState: Record<string, boolean>,
@@ -10,32 +24,18 @@ const createTestTreeNode = (
     return;
   }
 
-  const isOpen = openState[[...suiteId, ...test.group].join(':')] ?? false;
-
   let node: TestTreeGroupNode | null = null;
-  for (const group of test.group) {
+  for (let i = 0; i < test.group.length; i++) {
+    const isOpen = openState[[...suiteId, ...test.group.slice(0, i+1)].join(':')] ?? false;
+    
     if (node === null) {
-      node = getTestTreeGroupNode(nodes, group, isOpen);
+      node = getTestTreeGroupNode(nodes, test.group[i], isOpen);
     } else {
-      node = getTestTreeGroupNode(node.nodes, group, isOpen);
+      node = getTestTreeGroupNode(node.nodes, test.group[i], isOpen);
     }
   }
 
   node!.nodes[test.id.join(':')] = { type: 'test', test } as TestTreeTestNode;
-};
-
-const getTestTreeGroupNode = (
-  nodes: TestTreeNodeMap,
-  group: string,
-  isOpen: boolean
-): TestTreeGroupNode => {
-  if (nodes[group] !== undefined) {
-    return nodes[group] as TestTreeGroupNode;
-  }
-  
-  const newNode = { type: 'group', isOpen, name: group, nodes: {} } as TestTreeGroupNode;
-  nodes[group] = newNode;
-  return newNode;
 };
 
 export const createTestTree = (

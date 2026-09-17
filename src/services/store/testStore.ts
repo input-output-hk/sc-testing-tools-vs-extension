@@ -1,23 +1,41 @@
 import { createHash } from 'node:crypto';
+import { BehaviorSubject } from 'rxjs';
+import { queue } from 'async';
 import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
-import { renderCoverageForEditor, clearCoverageForEditor, getFileCoverageStats } from '../../utils/coverage';
+import History from '../history';
 import { PbtContext } from '../../extension';
+import {
+  renderCoverageForEditor,
+  clearCoverageForEditor,
+  buildCoverageTree,
+  updateCoverageTree
+} from '../../utils/coverage';
+
+import type { QueueObject } from 'async';
 
 export default class TestStore {
   private context: PbtContext = {} as PbtContext;
   private database: Database;
+  private history: History;
   private rpcClient: RpcClient;
+  private eventQueue: QueueObject<TestEvent>;
 
+  private isPrefetched: boolean = false;
   private workspaces: Map<string, string>;
-  private staticTestTree: TestTree | null = null;
-  private openState: Record<string, boolean> = {};
+  private testJob: BehaviorSubject<TestJob | null>;
+  private coverageTree: CoverageTree | null = null;
+  private coverageOpenState: Record<string, boolean> = {};
+  private testOpenState: Record<string, boolean> = {};
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
     this.database = new Database();
+    this.history = new History();
+    this.eventQueue = queue<TestEvent>(this.handleTestEvent.bind(this), 1);
+    this.testJob = new BehaviorSubject<TestJob | null>(null);
 
     this.workspaces = new Map(
       vscode.workspace.workspaceFolders?.map(folder => [
@@ -37,32 +55,58 @@ export default class TestStore {
     await this.database.initialize();
     await this.rpcClient.initialize(context);
 
-    this.setupRpcListeners();
+    this.rpcClient.onTestEvent(event => {
+      this.eventQueue.push(event);
+    });
+
     this.setupCoverageListener();
   }
-  
-  private setupRpcListeners(): void {
-    this.rpcClient.onTestEvent((event: TestEvent) => {
-      switch (event.eventType) {
-        case 'test-suite-update':
-          this.database.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
-          break;
-        case 'test-update':
-          this.database.handleTestUpdateEvent(event as TestUpdateEvent);
-          break;
-        case 'test-context':
-          this.database.handleTestContextEvent(event as TestContextEvent);
-          break;
-      }
-    });
 
-    this.rpcClient.onBuildTestTreeError((error: BuildTestTreeErrorData) => {
-      //
-    });
+  private async handleTestEvent(event: TestEvent): Promise<void> {
+    switch (event.eventType) {
+      case 'test-suite-update':
+        await this.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
+        break;
+      case 'test-update':
+        await this.handleTestUpdateEvent(event as TestUpdateEvent);
+        break;
+      case 'test-context':
+        await this.handleTestContextEvent(event as TestContextEvent);
+        break;
+      case 'test-run-update':
+        await this.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
+        break;
+      case 'test-run-error':
+        await this.handleTestRunErrorEvent(event as TestRunErrorEvent);
+        break;
+    }
+  }
 
-    this.rpcClient.onRunTestsError((error: RunTestsErrorData) => {
-      this.database.handleTestRunFailed(error.runParams.testRun);
-    });
+  private async handleTestSuiteUpdateEvent(event: TestSuiteUpdateEvent): Promise<void> {
+    await this.database.handleTestSuiteUpdateEvent(event);
+    await this.history.handleTestSuiteUpdateEvent(event);
+  }
+
+  private async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
+    await this.database.handleTestUpdateEvent(event);
+    const test = await this.database.getTest(event.payload.id);
+    await this.history.handleTestUpdateEvent(event, test);
+  }
+
+  private async handleTestContextEvent(event: TestContextEvent): Promise<void> {
+    await this.database.handleTestContextEvent(event);
+    const test = await this.database.getTest(event.payload.context.testId);
+    await this.history.handleTestContextEvent(event, test);
+  }
+
+  private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    this.updateTestJob(event);
+    await this.history.handleTestRunUpdateEvent(event);
+    this.history.getTestRuns().then(console.log);
+  }
+
+  private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
+    await this.database.handleTestRunErrorEvent(event);
   }
 
   private setupCoverageListener(): void {
@@ -85,18 +129,22 @@ export default class TestStore {
   }
 
   public async getTestTree(): Promise<TestTree> {
-    if (this.staticTestTree === null) {
-      this.staticTestTree = await this.rpcClient.prefetchTestTree({
+    if (!this.isPrefetched) {
+      const staticTestTree = await this.rpcClient.prefetch({
         workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
       });
-      for (const packageId of Object.keys(this.staticTestTree.packages)) {
-        this.openState[packageId] = true;
+      for (const packageId of Object.keys(staticTestTree.packages)) {
+        this.testOpenState[packageId] = true;
       }
-      await this.database!.handleTestTree(this.staticTestTree);
-      return this.staticTestTree;
+      await this.database!.storeStaticTestTree(staticTestTree);
+      this.isPrefetched = true;
     }
     
-    return await this.database!.buildTestTree(this.staticTestTree, this.openState);
+    return await this.database!.fetchTestTree(this.testOpenState);
+  }
+
+  private updateTestJob(event: TestRunUpdateEvent): void {
+    this.testJob.next(event.payload.job);
   }
 
   public updateOpenTestTreeNode(
@@ -109,12 +157,31 @@ export default class TestStore {
     const id = [workspaceId, packageName];
     if (suiteName) id.push(suiteName);
     if (suiteName && path) id.push(...path);
-    this.openState[id.join(':')] = isOpen;
+    this.testOpenState[id.join(':')] = isOpen;
   }
 
-  public buildTestTree(suiteId: TestSuiteId): void {
+  public collapseTestTree(): void {
+    for (const key of Object.keys(this.testOpenState)) {
+      this.testOpenState[key] = false;
+    }
+  }
+
+  public updateOpenCoverage(
+    isOpen: boolean,
+    path: Array<string>
+  ): void {
+    this.coverageOpenState[path.join(':')] = isOpen;
+  }
+
+  public collapseCoverage(): void {
+    for (const key of Object.keys(this.coverageOpenState)) {
+      this.coverageOpenState[key] = false;
+    }
+  }
+
+  public async buildTestSuite(suiteId: TestSuiteId): Promise<void> {
     const [workspaceId, packageName, suiteName] = suiteId;
-    this.rpcClient.buildTestTree({
+    this.rpcClient.testSuiteBuild({
       mode: this.context!.store.settingStore.getSettings().mode,
       workspace: {
         path: this.workspaces.get(workspaceId)!,
@@ -123,19 +190,28 @@ export default class TestStore {
       packageName,
       suiteName
     });
+
+    await this.database!.handleTestSuiteBuild(suiteId);
   }
 
-  public async runTests(testIds: Array<RunTestId>): Promise<void> {
-    const testRuns: Map<string, Array<RunTestId>> = new Map();
+  public async buildAllTestSuites(): Promise<void> {
+    const suiteIds = await this.database!.getAllTestSuitesIds();
+    for (const suiteId of suiteIds) {
+      await this.buildTestSuite(suiteId);
+    }
+  }
+
+  public async runTest(testIds: Array<RunnableTestId>): Promise<void> {
+    const testRuns: Map<string, Array<RunnableTestId>> = new Map();
     for (const [workspaceId, packageName, suiteName, testId] of testIds) {
       if (!testRuns.has(workspaceId)) testRuns.set(workspaceId, []);
-      const testRunId: RunTestId = [workspaceId, packageName, suiteName];
+      const testRunId: RunnableTestId = [workspaceId, packageName, suiteName];
       if (testId) testRunId.push(testId);
       testRuns.get(workspaceId)!.push(testRunId);
     }
 
     for (const [workspaceId, testIds] of testRuns.entries()) {
-      this.rpcClient.runTests({
+      this.rpcClient.testRun({
         mode: this.context!.store.settingStore.getSettings().mode,
         workspace: {
           id: workspaceId,
@@ -145,68 +221,97 @@ export default class TestStore {
       });
     }
 
-    await this.database!.handleRunTests(testIds);
+    await this.database!.handleTestRun(testIds);
+  }
+  
+  public async runAllTests(): Promise<void> {
+    const suiteIds = await this.database!.getAllTestSuitesIds();
+    await this.runTest(suiteIds);
+  }
+
+  public async stopTestRun(): Promise<void> {
+    this.rpcClient.stopTestRun();
+    this.testJob.next(null);
+    await this.database!.handleTestRunStop();
+  }
+
+  public async clearTestTreeResults(): Promise<void> {
+    await this.database!.clearTestTreeResults();
+  }
+
+  public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {
+    try {
+      const packageId: TestPackageId = [testId[0], testId[1]];
+      const { packagePath } = await this.database.getPackage(packageId);
+      
+      const test = await this.database.getTest(testId);
+      if (!test.location) return;
+
+      return {
+        path: vscode.Uri.joinPath(vscode.Uri.file(packagePath), test.location.uri).fsPath,
+        range: new vscode.Range(
+          test.location.range.start.line,
+          test.location.range.start.character,
+          test.location.range.end.line,
+          test.location.range.end.character
+        )
+      };
+    } catch (_) {
+      return;
+    }
   }
 
   public async getTestResult(testId: TestId): Promise<TestResult> {
-    return {
-      test: await this.database.getTest(testId),
-      rounds: await this.database.getTestRounds(testId),
-    };
-  }
-
-  public async getTestResultWithGroupTests(testId: TestId): Promise<TestResultWithGroupTests> {
     const test = await this.database.getTest(testId);
-    return {
-      test,
-      rounds: await this.database.getTestRounds(testId),
-      groupTests: await this.database.getTestsByGroup(testId, test.group),
-    };
+    const rounds = test.lastRunId ? await this.history.getTestRounds(test.lastRunId, testId) : [];
+    return { test, rounds };
   }
 
   public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
-    return await this.database.getTestRounds(testId);
+    const test = await this.database.getTest(testId);
+    if (test.lastRunId !== undefined) {
+      return await this.history.getTestRounds(test.lastRunId, testId);
+    } else {
+      return [];
+    }
   }
 
-  public async getTestsByGroup(testId: TestId, group: Array<string>): Promise<Array<Test>> {
-    return await this.database.getTestsByGroup(testId, group);
+  public async getTestRunsHistory(): Promise<Array<TestRunHistory>> {
+    return await this.history.getTestRuns();
+  }
+
+  public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
+    return await this.history.getTestRounds(runId, testId);
   }
   
-  public async getCoverage(): Promise<Array<FileCoverageWithStats>> {
-    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
-    const coverageItems = await this.database.getCoverage();
-    for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFileCoverageStats(coverageItem);
-      coverageItemsWithStats.push(coverageWithStats);
-    }
-    return coverageItemsWithStats;
+  public async getCoverage(): Promise<CoverageTree> {
+    const files = await this.database.getCoverage();
+    this.coverageTree = buildCoverageTree(files, this.coverageOpenState);
+    return this.coverageTree;
   }
 
-  public async getCoverageForTest(testId: TestId): Promise<Array<FileCoverageWithStats>> {
-    const coverageItemsWithStats: Array<FileCoverageWithStats> = [];
-    const coverageItems = await this.database.getCoverageForTest(testId);
-    for (const coverageItem of coverageItems) {
-      const coverageWithStats = await getFileCoverageStats(coverageItem);
-      coverageItemsWithStats.push(coverageWithStats);
-    }
-    return coverageItemsWithStats;
+  public async getCoverageForTest(testId: TestId): Promise<CoverageTree> {
+    const files = await this.database.getCoverageForTest(testId);
+    return buildCoverageTree(files, this.coverageOpenState);
   }
 
-  public onTestUpdate(callback: (test: Test) => void): void {
+  public onTestJobUpdate(callback: (job: TestJob | null) => void): void {
+    this.testJob.subscribe(callback);
+  }
+
+  public onTestTreeUpdate(callback: (payload: TestTreeUpdate) => void): void {
     this.database.onTestUpdate(callback);
+    this.database.onTestSuiteUpdate(this.testOpenState, callback);
   }
 
-  public onTestSuiteUpdate(callback: ({ packageId, suite }: TestSuiteUpdate) => void): void {
-    this.database.onTestSuiteUpdate(this.openState, callback);
-  }
-
-  public onTestSuiteStatusUpdate(callback: ({ suiteId, status }: TestSuiteStatusUpdate) => void): void {
-    this.database.onTestSuiteStatusUpdate(callback);
-  }
-
-  public onCoverageUpdate(callback: (fileCoverageWithStats: FileCoverageWithStats) => void): void {
-    this.database.onCoverageUpdate(async fileCoverage => {
-      callback(await getFileCoverageStats(fileCoverage));
+  public onCoverageUpdate(callback: (coverageTree: CoverageTree) => void): void {
+    this.database.onCoverageUpdate(async file => {
+      if (this.coverageTree === null) {
+        this.coverageTree = await this.getCoverage();
+      } else {
+        updateCoverageTree(this.coverageTree, file, this.coverageOpenState);
+      }
+      callback(this.coverageTree);
     });
   }
 }

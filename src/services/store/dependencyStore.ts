@@ -81,10 +81,17 @@ export default class DependencyStore {
     this.setDependencyError();
   }
 
-  // re-check whether Docker is still reachable right now (e.g. right before listing/running
-  // tests in docker mode), since it can stop running any time after the initial checks
+  // re-check whether Docker is installed and reachable right now (e.g. right before
+  // listing/running tests in docker mode). Re-verifying install state too (not just running
+  // state) matters because `docker --version` can flakily fail during the initial checks
+  // when Docker Desktop's WSL2 integration hasn't finished wiring up the `docker` CLI shim
+  // yet, incorrectly latching `hasDocker` to false; without rechecking it here, a stale
+  // "Docker not detected" error could never self-correct on retry the way "Problem
+  // connecting to Docker" already does.
   public async checkDockerRunning(): Promise<boolean> {
-    const dockerRunning = this.hasDocker ? await isDockerRunning() : false;
+    const hasDocker = await commandExists('docker');
+    this.setHasDocker(hasDocker);
+    const dockerRunning = hasDocker ? await isDockerRunning() : false;
     this.setDockerRunning(dockerRunning);
     this.setDependencyError();
     return dockerRunning;

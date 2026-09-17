@@ -3,27 +3,26 @@ import { useMemo } from 'react';
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TreeViewNode from './TreeViewNode';
-import useTreeItemState from './useTreeItemState';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
+import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
-  getGroupTestIds,
+  getGroupTests,
+  getGroupTestRunnableIds,
+  getGroupTime,
   getGroupStatus,
   nodeMatchesFilter,
-  nodeMatchesStatus,
-  isRunnableTestId,
+  isTestRunnable,
   sortTreeNodes,
 } from '../../utils/treeUtils';
+import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewGroupProps {
-  workspaceId: string;
-  packageName: string;
-  suiteName: string;
+  suiteId: TestSuiteId;
   node: TestTreeGroupNode;
   path: Array<string>;
-  filterText: string;
-  statusFilter: RunStatus | null;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  filter: TestTreeFilter;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -32,25 +31,31 @@ interface TreeViewGroupProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
-  workspaceId,
-  packageName,
-  suiteName,
+  suiteId,
   node,
   path,
-  filterText,
-  statusFilter,
-  onRunTests,
+  filter,
+  onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
+  onShowTestLocation,
+  onContextMenu,
 }) => {
+  const [workspaceId, packageName, suiteName] = suiteId;
+  const time = getGroupTime(node);
+  const status = getGroupStatus(node);
   const isThreatModel = node.name.toLowerCase() === 'threat models';
 
   const isRunnable = useMemo(
-    () => getGroupTestIds(node).some(isRunnableTestId),
+    () => getGroupTests(node).some(isTestRunnable),
     [node],
   );
 
@@ -59,72 +64,81 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
       onUpdateOpenTestTreeNode(!isCollapsed, workspaceId, packageName, suiteName, [...path, node.name]);
     },
     onToggleSelection: (selected) => {
-      onUpdateSelection(getGroupTestIds(node), selected);
+      onUpdateSelection(getGroupTestRunnableIds(node), selected);
     },
   });
 
-  const effectiveFilterText =
-    !filterText || node.name.toLowerCase().includes(filterText.toLowerCase())
-      ? ''
-      : filterText;
-
   const filteredNodes = useMemo(
     () =>
-      Object.values(node.nodes).filter(
-        (childNode) =>
-          nodeMatchesStatus(childNode, statusFilter) &&
-          nodeMatchesFilter(childNode, effectiveFilterText),
-      )
-      .sort(sortTreeNodes),
-    [node.nodes, effectiveFilterText, statusFilter],
+      Object.values(node.nodes)
+        .filter(node => nodeMatchesFilter(node, filter))
+        .sort(sortTreeNodes),
+    [node.nodes, filter]
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onRunTests(getGroupTestIds(node));
+    onRunTest(getGroupTestRunnableIds(node));
+  };
+
+  const handleContextMenu = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    onContextMenu(event, { type: 'node', node });
   };
 
   return (
-    <VscodeTreeItem ref={treeItemRef} open={node.isOpen}>
-      <TestStatusIcon status={getGroupStatus(node)} isThreatModel={isThreatModel} />
+    <VscodeTreeItem ref={treeItemRef} open={node.isOpen} onContextMenu={handleContextMenu}>
+      <TestStatusIcon status={status} isThreatModel={isThreatModel} />
       <span className="flex flex-row w-full items-center justify-between gap-0.5">
-        <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span
+          className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis"
+          data-tooltip-id="tree-node-name"
+          data-node-name={node.name}
+        >
           {node.name}
           {isThreatModel &&
             <span className="ml-1 opacity-60">
               ({Object.keys(node.nodes).length})
             </span>
           }
+          {time > 0 && !status.isRunning && !status.isWaiting &&
+            <span className="ml-1 opacity-60">
+              {formatRunTime(time)}
+            </span>
+          }
         </span>
         <button
           type="button"
           className={`flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 ${
-            isRunnable
-              ? 'opacity-60 hover:opacity-100 cursor-pointer'
-              : 'opacity-30 cursor-not-allowed'
+            isRunnable ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
           }`}
           disabled={!isRunnable}
           onClickCapture={handleRunGroup}
+          data-tooltip-id="tree-node-action"
+          data-tooltip-content="Run Tests"
         >
           <i className="codicon codicon-run-all" />
         </button>
       </span>
-      {filteredNodes.map((childNode, index) => (
+      {filteredNodes.map((childNode) => (
         <TreeViewNode
-          key={index}
-          workspaceId={workspaceId}
-          packageName={packageName}
-          suiteName={suiteName}
+          key={childNode.type === 'group'
+            ? (childNode as TestTreeGroupNode).name
+            : (childNode as TestTreeTestNode).test.id.join(':')}
+          suiteId={suiteId}
           node={childNode}
           path={[...path, node.name]}
-          filterText={effectiveFilterText}
-          statusFilter={statusFilter}
-          onRunTests={onRunTests}
+          filter={filter}
+          onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onShowCoverage={onShowCoverage}
+          onShowTestLocation={onShowTestLocation}
+          onContextMenu={onContextMenu}
         />
       ))}
     </VscodeTreeItem>

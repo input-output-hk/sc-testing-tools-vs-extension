@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-
+import { useMemo, useState, useRef } from 'react';
 import { VscodeTree } from '@vscode-elements/react-elements';
 
+import TestJob from '../TestJob';
+import TreeViewFilter from '../TreeViewFilter';
 import TreeViewPackage from './TreeViewPackage';
-import FilterMenu from './FilterMenu';
-import { packageMatchesFilter, packageMatchesStatus, isRunnableTestId } from '../../utils/treeUtils';
+import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
+import Tooltip from '../../../../components/Tooltip';
+import { packageMatchesFilter } from '../../utils/treeUtils';
 
 interface TreeViewProps {
+  testJob: TestJob | null;
   testTree: TestTree;
-  onRunTests: (testIds: Array<RunTestId>) => void;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -17,79 +21,54 @@ interface TreeViewProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowTestLocation: (testId: TestId) => void;
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenTestTreeNode, onOpenTestResult }) => {
+const renderTruncatedNodeName = ({ activeAnchor }: { activeAnchor: Element | null }): string | null => {
+  if (activeAnchor === null) return null;
+  if (activeAnchor.scrollWidth <= activeAnchor.clientWidth + 1) return null;
+  return activeAnchor.getAttribute('data-node-name');
+};
+
+const TreeView: React.FC<TreeViewProps> = ({
+  testJob,
+  testTree,
+  onRunTest,
+  onBuildTestSuite,
+  onUpdateOpenTestTreeNode,
+  onOpenTestResult,
+  onShowCoverage,
+  onShowTestLocation
+}) => {
+  const contextMenuRef = useRef<TreeViewContextMenuRef>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filterText, setFilterText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<RunStatus | null>(null);
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  const filterWrapperRef = useRef<HTMLSpanElement | null>(null);
-
-  const handleFilterInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterText(e.target.value);
-  };
-
-  const handleFilterToggle = () => {
-    setIsFilterMenuOpen((open) => !open);
-  };
-
-  const handleStatusFilterChange = (nextStatusFilter: RunStatus | null) => {
-    setStatusFilter(nextStatusFilter);
-    setIsFilterMenuOpen(false);
-  };
-
-  useEffect(() => {
-    const handleDocumentClick = (event: MouseEvent) => {
-      const wrapper = filterWrapperRef.current;
-      if (wrapper && !wrapper.contains(event.target as Node)) {
-        setIsFilterMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFilterMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleDocumentClick, true);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('click', handleDocumentClick, true);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
+  const [filter, setFilter] = useState<TestTreeFilter>({});
 
   const filteredPackages = useMemo(
     () =>
-      Object.values(testTree.packages).filter(
-        testPackage =>
-          packageMatchesStatus(testPackage, statusFilter) &&
-          (!filterText || packageMatchesFilter(testPackage, filterText)),
-      ),
-    [testTree.packages, filterText, statusFilter],
+      Object.values(testTree.packages)
+        .filter(testPackage => packageMatchesFilter(testPackage, filter)),
+    [testTree.packages, filter],
   );
 
-  const handleUpdateSelection = (testIds: Array<RunTestId>, selected: boolean) => {
+  const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
     setSelected((prevSelected) => {
       const newSelected = new Set(prevSelected);
       for (const testId of testIds) {
-        if (isRunnableTestId(testId)) {
-          if (selected) {
-            newSelected.add(testId.join(':'));
-          } else {
-            newSelected.delete(testId.join(':'));
-          }
+        if (selected) {
+          newSelected.add(testId.join(':'));
+        } else {
+          newSelected.delete(testId.join(':'));
         }
       }
       return newSelected;
     });
   };
 
-  const handleRunTests = (testIds: Array<RunTestId>) => {
-    const runnableIds = testIds.filter(isRunnableTestId).map(id => id.join(':'));
-    const testRun: Set<string> = new Set(runnableIds);
-    if (runnableIds.some(id => selected.has(id))) {
+  const handleRunTest = (testIds: Array<RunnableTestId>) => {
+    const testRun: Set<string> = new Set(testIds.map(id => id.join(':')));
+    if (testIds.some(id => selected.has(id.join(':')))) {
       for (const selectedId of selected) {
         testRun.add(selectedId);
       }
@@ -104,44 +83,48 @@ const TreeView: React.FC<TreeViewProps> = ({ testTree, onRunTests, onUpdateOpenT
           testRun.delete(testRunId);
         }
       }
-      onRunTests(Array.from(testRun).map(id => id.split(':') as RunTestId));
+      onRunTest(Array.from(testRun).map(id => id.split(':') as RunnableTestId));
     }
+  };
+
+  const handleContextMenu = (event: React.MouseEvent, item: TestTreeItem): void => {
+    contextMenuRef.current?.open(event, item);
   };
 
   return (
     <div className="h-full flex flex-col">
-      <div className="relative flex items-center w-full px-2 py-2">
-        <input
-          type="text"
-          className="w-full pl-2 pr-6 py-1 text-sm rounded border border-transparent dark:bg-[#3c3c3c] dark:text-base-06 outline-none focus:border-blue-06 dark:placeholder:text-base-06"
-          placeholder="Filter (e.g. test)"
-          value={filterText}
-          onChange={handleFilterInput}
-        />
-        <span ref={filterWrapperRef} className="absolute right-3 inline-flex items-center">
-          <i
-            className={`codicon cursor-pointer hover:opacity-100 ${statusFilter !== null ? 'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70'}`}
-            onClick={handleFilterToggle}
-          />
-          <FilterMenu isOpen={isFilterMenuOpen} statusFilter={statusFilter} onChange={handleStatusFilterChange} />
-        </span>
-      </div>
+      <TreeViewFilter
+        filter={filter}
+        onChangeFilter={setFilter}
+      />
+      <TestJob testJob={testJob} />
       <div className="flex-1 overflow-y-auto">
         <VscodeTree multiSelect>
-          {filteredPackages.map((testPackage) => (
+          {filteredPackages.map(testPackage => (
             <TreeViewPackage
               key={testPackage.name}
               testPackage={testPackage}
-              filterText={filterText}
-              statusFilter={statusFilter}
-              onRunTests={handleRunTests}
+              filter={filter}
+              onRunTest={handleRunTest}
+              onBuildTestSuite={onBuildTestSuite}
               onUpdateSelection={handleUpdateSelection}
               onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
               onOpenTestResult={onOpenTestResult}
+              onShowCoverage={onShowCoverage}
+              onShowTestLocation={onShowTestLocation}
+              onContextMenu={handleContextMenu}
             />
           ))}
         </VscodeTree>
       </div>
+      <TreeViewContextMenu
+        ref={contextMenuRef}
+        onRunTest={handleRunTest}
+        onBuildTestSuite={onBuildTestSuite}
+        onShowTestLocation={onShowTestLocation}
+      />
+      <Tooltip id="tree-node-action" place="left" />
+      <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />
     </div>
   );
 };

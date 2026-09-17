@@ -38,6 +38,10 @@ const coverageSchemaLiteral = {
       required: ['basePath', 'workspaceId', 'packageName', 'suiteName'],
       final: true,
     },
+    index: {
+      type: 'array',
+      items: rangeSchema,
+    },
     statements: {
       type: 'array',
       items: {
@@ -57,6 +61,7 @@ const coverageSchemaLiteral = {
     'fileHash',
     'filePath',
     'context',
+    'index',
     'statements',
   ],
   indexes: [
@@ -68,4 +73,5 @@ const schemaTyped = toTypedRxJsonSchema(coverageSchemaLiteral);
 type CoverageDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof schemaTyped>;
 export const coverageSchema: RxJsonSchema<CoverageDocType> = coverageSchemaLiteral;
 export type CoverageDocument = RxDocument<CoverageDocType>;
+export type CoverageDocumentData = CoverageDocType;
 export type CoverageCollection = RxCollection<CoverageDocType>;

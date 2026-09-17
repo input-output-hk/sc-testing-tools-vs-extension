@@ -1,24 +1,26 @@
 import { Tooltip as ReactTooltip, type PlacesType } from 'react-tooltip';
 
 interface Props {
-  content: string;
+  content?: string;
   id: string;
   place?: PlacesType;
+  maxWidth?: string;
+  render?: React.ComponentProps<typeof ReactTooltip>['render'];
 }
 
-const Tooltip: React.FC<Props> = ({ content, id, place = 'right' }) => {
+const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '250px', render }) => {
 
   return (
     <>
       <ReactTooltip
         id={id}
-        anchorSelect={`#${id}`}
+        anchorSelect={content !== undefined ? `#${id}` : undefined}
         content={content}
+        render={render}
         place={place}
         delayShow={300}
         border="1px solid var(--vscode-editorHoverWidget-border, #454545)"
-        // TODO: consider dynamically adjusting the max width based on passing in a prop
-        className="py-1 px-2 text-[12px] font-normal !opacity-100 z-[9999] max-w-[250px] whitespace-pre-wrap break-words"
+        className={`py-1 px-2 text-[12px] font-normal !opacity-100 z-[9999] max-w-[${maxWidth}] whitespace-pre-wrap break-words`}
         style={{
           backgroundColor: 'var(--vscode-editorHoverWidget-background, #252526)',
           color: 'var(--vscode-editorHoverWidget-foreground, #cccccc)',

@@ -17,6 +17,7 @@ export default defineConfig({
         testTree: resolve(__dirname, 'entrypoint/testTree.html'),
         testResult: resolve(__dirname, 'entrypoint/testResult.html'),
         testConfiguration: resolve(__dirname, 'entrypoint/testConfiguration.html'),
+        testCoverage: resolve(__dirname, 'entrypoint/testCoverage.html'),
         testSummary: resolve(__dirname, 'entrypoint/testSummary.html'),
       },
       output: {

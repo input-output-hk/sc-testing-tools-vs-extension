@@ -1,31 +1,42 @@
-export const updateTestSuite = (testTree: TestTree, { packageId, suite }: TestSuiteUpdate): TestTree => {
-  const packageNode = testTree.packages[packageId.join(':')];
+export const updateTestSuite = (testTree: TestTree, update: TestTreeSuiteUpdate): TestTree => {
+  const [workspaceId, packageName, suiteName] = update.suiteId;
+  const packageId = `${workspaceId}:${packageName}`;
+
+  const packageNode = testTree.packages[packageId];
   if (!packageNode) return testTree;
 
-  packageNode.suites[suite.name] = suite;
-
-  return testTree;
+  return {
+    ...testTree,
+    packages: {
+      ...testTree.packages,
+      [packageId]: {
+        ...packageNode,
+        suites: {
+          ...packageNode.suites,
+          [suiteName]: {
+            ...packageNode.suites[suiteName],
+            ...update,
+          },
+        },
+      },
+    },
+  };
 };
 
-const updateTestNodeMap = (
-  nodes: TestTreeNodeMap,
-  joinedTestId: string,
-  test: Test,
-): { nodes: TestTreeNodeMap; updated: boolean } => {
+const updateTestNodeMap = (nodes: TestTreeNodeMap, test: Test): { nodes: TestTreeNodeMap; updated: boolean } => {
   let updated = false;
+  const testId = test.id.join(':');
   const nextNodes: TestTreeNodeMap = {};
 
   for (const [key, node] of Object.entries(nodes)) {
     if (node.type === 'test') {
       const testNode = node as TestTreeTestNode;
-      if (testNode.test.id.join(':') === joinedTestId) {
+      if (testNode.test.id.join(':') === testId) {
         nextNodes[key] = {
           ...testNode,
           test: {
             ...testNode.test,
-            time: test.time,
-            status: test.status,
-            percentage: test.percentage,
+            ...test,
           },
         } as TestTreeTestNode;
         updated = true;
@@ -37,7 +48,7 @@ const updateTestNodeMap = (
     }
 
     const groupNode = node as TestTreeGroupNode;
-    const updatedGroupNodes = updateTestNodeMap(groupNode.nodes, joinedTestId, test);
+    const updatedGroupNodes = updateTestNodeMap(groupNode.nodes, test);
 
     if (updatedGroupNodes.updated) {
       nextNodes[key] = {
@@ -56,7 +67,7 @@ const updateTestNodeMap = (
   };
 };
 
-export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTree => {
+export const updateTest = (testTree: TestTree, test: Test): TestTree => {
   const [workspaceId, packageName, suiteName] = test.id;
   const packageId = `${workspaceId}:${packageName}`;
 
@@ -66,62 +77,23 @@ export const updateTest = (testTree: TestTree, { test }: { test: Test }): TestTr
   const suiteNode = packageNode.suites[suiteName];
   if (!suiteNode) return testTree;
 
-  const updatedTestTreeNodeMap = updateTestNodeMap(suiteNode.tests, test.id.join(':'), test);
+  const updatedTestTreeNodeMap = updateTestNodeMap(suiteNode.tests, test);
   if (!updatedTestTreeNodeMap.updated) return testTree;
 
-  const updatedSuiteNode: TestSuite = {
-    ...suiteNode,
-    tests: updatedTestTreeNodeMap.nodes,
-  };
-
-  const updatedPackageNode: TestPackage = {
-    ...packageNode,
-    suites: {
-      ...packageNode.suites,
-      [suiteName]: updatedSuiteNode,
-    },
-  };
-
   return {
     ...testTree,
     packages: {
       ...testTree.packages,
-      [packageId]: updatedPackageNode,
-    },
-  };
-};
-
-export const updateTestSuiteStatus = (
-  testTree: TestTree,
-  { suiteId, status }: TestSuiteStatusUpdate,
-): TestTree => {
-  const [workspaceId, packageName, suiteName] = suiteId;
-  const packageId = `${workspaceId}:${packageName}`;
-
-  const packageNode = testTree.packages[packageId];
-  if (!packageNode) return testTree;
-
-  const suiteNode = packageNode.suites[suiteName];
-  if (!suiteNode || suiteNode.status === status) return testTree;
-
-  const updatedSuiteNode: TestSuite = {
-    ...suiteNode,
-    status,
-  };
-
-  const updatedPackageNode: TestPackage = {
-    ...packageNode,
-    suites: {
-      ...packageNode.suites,
-      [suiteName]: updatedSuiteNode,
-    },
-  };
-
-  return {
-    ...testTree,
-    packages: {
-      ...testTree.packages,
-      [packageId]: updatedPackageNode,
+      [packageId]: {
+        ...packageNode,
+        suites: {
+          ...packageNode.suites,
+          [suiteName]: {
+            ...suiteNode,
+            tests: updatedTestTreeNodeMap.nodes,
+          },
+        },
+      },
     },
   };
 };

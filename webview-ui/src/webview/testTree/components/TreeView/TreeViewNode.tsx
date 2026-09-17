@@ -2,15 +2,12 @@ import TreeViewGroup from './TreeViewGroup';
 import TreeViewTest from './TreeViewTest';
 
 interface TreeViewNodeProps {
-  workspaceId: string;
-  packageName: string;
-  suiteName: string;
+  suiteId: TestSuiteId;
   node: TestTreeNode;
   path: Array<string>;
-  filterText: string;
-  statusFilter: RunStatus | null;
-  onRunTests: (testIds: Array<RunTestId>) => void;
-  onUpdateSelection: (testIds: Array<RunTestId>, selected: boolean) => void;
+  filter: TestTreeFilter;
+  onRunTest: (testIds: Array<RunnableTestId>) => void;
+  onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
     isOpen: boolean,
     workspaceId: string,
@@ -19,42 +16,48 @@ interface TreeViewNodeProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowTestLocation: (testId: TestId) => void;
+  onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }
 
 const TreeViewNode: React.FC<TreeViewNodeProps> = ({
-  workspaceId,
-  packageName,
-  suiteName,
+  suiteId,
   node,
   path,
-  filterText,
-  statusFilter,
-  onRunTests,
+  filter,
+  onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onShowCoverage,
+  onShowTestLocation,
+  onContextMenu,
 }) =>
   node.type === 'group' ? (
     <TreeViewGroup
+      suiteId={suiteId}
       node={node as TestTreeGroupNode}
       path={path}
-      workspaceId={workspaceId}
-      packageName={packageName}
-      suiteName={suiteName}
-      filterText={filterText}
-      statusFilter={statusFilter}
-      onRunTests={onRunTests}
+      filter={filter}
+      onRunTest={onRunTest}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
+      onShowCoverage={onShowCoverage}
+      onShowTestLocation={onShowTestLocation}
+      onContextMenu={onContextMenu}
     />
   ) : (
     <TreeViewTest
       node={node as TestTreeTestNode}
       path={path}
-      onRunTests={onRunTests}
+      onRunTest={onRunTest}
       onUpdateSelection={onUpdateSelection}
       onOpenTestResult={onOpenTestResult}
+      onShowCoverage={onShowCoverage}
+      onShowTestLocation={onShowTestLocation}
+      onContextMenu={onContextMenu}
     />
   );
 

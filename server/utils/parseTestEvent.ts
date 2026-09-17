@@ -2,14 +2,14 @@ import { createCoverage, updateCoverage } from './coverage';
 import { validateTestEvent, getValidationError } from './validateTestEvent';
 
 import type { ScriptOutput } from './runScript';
-import type { SCToolsStreamingEvent as StreamingEvent, Transition } from '../schemas/streaming-events';
+import type { SCToolsStreamingEvent as ScEvent, TxSummary as ScTx } from '../schemas/streaming-events';
 
-type TestSuiteStartedEvent = Extract<StreamingEvent, { event: 'suite_started' }>;
-type TestSuiteDoneEvent = Extract<StreamingEvent, { event: 'suite_done' }>;
-type TestStartedEvent = Extract<StreamingEvent, { event: 'test_started' }>;
-type TestTraceEvent = Extract<StreamingEvent, { event: 'test_trace' }>;
-type TestProgressEvent = Extract<StreamingEvent, { event: 'test_progress' }>;
-type TestDoneEvent = Extract<StreamingEvent, { event: 'test_done' }>;
+type TestSuiteStartedEvent = Extract<ScEvent, { event: 'suite_started' }>;
+type TestSuiteDoneEvent = Extract<ScEvent, { event: 'suite_done' }>;
+type TestStartedEvent = Extract<ScEvent, { event: 'test_started' }>;
+type TestTraceEvent = Extract<ScEvent, { event: 'test_trace' }>;
+type TestProgressEvent = Extract<ScEvent, { event: 'test_progress' }>;
+type TestDoneEvent = Extract<ScEvent, { event: 'test_done' }>;
 
 export type TestEventValidationErrorData = {
   kind: 'invalid-test-event';
@@ -40,6 +40,7 @@ const throwValidationError = (rawEvent: unknown): never => {
 };
 
 const parseTestSuiteStartedEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -48,7 +49,7 @@ const parseTestSuiteStartedEvent = (
   event: TestSuiteStartedEvent
 ): TestSuiteUpdateEvent => {
   let tests: Array<Test> | undefined = undefined;
-  let coverage: Array<TestEventCoverage> | undefined = undefined;
+  let coverageIndex: Array<TestEventCoverage> | undefined = undefined;
 
   if (isFullRun) {
     tests = [];
@@ -57,7 +58,10 @@ const parseTestSuiteStartedEvent = (
         id: [workspaceId, packageName, suiteName, testItem.id.toString()],
         name: testItem.name,
         group: testItem.path,
-        status: isBuild ? 'undetermined' : 'waiting',
+        status: 'undetermined',
+        isWaiting: !isBuild,
+        isRunning: false,
+        isStatic: false,
         location: testItem.srcLoc ? {
           uri: testItem.srcLoc.file,
           range: {
@@ -74,7 +78,7 @@ const parseTestSuiteStartedEvent = (
       });
     }
 
-    coverage = Object.values(
+    coverageIndex = Object.values(
       createCoverage(
         event.coverageIndex,
         workspaceId,
@@ -86,18 +90,20 @@ const parseTestSuiteStartedEvent = (
 
   return {
     eventType: 'test-suite-update',
+    testJobId,
     payload: {
       workspaceId,
       packageName,
       suiteName,
       runStatus: isBuild ? 'idle' : 'running',
       tests,
-      coverage,
+      coverageIndex,
     },
   };
 }
 
 const parseTestSuiteDoneEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -105,6 +111,7 @@ const parseTestSuiteDoneEvent = (
 ): TestSuiteUpdateEvent => {
   return {
     eventType: 'test-suite-update',
+    testJobId,
     payload: {
       workspaceId,
       packageName,
@@ -115,6 +122,7 @@ const parseTestSuiteDoneEvent = (
 };
 
 const parseTestStartedEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -122,9 +130,10 @@ const parseTestStartedEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: 0,
       time: 0,
     },
@@ -132,6 +141,7 @@ const parseTestStartedEvent = (
 };
 
 const parseTestProgressEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -139,9 +149,10 @@ const parseTestProgressEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
-      status: 'running',
+      isRunning: true,
       percentage: event.percent * 100,
       time: 0,
     },
@@ -149,6 +160,7 @@ const parseTestProgressEvent = (
 };
 
 const parseTestDoneEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -156,22 +168,25 @@ const parseTestDoneEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
+      type: event.threat_model ? 'threat-model' : undefined,
       status: event.success ? 'valid' : 'invalid',
       time: event.duration * 1000,
     },
   };
 };
 
-const mapTransitionTx = (transition: Transition): TestTx | undefined => {
-  const tx = transition.transaction;
+const mapScTx = (tx: ScTx | null): Tx | undefined => {
   if (!tx) return undefined;
   return {
     id: tx.id || undefined,
     fee: tx.fee,
     inputs: tx.inputs.map(input => ({
       address: input.address,
+      addressLabel: input.addressLabel || undefined,
+      addressType: input.addressType,
       utxo: input.utxo,
       value: input.value,
       redeemerConstr: input.redeemerConstr || undefined,
@@ -179,39 +194,47 @@ const mapTransitionTx = (transition: Transition): TestTx | undefined => {
       redeemerPayload: input.redeemerPayload || undefined,
       redeemerRaw: input.redeemerRaw || undefined,
     })),
-    outputs: tx.outputs.map(output => ({
+    outputs: tx.outputs.map((output, index) => ({
+      index,
       address: output.address,
+      addressLabel: output.addressLabel || undefined,
+      addressType: output.addressType,
       utxo: output.utxo,
       value: output.value,
       datum: output.datum || undefined,
     })),
     mint: tx.mint || undefined,
     signers: tx.signers.filter(signer => signer !== null),
+    withdrawals: tx.withdrawals.map(withdrawal => ({
+      addressLabel: withdrawal.addressLabel || undefined,
+      addressType: withdrawal.addressType,
+      amount: withdrawal.amount,
+      redeemerConstr: withdrawal.redeemerConstr || undefined,
+      redeemerKind: withdrawal.redeemerKind || undefined,
+      redeemerPayload: withdrawal.redeemerPayload || undefined,
+      redeemerRaw: withdrawal.redeemerRaw || undefined,
+      stakeAddress: withdrawal.stakeAddress,
+    })),
   };
 };
 
 const parseTestTraceEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
   event: TestTraceEvent
 ): TestContextEvent => {
   const testId: TestId = [workspaceId, packageName, suiteName, event.id.toString()];
+  const type: TestType | undefined = event.category === 'positive' || event.category === 'negative' ? event.category : undefined;
   
-  const round: TestRound = {
+  const testRound: TransitionTestRound = {
     id: event.trace.index,
-    status: event.trace.status,
+    type: event.category as 'positive' | 'negative',
+    testId,
+    status: event.trace.status.status,
     transitions: [],
   };
-
-  for (const transition of event.trace.transitions) {
-    round.transitions.push({
-      action: transition.action,
-      result: transition.result,
-      stepIndex: transition.stepIndex,
-      tx: mapTransitionTx(transition),
-    });
-  }
 
   const coverage = createCoverage(
     event.covered,
@@ -221,28 +244,66 @@ const parseTestTraceEvent = (
     event.id.toString()
   );
 
+  for (const transition of event.trace.transitions) {
+    testRound.transitions.push({
+      action: transition.action,
+      result: transition.result,
+      stepIndex: transition.stepIndex,
+      tx: mapScTx(transition.transaction),
+    });
+  }
+
+  const tmRounds: Record<string, ThreatModelTestRound> = {};
+  const traces: Record<string, Array<ThreatModelTrace>> = {};
+
   for (const tm of event.trace.threatModels) {
+    const tmId = tm.testId.toString();
+
     updateCoverage(
       coverage,
       tm.covered,
       workspaceId,
       packageName,
       suiteName,
-      tm.testId.toString()
+      tmId
     );
+
+    tmRounds[tmId] = {
+      id: event.trace.index,
+      type: 'threat-model',
+      testId: [workspaceId, packageName, suiteName, tmId],
+      status: event.trace.status.status,
+      traces: [],
+    };
+
+    if (!traces[tmId]) traces[tmId] = [];
+
+    traces[tmId].push({
+      tx: mapScTx(tm.originalTx)!,
+      modifiedTx: mapScTx(tm.modifiedTx),
+      modifications: tm.modifications,
+      outcome: tm.outcome,
+      targetTxIndex: tm.targetTxIndex,
+    });
+  }
+
+  for (const tmRound of Object.values(tmRounds)) {
+    tmRound.traces = traces[tmRound.testId[3]];
   }
 
   return {
     eventType: 'test-context',
+    testJobId,
     payload: {
-      id: testId,
-      round,
+      context: { testId, type },
+      rounds: [testRound, ...Object.values(tmRounds)],
       coverage: Object.values(coverage),
     },
   };
 };
 
-export const parseBuildTestTreeEvent = (
+export const parseTestSuiteBuildEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -251,7 +312,7 @@ export const parseBuildTestTreeEvent = (
   const rawEvent = scriptOutput.parsed;
   if (validateTestEvent(rawEvent)) {
     if (rawEvent.event === 'suite_started') {
-      return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, true, true, rawEvent);
+      return parseTestSuiteStartedEvent(testJobId, workspaceId, packageName, suiteName, true, true, rawEvent);
     }
   } else {
     throwValidationError(rawEvent);
@@ -260,6 +321,7 @@ export const parseBuildTestTreeEvent = (
 };
 
 export const parseTestEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -270,17 +332,17 @@ export const parseTestEvent = (
   if (validateTestEvent(rawEvent)) {
     switch (rawEvent.event) {
       case 'suite_started':
-        return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, false, !hasTestIds, rawEvent);
+        return parseTestSuiteStartedEvent(testJobId, workspaceId, packageName, suiteName, false, !hasTestIds, rawEvent);
       case 'suite_done':
-        return parseTestSuiteDoneEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestSuiteDoneEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_started':
-        return parseTestStartedEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestStartedEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_progress':
-        return parseTestProgressEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestProgressEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_done':
-        return parseTestDoneEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestDoneEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_trace':
-        return parseTestTraceEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestTraceEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
     }
   } else {
     throwValidationError(rawEvent);
