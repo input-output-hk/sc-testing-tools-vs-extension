@@ -46,6 +46,8 @@ const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, m
       <button
         type="button" onClick={onOpenExplorer}
         className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer"
+        data-tooltip-id="graph-toolbar-action"
+        data-tooltip-content="Graph Explorer"
       >
         <i className="codicon codicon-map text-[#FFFFFFCC] active:text-white" />
       </button>

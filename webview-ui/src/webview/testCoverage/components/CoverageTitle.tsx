@@ -1,3 +1,5 @@
+import Tooltip from '../../../components/Tooltip';
+
 interface Props {
   title: string;
   hasItems: boolean;
@@ -17,11 +19,14 @@ const CoverageTitle: React.FC<Props> = ({ title, hasItems, isFullCoverage, onCle
           type="button"
           className="flex h-4 w-4 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
           onClickCapture={onClearFullCoverage}
+          data-tooltip-id="coverage-title-action"
+          data-tooltip-content="Clear Coverage"
         >
           <i className="codicon codicon-close text-base-10" />
         </button>
       }
     </div>
+    <Tooltip id="coverage-title-action" place="bottom" />
   </div>
 );
 
