@@ -40,10 +40,6 @@ import {
   onCoverageUpdate
 } from './methods/coverage';
 
-import {
-  getTestRounds
-} from './methods/round';
-
 addRxPlugin(RxDBUpdatePlugin);
 
 export default class Database {
@@ -68,10 +64,6 @@ export default class Database {
 
   public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
     return await handleTestContextEvent(this.database!, event);
-  }
-
-  public async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
-    //
   }
 
   public async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
@@ -129,10 +121,6 @@ export default class Database {
 
   public async getTest(testId: TestId): Promise<Test> {
     return await getTest(this.database!, testId);
-  }
-
-  public async getTestRounds(id: TestId): Promise<Array<TestRound>> {
-    return await getTestRounds(this.database!, id);
   }
 
   public async getAllTestSuitesIds(): Promise<Array<TestSuiteId>> {

@@ -6,8 +6,6 @@ import {
   SUITE_ID_MAX_LENGTH,
   TEST_ID_MAX_LENGTH,
   FULL_TEST_ID_MAX_LENGTH,
-  TEST_ROUND_MAX_LENGTH,
-  TEST_ROUND_ID_MAX_LENGTH,
 } from '../common/constants';
 
 export const booleanSchema = {
@@ -76,18 +74,6 @@ export const testIdSchema = {
 export const fullTestIdSchema = {
   type: 'string',
   maxLength: FULL_TEST_ID_MAX_LENGTH,
-  final: true,
-} as const;
-
-export const testRoundSchema = {
-  type: 'string',
-  maxLength: TEST_ROUND_MAX_LENGTH,
-  final: true,
-} as const;
-
-export const testRoundIdSchema = {
-  type: 'string',
-  maxLength: TEST_ROUND_ID_MAX_LENGTH,
   final: true,
 } as const;
 

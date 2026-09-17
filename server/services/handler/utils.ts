@@ -35,6 +35,7 @@ export const buildErrorEvent = (job: TestJob, error: unknown, failedTestRun?: Te
   if (error instanceof ScriptExecutionError) {
     return {
       eventType: 'test-run-error',
+      testJobId: job.id,
       payload: {
         job,
         failedTestRun,
@@ -45,6 +46,7 @@ export const buildErrorEvent = (job: TestJob, error: unknown, failedTestRun?: Te
 
   return {
     eventType: 'test-run-error',
+    testJobId: job.id,
     payload: {
       job,
       failedTestRun,
@@ -68,6 +70,7 @@ export const sendTestRunUpdate = (
 ): void => {
   sendTestEvent(server, {
     eventType: 'test-run-update',
+    testJobId: job.id,
     payload: {
       job: {
         ...job,

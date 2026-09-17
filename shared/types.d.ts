@@ -42,6 +42,7 @@ type Test = {
   time?: number;
   percentage?: number;
   type?: TestType;
+  lastRunId?: string;
   hasCoverage?: boolean;
 };
 
@@ -152,33 +153,30 @@ type TestTreeFilter = {
 
 // Test Result
 
+type TestRoundType = "positive" | "negative" | "threat-model";
+
+type TestRoundStatus = "success" | "failure" | "discarded";
+
 type TestRound = {
   id: number;
   testId: TestId;
-  type?: "positive" | "negative" | "threat-model";
+  type: TestRoundType;
   status: TestRoundStatus;
 };
 
-type TestRoundStatus = {
-  status: "success";
-} | {
-  status: "failure";
-  message: string;
-} | {
-  status: "discarded";
-  message: string;
-};
-
 type TransitionTestRound = TestRound & {
-  type?: "positive" | "negative";
-  threatModelTestIds: Array<TestId>;
+  type: "positive" | "negative";
   transitions: Array<TestTransition>;
 };
 
 type ThreatModelTestRound = TestRound & {
   type: "threat-model";
-  parentTestId: TestId;
   traces: Array<ThreatModelTrace>;
+};
+
+type TestRoundData = {
+  transitions?: Array<TestTransition>;
+  traces?: Array<ThreatModelTrace>;
 };
 
 type TestTransition = {
@@ -411,6 +409,23 @@ type GraphTx = {
   withdrawals: Array<GraphNodeUTxO>;
 };
 
+// Test History
+
+type TestRunHistory = {
+  runId: string;
+  status: TestJobStatus;
+  startedOn: number;
+  finishedOn?: number;
+  tests: Array<TestResultHistory>;
+};
+
+type TestResultHistory = {
+  id: TestId;
+  type?: TestType;
+  status: RunStatus;
+  time?: number;
+};
+
 // Coverage
 
 type CoverageStatements = GenericMap<Array<string>>;
@@ -457,7 +472,7 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
   nodes: CoverageTree;
 };
 
-// Webview message
+// Webview Message
 
 type TestTreeUpdate =
 | { type: 'test', test: Test }
@@ -552,6 +567,8 @@ type TestRunParams = {
   testIds: Array<RunnableTestId>;
 };
 
+// Test Job
+
 type TestJobStatus = "waiting" | "running" | "success" | "failed";
 type TestJobType = "run" | "build";
 
@@ -575,10 +592,13 @@ type TestRunJob = TestJob & {
   params: TestRunParams;
 };
 
+// Test Event
+
 type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-update" | "test-run-error";
 
 type TestEvent = {
   eventType: TestEventType;
+  testJobId: string;
   payload: unknown;
 };
 

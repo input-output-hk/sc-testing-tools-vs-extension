@@ -37,7 +37,7 @@ const getRoundStats = (round: TransitionTestRound): RoundStats => {
   let outputs = 0;
   let mints = 0;
 
-  const roundHasError = round.status.status === 'failure';
+  const roundHasError = round.status === 'failure';
   let txHasError = false;
 
   for (const transition of round.transitions) {

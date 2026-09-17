@@ -40,6 +40,7 @@ const throwValidationError = (rawEvent: unknown): never => {
 };
 
 const parseTestSuiteStartedEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -89,6 +90,7 @@ const parseTestSuiteStartedEvent = (
 
   return {
     eventType: 'test-suite-update',
+    testJobId,
     payload: {
       workspaceId,
       packageName,
@@ -101,6 +103,7 @@ const parseTestSuiteStartedEvent = (
 }
 
 const parseTestSuiteDoneEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -108,6 +111,7 @@ const parseTestSuiteDoneEvent = (
 ): TestSuiteUpdateEvent => {
   return {
     eventType: 'test-suite-update',
+    testJobId,
     payload: {
       workspaceId,
       packageName,
@@ -118,6 +122,7 @@ const parseTestSuiteDoneEvent = (
 };
 
 const parseTestStartedEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -125,6 +130,7 @@ const parseTestStartedEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
       isRunning: true,
@@ -135,6 +141,7 @@ const parseTestStartedEvent = (
 };
 
 const parseTestProgressEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -142,6 +149,7 @@ const parseTestProgressEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
       isRunning: true,
@@ -152,6 +160,7 @@ const parseTestProgressEvent = (
 };
 
 const parseTestDoneEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -159,6 +168,7 @@ const parseTestDoneEvent = (
 ): TestUpdateEvent => {
   return {
     eventType: 'test-update',
+    testJobId,
     payload: {
       id: [workspaceId, packageName, suiteName, event.id.toString()],
       type: event.threat_model ? 'threat-model' : undefined,
@@ -209,6 +219,7 @@ const mapScTx = (tx: ScTx | null): Tx | undefined => {
 };
 
 const parseTestTraceEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -218,14 +229,11 @@ const parseTestTraceEvent = (
   const type: TestType | undefined = event.category === 'positive' || event.category === 'negative' ? event.category : undefined;
   
   const testRound: TransitionTestRound = {
-    type,
-    testId,
     id: event.trace.index,
-    status: event.trace.status,
+    type: event.category as 'positive' | 'negative',
+    testId,
+    status: event.trace.status.status,
     transitions: [],
-    threatModelTestIds:
-      Array.from(new Set<string>(event.trace.threatModels.map(tm => tm.testId.toString())))
-        .map(tmId => [workspaceId, packageName, suiteName, tmId]),
   };
 
   const coverage = createCoverage(
@@ -261,11 +269,10 @@ const parseTestTraceEvent = (
     );
 
     tmRounds[tmId] = {
-      type: 'threat-model',
       id: event.trace.index,
-      status: event.trace.status,
+      type: 'threat-model',
       testId: [workspaceId, packageName, suiteName, tmId],
-      parentTestId: testId,
+      status: event.trace.status.status,
       traces: [],
     };
 
@@ -286,6 +293,7 @@ const parseTestTraceEvent = (
 
   return {
     eventType: 'test-context',
+    testJobId,
     payload: {
       context: { testId, type },
       rounds: [testRound, ...Object.values(tmRounds)],
@@ -295,6 +303,7 @@ const parseTestTraceEvent = (
 };
 
 export const parseTestSuiteBuildEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -303,7 +312,7 @@ export const parseTestSuiteBuildEvent = (
   const rawEvent = scriptOutput.parsed;
   if (validateTestEvent(rawEvent)) {
     if (rawEvent.event === 'suite_started') {
-      return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, true, true, rawEvent);
+      return parseTestSuiteStartedEvent(testJobId, workspaceId, packageName, suiteName, true, true, rawEvent);
     }
   } else {
     throwValidationError(rawEvent);
@@ -312,6 +321,7 @@ export const parseTestSuiteBuildEvent = (
 };
 
 export const parseTestEvent = (
+  testJobId: string,
   workspaceId: string,
   packageName: string,
   suiteName: string,
@@ -322,17 +332,17 @@ export const parseTestEvent = (
   if (validateTestEvent(rawEvent)) {
     switch (rawEvent.event) {
       case 'suite_started':
-        return parseTestSuiteStartedEvent(workspaceId, packageName, suiteName, false, !hasTestIds, rawEvent);
+        return parseTestSuiteStartedEvent(testJobId, workspaceId, packageName, suiteName, false, !hasTestIds, rawEvent);
       case 'suite_done':
-        return parseTestSuiteDoneEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestSuiteDoneEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_started':
-        return parseTestStartedEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestStartedEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_progress':
-        return parseTestProgressEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestProgressEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_done':
-        return parseTestDoneEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestDoneEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
       case 'test_trace':
-        return parseTestTraceEvent(workspaceId, packageName, suiteName, rawEvent);
+        return parseTestTraceEvent(testJobId, workspaceId, packageName, suiteName, rawEvent);
     }
   } else {
     throwValidationError(rawEvent);
