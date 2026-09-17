@@ -1,6 +1,5 @@
 import { Range } from 'vscode';
 
-import { createRounds } from './round';
 import { clearCoverageForTest, upsertCoverage, hasCoverage } from './coverage';
 
 import type { Database, SuiteDocument, TestDocument, TestDocumentData } from '../collections';
@@ -52,6 +51,8 @@ export const updateSuiteTests = async (database: Database, testSuiteId: TestSuit
         location: test.location,
         time: test.time,
         percentage: test.percentage,
+        type: test.type,
+        lastRunId: test.lastRunId,
       }))
     );
   }
@@ -69,7 +70,9 @@ export const handleTestUpdateEvent = async (database: Database, event: TestUpdat
       await clearCoverageForTest(database, id);
     }
 
-    const updateData: Partial<TestDocumentData> = {};
+    const updateData: Partial<TestDocumentData> = {
+      lastRunId: event.testJobId
+    };
     if (time !== undefined) updateData.time = time;
     if (isRunning !== undefined) updateData.isRunning = isRunning;
     if (percentage !== undefined) updateData.percentage = percentage;
@@ -99,7 +102,6 @@ export const handleTestContextEvent = async (database: Database, event: TestCont
       .update({ $set: { type: event.payload.context.type } });
   }
   await upsertCoverage(database, [workspaceId, packageName], event.payload.coverage);
-  await createRounds(database, event.payload.rounds);
 }
 
 const getWorkspaceTestRuns = (workspace: Workspace, testIds: Array<RunnableTestId>): Array<TestRun> => {
@@ -224,6 +226,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     time: testDocument.time,
     percentage: testDocument.percentage,
     type: testDocument.type,
+    lastRunId: testDocument.lastRunId,
   };
 }
 
@@ -261,6 +264,7 @@ export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpd
         time: document.time,
         percentage: document.percentage,
         type: document.type,
+        lastRunId: document.lastRunId,
         hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
       }
     });

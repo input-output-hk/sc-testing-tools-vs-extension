@@ -39,7 +39,7 @@ const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
   let mints = 0;
   let attacks = 0;
 
-  const roundHasError = round.status.status === 'failure';
+  const roundHasError = round.status === 'failure';
   let txHasError = false;
 
   for (const trace of round.traces) {

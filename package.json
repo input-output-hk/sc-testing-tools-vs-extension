@@ -153,6 +153,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "db:generate": "drizzle-kit generate --dialect sqlite --schema ./src/services/history/schema.ts --out ./drizzle",
     "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview",
     "compile:extension": "tsc -p ./",
     "compile:server": "npm run build -w server",
