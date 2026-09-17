@@ -423,6 +423,7 @@ type TestResultHistory = {
   id: TestId;
   type?: TestType;
   status: RunStatus;
+  group: Array<string>;
   time?: number;
 };
 

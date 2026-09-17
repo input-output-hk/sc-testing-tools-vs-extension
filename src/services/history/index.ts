@@ -48,9 +48,10 @@ export default class History {
         packageName,
         suiteName,
         testId,
-        time: test.time,
-        status: test.status,
         type: test.type,
+        status: test.status,
+        group: test.group,
+        time: test.time,
       })
       .onConflictDoUpdate({
         target: [
@@ -61,35 +62,11 @@ export default class History {
           results.testId
         ],
         set: {
-          time: test.time,
-          status: test.status,
           type: test.type,
+          status: test.status,
+          group: test.group,
+          time: test.time,
         }
-      });
-  }
-
-  private async updateTestResult(runId: string, id: TestId, update: Partial<Test>): Promise<void> {
-    const [workspaceId, packageName, suiteName, testId] = id;
-    await this.db.insert(results)
-      .values({
-        runId,
-        workspaceId,
-        packageName,
-        suiteName,
-        testId,
-        status: update.status ?? 'undetermined',
-        time: update.time,
-        type: update.type,
-      })
-      .onConflictDoUpdate({
-        target: [
-          results.runId,
-          results.workspaceId,
-          results.packageName,
-          results.suiteName,
-          results.testId
-        ],
-        set: update
       });
   }
 
@@ -143,22 +120,18 @@ export default class History {
     }
   }
 
-  public async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {    
-    const update: Partial<Test> = {};
-    if (event.payload.time !== undefined) update.time = event.payload.time;
-    if (event.payload.status !== undefined) update.status = event.payload.status;
-    if (event.payload.type !== undefined) update.type = event.payload.type;
-    
-    await this.updateTestResult(event.testJobId, event.payload.id, update);
+  public async handleTestUpdateEvent(event: TestUpdateEvent, test: Test): Promise<void> {    
+    if (event.payload.time !== undefined) test.time = event.payload.time;
+    if (event.payload.status !== undefined) test.status = event.payload.status;
+    if (event.payload.type !== undefined) test.type = event.payload.type;
+
+    await this.upsertTestResult(event.testJobId, test);
   }
 
-  public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
+  public async handleTestContextEvent(event: TestContextEvent, test: Test): Promise<void> {
     if (event.payload.context.type !== undefined) {
-      await this.updateTestResult(
-        event.testJobId,
-        event.payload.context.testId,
-        { type: event.payload.context.type }
-      );
+      test.type = event.payload.context.type;
+      await this.upsertTestResult(event.testJobId, test);
     }
     for (const round of event.payload.rounds) {
       await this.upsertTestRound(event.testJobId, round);
@@ -191,8 +164,9 @@ export default class History {
           result.testId
         ] as TestId,
         type: result.type ?? 'unit-test',
-        time: result.time ?? undefined,
         status: result.status,
+        group: result.group,
+        time: result.time ?? undefined,
       }))
     }));
   }

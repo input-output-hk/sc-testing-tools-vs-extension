@@ -4,9 +4,10 @@ CREATE TABLE `results` (
 	`package_name` text NOT NULL,
 	`suite_name` text NOT NULL,
 	`test_id` text NOT NULL,
-	`time` integer,
-	`status` text NOT NULL,
 	`type` text,
+	`status` text NOT NULL,
+	`group` text NOT NULL,
+	`time` integer,
 	CONSTRAINT `results_pk` PRIMARY KEY(`run_id`, `workspace_id`, `package_name`, `suite_name`, `test_id`)
 );
 --> statement-breakpoint
