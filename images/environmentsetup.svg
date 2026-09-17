@@ -1,0 +1,66 @@
+<svg viewBox="0 0 800 450" width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text            { font-family: var(--vscode-font-family, "Segoe UI", system-ui, Ubuntu, sans-serif); }
+    .bg             { fill: var(--vscode-editor-background, #1e1e1e); }
+    .divider        { stroke: var(--vscode-panel-border, #454545); stroke-width: 1; }
+    .icon           { stroke: var(--vscode-descriptionForeground, #9d9d9d); stroke-width: 1.6; fill: none; }
+    .fg             { fill: var(--vscode-foreground, #cccccc); }
+    .muted          { fill: var(--vscode-descriptionForeground, #9d9d9d); }
+    .link           { fill: var(--vscode-textLink-foreground, #3794ff); }
+    .inputbg        { fill: var(--vscode-input-background, #313131); }
+    .inputselection { fill: var(--vscode-editor-selectionBackground, #4a4a4a); }
+    .tab            { fill: var(--vscode-button-secondaryBackground, #3a3d41); }
+    .dropdown       { fill: var(--vscode-dropdown-background, #313131); stroke: var(--vscode-dropdown-border, #454545); stroke-width: 1; }
+    .modified       { fill: var(--vscode-settings-modifiedItemIndicator, #b58900); }
+  </style>
+
+  <rect width="800" height="450" class="bg"/>
+
+  <!-- 1674x595 artwork scaled to fit a 16:9 canvas -->
+  <g transform="translate(0 82.8) scale(0.4779)">
+    <!-- Title bar -->
+    <g class="icon">
+      <line x1="30" y1="24" x2="46" y2="24"/>
+      <line x1="30" y1="34" x2="46" y2="34"/>
+      <circle cx="38" cy="24" r="2.4" fill="var(--vscode-editor-background, #1e1e1e)"/>
+      <circle cx="38" cy="34" r="2.4" fill="var(--vscode-editor-background, #1e1e1e)"/>
+    </g>
+    <text x="66" y="40" class="fg" font-size="26" font-weight="600">Settings</text>
+
+    <line x1="0" y1="76" x2="1674" y2="76" class="divider"/>
+
+    <!-- Search bar -->
+    <rect x="52" y="106" width="1622" height="58" rx="3" class="inputbg"/>
+    <rect x="52" y="106" width="450" height="58" rx="3" class="inputselection"/>
+    <text x="68" y="146" class="fg" font-size="24">pbt-extension.executionMode</text>
+
+    <!-- Tabs -->
+    <rect x="52" y="198" width="104" height="44" rx="4" class="tab"/>
+    <text x="76" y="228" class="fg" font-size="23">User</text>
+    <text x="176" y="228" class="muted" font-size="23">Remote [WSL: Ubuntu-24.04]</text>
+    <text x="636" y="228" class="muted" font-size="23">Workspace</text>
+
+    <line x1="0" y1="278" x2="1674" y2="278" class="divider"/>
+
+    <!-- Left tree -->
+    <path d="M92 320 L102 330 L112 320" class="icon" style="stroke-width: 2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="130" y="336" class="fg" font-size="24">Extensions (1)</text>
+    <text x="153" y="390" class="fg" font-size="24">PBT Configuration (1)</text>
+
+    <line x1="542" y1="298" x2="542" y2="595" class="divider"/>
+
+    <!-- Right content -->
+    <rect x="608" y="328" width="4" height="180" class="modified"/>
+
+    <text x="632" y="360" font-size="24">
+      <tspan class="fg">Pbt-extension: </tspan><tspan class="fg" font-weight="700">Execution Mode</tspan><tspan class="fg">  </tspan><tspan class="muted" font-style="italic">(Also modified in </tspan><tspan class="link" font-style="italic" text-decoration="underline">Workspace</tspan><tspan class="muted" font-style="italic">)</tspan>
+    </text>
+
+    <text x="632" y="417" class="muted" font-size="23">Select the mode for executing commands with PBT.</text>
+
+    <!-- Dropdown -->
+    <rect x="632" y="458" width="800" height="52" rx="3" class="dropdown"/>
+    <text x="652" y="494" class="fg" font-size="24">docker</text>
+    <path d="M1394 478 L1406 490 L1418 478" class="icon" style="stroke-width: 2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
