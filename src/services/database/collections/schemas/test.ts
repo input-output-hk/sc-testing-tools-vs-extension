@@ -45,6 +45,7 @@ const testSchemaLiteral = {
     isRunning: booleanSchema,
     isStatic: booleanSchema,
     type: testTypeSchema,
+    lastRunId: stringSchema,
     location: {
       type: 'object',
       properties: {

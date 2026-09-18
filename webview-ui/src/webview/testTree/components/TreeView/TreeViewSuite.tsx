@@ -5,13 +5,14 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 import TreeViewNode from './TreeViewNode';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { nodeMatchesFilter } from '../../utils/treeUtils';
+import { nodeMatchesFilter, sortTreeNodes } from '../../utils/treeUtils';
 import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewSuiteProps {
   packageId: TestPackageId;
   suite: TestSuite;
   filter: TestTreeFilter;
+  sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -32,6 +33,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   packageId,
   suite,
   filter,
+  sortBy,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -57,8 +59,9 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
   const filteredNodes = useMemo(
     () =>
       Object.values(suite.tests)
-        .filter(node => nodeMatchesFilter(node, filter)),
-    [suite.tests, filter],
+        .filter(node => nodeMatchesFilter(node, filter))
+        .sort(sortTreeNodes(sortBy)),
+    [suite.tests, filter, sortBy],
   );
 
   const handleRunSuite = (event: React.MouseEvent): void => {
@@ -137,6 +140,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
           node={node}
           path={[]}
           filter={filter}
+          sortBy={sortBy}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

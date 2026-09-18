@@ -28,13 +28,6 @@ import {
   type CoverageDocumentData
 } from './schemas/coverage';
 
-import {
-  roundSchema,
-  type RoundCollection,
-  type RoundDocument,
-  type RoundDocumentData
-} from './schemas/round';
-
 export const databaseCollections = {
   packages: {
     schema: packageSchema,
@@ -48,9 +41,6 @@ export const databaseCollections = {
   coverage: {
     schema: coverageSchema,
   },
-  rounds: {
-    schema: roundSchema,
-  },
 };
 
 export type DatabaseCollections = {
@@ -58,7 +48,6 @@ export type DatabaseCollections = {
   suites: SuiteCollection,
   tests: TestCollection,
   coverage: CoverageCollection,
-  rounds: RoundCollection,
 };
 
 export type Database = RxDatabase<DatabaseCollections>;
@@ -72,6 +61,4 @@ export type {
   TestDocumentData,
   CoverageDocument,
   CoverageDocumentData,
-  RoundDocument,
-  RoundDocumentData,
 };

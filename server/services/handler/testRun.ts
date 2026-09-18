@@ -20,6 +20,7 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
       )) {
         try {
           const testEvent = parseTestEvent(
+            job.id,
             job.params.workspace.id,
             testRun.packageName,
             testRun.suiteName,

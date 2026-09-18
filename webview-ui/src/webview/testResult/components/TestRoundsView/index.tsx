@@ -8,6 +8,7 @@ import {
 
 import ScrollableTable from '../../../../components/ScrollableTable';
 import Toolbar from './Toolbar';
+import Tooltip from '../../../../components/Tooltip';
 import TransitionRoundRow from './TransitionRoundRow';
 import ThreatModelRoundRow from './ThreatModelRoundRow';
 
@@ -46,9 +47,9 @@ const roundHasMint = (round: TestRound, testType?: TestType): boolean =>
 const filterRounds = (rounds: Array<TestRound>, filter: string | null, testType?: TestType): Array<TestRound> => {
   switch (filter) {
     case 'failed-rounds':
-      return rounds.filter(round => round.status.status === 'failure');
+      return rounds.filter(round => round.status === 'failure');
     case 'skipped-rounds':
-      return rounds.filter(round => round.status.status === 'discarded');
+      return rounds.filter(round => round.status === 'discarded');
     case 'mint-transactions':
       return rounds.filter(round => roundHasMint(round, testType));
     default:
@@ -86,29 +87,32 @@ const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGra
   };
 
   return (
-    <div className="flex flex-col h-full border border-base-14">
-      <Toolbar
-        selectedFilter={selectedFilter}
-        onSelectFilter={handleSelectFilter}
-      />
-      <ScrollableTable
-        key={test.id.join(':')}
-        isActive={isActive}
-      >
-        <TableHeader
-          headers={test.type !== 'threat-model' ?
-            ['Rounds', 'Valid Txs', 'Invalid Txs', 'Inputs', 'Outputs', 'Mints'] :
-            ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
-          }
+    <>
+      <div className="flex flex-col h-full border border-base-14">
+        <Toolbar
+          selectedFilter={selectedFilter}
+          onSelectFilter={handleSelectFilter}
         />
-        <TableBody
-          testType={test.type}
-          testRounds={filterRounds(testRounds, selectedFilter, test.type)}
-          onOpenGraph={onOpenGraph}
-        />
-      </ScrollableTable>
-    </div>
+        <ScrollableTable
+          key={test.id.join(':')}
+          isActive={isActive}
+        >
+          <TableHeader
+            headers={test.type !== 'threat-model' ?
+              ['Rounds', 'Valid Txs', 'Invalid Txs', 'Inputs', 'Outputs', 'Mints'] :
+              ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
+            }
+          />
+          <TableBody
+            testType={test.type}
+            testRounds={filterRounds(testRounds, selectedFilter, test.type)}
+            onOpenGraph={onOpenGraph}
+          />
+        </ScrollableTable>
+        <Tooltip id="round-row-action" place="right" />
+      </div>
+    </>
   );
-}
+};
 
 export default TestRoundsView;

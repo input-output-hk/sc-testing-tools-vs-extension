@@ -5,7 +5,7 @@ interface Props {
   status: TestRoundStatus;
 }
 
-const mapRoundStatusToIcon = (status: TestRoundStatus['status']): string => {
+const mapRoundStatusToIcon = (status: TestRoundStatus): string => {
   switch (status) {
     case 'success':
       return 'codicon-pass text-[var(--vscode-testing-iconPassed)]';
@@ -17,11 +17,11 @@ const mapRoundStatusToIcon = (status: TestRoundStatus['status']): string => {
 };
 
 const mapRoundStatusToTooltip = (status: TestRoundStatus): string => {
-  switch (status.status) {
+  switch (status) {
     case 'success':
       return 'Successful Round';
     case 'failure':
-      return status.message ? `Failed Round ${status.message}` : 'Failed Round';
+      return 'Failed Round';
     case 'discarded':
       return 'Skipped Round';
   }
@@ -34,7 +34,7 @@ const RoundStatusIcon: React.FC<Props> = ({ roundId, status }) => {
     <>
       <i
         id={tooltipId}
-        className={`translate-y-0.75 ml-1 mr-0.5 codicon ${mapRoundStatusToIcon(status.status)}`}
+        className={`translate-y-0.75 ml-1 mr-0.5 codicon ${mapRoundStatusToIcon(status)}`}
       />
       <Tooltip
         content={mapRoundStatusToTooltip(status)}

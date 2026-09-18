@@ -42,6 +42,7 @@ type Test = {
   time?: number;
   percentage?: number;
   type?: TestType;
+  lastRunId?: string;
   hasCoverage?: boolean;
 };
 
@@ -150,35 +151,34 @@ type TestTreeFilter = {
   status?: RunStatus;
 }
 
+type SortBy = "location" | "status";
+
 // Test Result
+
+type TestRoundType = "positive" | "negative" | "threat-model";
+
+type TestRoundStatus = "success" | "failure" | "discarded";
 
 type TestRound = {
   id: number;
   testId: TestId;
-  type?: "positive" | "negative" | "threat-model";
+  type: TestRoundType;
   status: TestRoundStatus;
 };
 
-type TestRoundStatus = {
-  status: "success";
-} | {
-  status: "failure";
-  message: string;
-} | {
-  status: "discarded";
-  message: string;
-};
-
 type TransitionTestRound = TestRound & {
-  type?: "positive" | "negative";
-  threatModelTestIds: Array<TestId>;
+  type: "positive" | "negative";
   transitions: Array<TestTransition>;
 };
 
 type ThreatModelTestRound = TestRound & {
   type: "threat-model";
-  parentTestId: TestId;
   traces: Array<ThreatModelTrace>;
+};
+
+type TestRoundData = {
+  transitions?: Array<TestTransition>;
+  traces?: Array<ThreatModelTrace>;
 };
 
 type TestTransition = {
@@ -411,6 +411,24 @@ type GraphTx = {
   withdrawals: Array<GraphNodeUTxO>;
 };
 
+// Test History
+
+type TestRunHistory = {
+  runId: string;
+  status: TestJobStatus;
+  startedOn: number;
+  finishedOn?: number;
+  tests: Array<TestResultHistory>;
+};
+
+type TestResultHistory = {
+  id: TestId;
+  type?: TestType;
+  status: RunStatus;
+  group: Array<string>;
+  time?: number;
+};
+
 // Coverage
 
 type CoverageStatements = GenericMap<Array<string>>;
@@ -457,12 +475,11 @@ type CoverageTreeFolderNode = CoverageTreeNode & {
   nodes: CoverageTree;
 };
 
-// Webview message
+// Webview Message
 
 type TestTreeUpdate =
 | { type: 'test', test: Test }
-| { type: 'suite', suite: TestTreeSuiteUpdate }
-| { type: 'tree', packages: Array<TestTreePackageUpdate> };
+| { type: 'suite', suite: TestTreeSuiteUpdate };
 
 type TestTreePackageUpdate = {
   packageId: TestPackageId;
@@ -508,6 +525,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
+  | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
@@ -553,6 +571,8 @@ type TestRunParams = {
   testIds: Array<RunnableTestId>;
 };
 
+// Test Job
+
 type TestJobStatus = "waiting" | "running" | "success" | "failed";
 type TestJobType = "run" | "build";
 
@@ -576,10 +596,13 @@ type TestRunJob = TestJob & {
   params: TestRunParams;
 };
 
+// Test Event
+
 type TestEventType = "test-suite-update" | "test-update" | "test-context" | "test-run-update" | "test-run-error";
 
 type TestEvent = {
   eventType: TestEventType;
+  testJobId: string;
   payload: unknown;
 };
 

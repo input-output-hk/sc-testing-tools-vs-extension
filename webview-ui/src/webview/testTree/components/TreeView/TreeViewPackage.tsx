@@ -15,6 +15,7 @@ import { formatRunTime } from '../../../../utils/format';
 interface TreeViewPackageProps {
   testPackage: TestPackage;
   filter: TestTreeFilter;
+  sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -34,6 +35,7 @@ interface TreeViewPackageProps {
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
   filter,
+  sortBy,
   onRunTest,
   onBuildTestSuite,
   onUpdateSelection,
@@ -130,6 +132,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           packageId={packageId}
           suite={suite}
           filter={filter}
+          sortBy={sortBy}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateSelection={onUpdateSelection}

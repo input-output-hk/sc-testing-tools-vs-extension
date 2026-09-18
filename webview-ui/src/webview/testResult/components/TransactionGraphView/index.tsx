@@ -4,6 +4,7 @@ import Toolbar from './Toolbar';
 import Graph from './Graph';
 import GraphTimeline from './GraphTimeline';
 import GraphExplorer from './GraphExplorer';
+import Tooltip from '../../../../components/Tooltip';
 
 interface Handle {
   showRoundNode: (round: TestRound, nodeId?: string) => void;
@@ -104,6 +105,8 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
           />
         </div>
       </div>
+      <Tooltip id="graph-toolbar-action" place="bottom" />
+      <Tooltip id="graph-node-action" place="top" />
     </div>
   );
 });
