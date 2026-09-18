@@ -216,12 +216,16 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     isStatic: testDocument.isStatic,
     location: testDocument.location ? {
       uri: testDocument.location.uri,
-      range: new Range(
-        testDocument.location.range.start.line,
-        testDocument.location.range.start.character,
-        testDocument.location.range.end.line,
-        testDocument.location.range.end.character
-      )
+      range: {
+        start: {
+          line: testDocument.location.range.start.line,
+          character: testDocument.location.range.start.character,
+        },
+        end: {
+          line: testDocument.location.range.end.line,
+          character: testDocument.location.range.end.character,
+        },
+      },
     } : undefined,
     time: testDocument.time,
     percentage: testDocument.percentage,

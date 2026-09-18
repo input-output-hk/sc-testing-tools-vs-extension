@@ -20,6 +20,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
   const [activeView, setActiveView] = useState<null | 'empty-workspaces' | 'empty-tree' | 'tree' | 'error'>(null);
   const [testTree, setTestTree] = useState<TestTree | null>(null);
   const [testJob, setTestJob] = useState<TestJob | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>('location');
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -49,6 +50,9 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
       }
       if (message.type === 'test-tree-test-run-update') {
         setTestJob(message.payload.job);
+      }
+      if (message.type === 'test-tree-set-sort') {
+        setSortBy(message.payload.sortBy);
       }
     };
 
@@ -123,6 +127,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
         <TreeView
           testJob={testJob}
           testTree={testTree}
+          sortBy={sortBy}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

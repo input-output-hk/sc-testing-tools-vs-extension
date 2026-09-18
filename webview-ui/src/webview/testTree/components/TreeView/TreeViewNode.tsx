@@ -6,6 +6,7 @@ interface TreeViewNodeProps {
   node: TestTreeNode;
   path: Array<string>;
   filter: TestTreeFilter;
+  sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -26,6 +27,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   node,
   path,
   filter,
+  sortBy,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -40,6 +42,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       node={node as TestTreeGroupNode}
       path={path}
       filter={filter}
+      sortBy={sortBy}
       onRunTest={onRunTest}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
       onUpdateSelection={onUpdateSelection}
