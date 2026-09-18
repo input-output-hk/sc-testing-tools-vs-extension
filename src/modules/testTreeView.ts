@@ -41,6 +41,12 @@ export default class TestTreeView {
     vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
 
+  public refreshTestTree(): void {
+    if (this.webview) {
+      this.checkWorkspaceAndFetchTestTree();
+    }
+  }
+
   private onWebviewResolved(webview: vscode.Webview): void {
     this.webview = webview;
 
