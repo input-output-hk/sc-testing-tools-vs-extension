@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   VscodeTableHeader,
   VscodeTableHeaderCell,
@@ -5,6 +7,7 @@ import {
 } from '@vscode-elements/react-elements';
 
 import ScrollableTable from '../../../../components/ScrollableTable';
+import Toolbar from './Toolbar';
 import Tooltip from '../../../../components/Tooltip';
 import TransitionRoundRow from './TransitionRoundRow';
 import ThreatModelRoundRow from './ThreatModelRoundRow';
@@ -36,6 +39,24 @@ const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
   </VscodeTableHeader>
 );
 
+const roundHasMint = (round: TestRound, testType?: TestType): boolean =>
+  testType === 'threat-model' ?
+    (round as ThreatModelTestRound).traces.some(trace => (trace.tx?.mint?.assets.length ?? 0) > 0) :
+    (round as TransitionTestRound).transitions.some(transition => (transition.tx?.mint?.assets.length ?? 0) > 0);
+
+const filterRounds = (rounds: Array<TestRound>, filter: string | null, testType?: TestType): Array<TestRound> => {
+  switch (filter) {
+    case 'failed-rounds':
+      return rounds.filter(round => round.status === 'failure');
+    case 'skipped-rounds':
+      return rounds.filter(round => round.status === 'discarded');
+    case 'mint-transactions':
+      return rounds.filter(round => roundHasMint(round, testType));
+    default:
+      return rounds;
+  }
+};
+
 const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph }) => (
   <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-base-14 border-x-base-14">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
@@ -58,26 +79,40 @@ const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph
   </VscodeTableBody>
 );
 
-const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => (
-  <>
-    <ScrollableTable
-      key={test.id.join(':')}
-      isActive={isActive}
-    >
-      <TableHeader
-        headers={test.type !== 'threat-model' ?
-          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
-          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
-        }
-      />
-      <TableBody
-        testType={test.type}
-        testRounds={testRounds}
-        onOpenGraph={onOpenGraph}
-      />
-    </ScrollableTable>
-    <Tooltip id="round-row-action" place="right" />
-  </>
-)
+const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => {
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
+  const handleSelectFilter = (value: string) => {
+    setSelectedFilter(current => current === value ? null : value);
+  };
+
+  return (
+    <>
+      <div className="flex flex-col h-full border border-base-14">
+        <Toolbar
+          selectedFilter={selectedFilter}
+          onSelectFilter={handleSelectFilter}
+        />
+        <ScrollableTable
+          key={test.id.join(':')}
+          isActive={isActive}
+        >
+          <TableHeader
+            headers={test.type !== 'threat-model' ?
+              ['Rounds', 'Valid Txs', 'Invalid Txs', 'Inputs', 'Outputs', 'Mints'] :
+              ['Rounds', 'Valid Txs', 'Invalid Txs', 'Inputs', 'Outputs', 'Mints', 'Attacks']
+            }
+          />
+          <TableBody
+            testType={test.type}
+            testRounds={filterRounds(testRounds, selectedFilter, test.type)}
+            onOpenGraph={onOpenGraph}
+          />
+        </ScrollableTable>
+        <Tooltip id="round-row-action" place="right" />
+      </div>
+    </>
+  );
+};
 
 export default TestRoundsView;

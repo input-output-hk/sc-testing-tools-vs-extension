@@ -1,41 +1,24 @@
 import { useState } from 'react';
 
 import Tabs from '../Tabs';
-import type { TabItem } from '../Tabs';
-import GenericTable from './GenericTable';
+import { InputTable, OutputTable, MintTable, WithdrawalTable } from './SubTable';
 
-import { txValueToString } from '../../utils/txUtils';
+import type { TabItem } from '../Tabs';
 
 interface Props {
   round: TransitionTestRound;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
-interface TxTitleProps {
-  index: number;
-  txId?: string;
-  onClickTxId: () => void;
-}
-
-const TxTitle: React.FC<TxTitleProps> = ({ index, txId, onClickTxId }) => (
-  <h3 className="mb-3 text-base-10 font-bold">
-    {`Transaction #${index + 1}`}
-    {txId &&
-      <span
-        onClick={onClickTxId}
-        className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
-      >
-        {txId}
-      </span>
-    }
-  </h3>
-);
-
 const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   const [selectedTab, setSelectedTab] = useState<string>('inputs');
-  const transactions = round.transitions.filter(transition => transition.tx);
-  const hasMintTransaction = transactions.some(transition => (transition.tx?.mint?.assets.length ?? 0) > 0);
-  const effectiveSelectedTab = selectedTab === 'mints' && !hasMintTransaction ? 'inputs' : selectedTab;
+  const transitions = round.transitions.filter(transition => transition.tx);
+  const hasMints = transitions.some(transition => (transition.tx?.mint?.assets.length ?? 0) > 0);
+  const hasWithdrawals = transitions.some(transition => (transition.tx?.withdrawals.length ?? 0) > 0);
+  const effectiveSelectedTab =
+    selectedTab === 'mints' && !hasMints ? 'inputs' :
+    selectedTab === 'withdrawals' && !hasWithdrawals ? 'inputs' :
+    selectedTab;
 
   const tabs: Array<TabItem> = [
     {
@@ -43,27 +26,12 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
       label: 'Inputs',
       panel: (
         <div>
-          {transactions.map((transition, index) => (
-            <div key={index} className="p-3 mb-3 bg-base-19">
-              <TxTitle
-                index={index}
-                txId={transition.tx?.id}
-                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-              />
-              <GenericTable
-                columns={[
-                  { key: 'utxo', label: 'UTxO', clickable: true },
-                  { key: 'address', label: 'Address' },
-                  { key: 'amount', label: 'Amount' },
-                  { key: 'redeemer', label: 'Redeemer' }
-                ]}
-                rows={transition.tx?.inputs.map(input => ({
-                  utxo: input.utxo,
-                  address: input.address,
-                  amount: txValueToString(input.value),
-                  redeemer: input.redeemerRaw || ''
-                })) ?? []}
-                onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.inputs[index].utxo}`)}
+          {transitions.map((transition, index) => (
+            <div key={index}>
+              <InputTable
+                index={index} tx={transition.tx!}
+                tooltipId={`tx-graph-${round.id}-inputs-${index}`}
+                onClickNode={nodeId => onOpenGraph(round, nodeId)}
               />
             </div>
           ))}
@@ -75,29 +43,12 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
       label: 'Outputs',
       panel: (
         <div>
-          {transactions.map((transition, index) => (
-            <div key={index} className="p-3 mb-3 bg-base-19">
-              <TxTitle
-                index={index}
-                txId={transition.tx?.id}
-                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-              />
-              <GenericTable
-                columns={[
-                  { key: 'index', label: '#' },
-                  { key: 'utxo', label: 'UTxO', clickable: true },
-                  { key: 'address', label: 'Address' },
-                  { key: 'amount', label: 'Amount' },
-                  { key: 'datum', label: 'Datum' }
-                ]}
-                rows={transition.tx?.outputs.map(output => ({
-                  index: output.index,
-                  utxo: output.utxo,
-                  address: output.address,
-                  amount: txValueToString(output.value),
-                  datum: output.datum || ''
-                })) ?? []}
-                onClick={(index) => onOpenGraph(round, `utxo-${transition.tx?.outputs[index].utxo}`)}
+          {transitions.map((transition, index) => (
+            <div key={index}>
+              <OutputTable
+                index={index} tx={transition.tx!}
+                tooltipId={`tx-graph-${round.id}-outputs-${index}`}
+                onClickNode={nodeId => onOpenGraph(round, nodeId)}
               />
             </div>
           ))}
@@ -106,33 +57,47 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
     },
   ];
 
-  if (hasMintTransaction) {
+  if (hasMints) {
     tabs.push({
       id: 'mints',
       label: 'Mints',
       panel: (
         <div>
-          {transactions.map((transition, index) => (
-            <div key={index} className="p-3 mb-3 bg-base-19">
-              <TxTitle
-                index={index}
-                txId={transition.tx?.id}
-                onClickTxId={() => onOpenGraph(round, `tx-${transition.tx?.id}`)}
-              />
-              <GenericTable
-                columns={[
-                  { key: 'quantity', label: 'Quantity' },
-                  { key: 'name', label: 'Name' },
-                  { key: 'policyId', label: 'Policy ID' }
-                ]}
-                rows={transition.tx?.mint?.assets.map(mint => ({
-                  quantity: mint.quantity,
-                  name: mint.name,
-                  policyId: mint.policyId
-                })) ?? []}
-              />
-            </div>
-          ))}
+          {transitions
+            .filter(transition => transition.tx?.mint)
+            .map((transition, index) => (
+              <div key={index}>
+                <MintTable
+                  index={index} tx={transition.tx!}
+                  tooltipId={`tx-graph-${round.id}-mints-${index}`}
+                  onClickNode={nodeId => onOpenGraph(round, nodeId)}
+                />
+              </div>
+            ))
+          }
+        </div>
+      ),
+    });
+  }
+
+  if (hasWithdrawals) {
+    tabs.push({
+      id: 'withdrawals',
+      label: 'Withdrawals',
+      panel: (
+        <div>
+          {transitions
+            .filter(transition => transition.tx!.withdrawals.length > 0)
+            .map((transition, index) => (
+              <div key={index}>
+                <WithdrawalTable
+                  index={index} tx={transition.tx!}
+                  tooltipId={`tx-graph-${round.id}-withdrawals-${index}`}
+                  onClickNode={nodeId => onOpenGraph(round, nodeId)}
+                />
+              </div>
+            ))
+          }
         </div>
       ),
     });
@@ -140,7 +105,8 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
 
   return (
     <div className="relative z-1">
-      <Tabs className="px-3 pt-1 bg-base-20"
+      <Tabs
+        className="px-3 pt-3 pb-1 bg-base-20"
         panelClassName="mt-3"
         selectedId={effectiveSelectedTab}
         onSelect={setSelectedTab}

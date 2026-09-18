@@ -213,6 +213,26 @@ export type ThreatModelTraceOutcome =
       status: "error";
       [k: string]: unknown;
     };
+export type ThreatModelValidation =
+  | {
+      status: "valid";
+      [k: string]: unknown;
+    }
+  | {
+      errors: string[];
+      status: "phase1_invalid";
+      [k: string]: unknown;
+    }
+  | {
+      errors: string[];
+      status: "phase2_invalid";
+      [k: string]: unknown;
+    }
+  | {
+      reason: string;
+      status: "rebalance_failed";
+      [k: string]: unknown;
+    };
 export type TransitionResult =
   | {
       status: "success";
@@ -283,6 +303,7 @@ export interface MonitoringTableEntry {
   [k: string]: unknown;
 }
 export interface ThreatModelSummary {
+  category: "claimed" | "expected" | "accepted";
   errors: number;
   failed: number;
   name: string;
@@ -301,6 +322,7 @@ export interface IterationTrace {
   [k: string]: unknown;
 }
 export interface ThreatModelTrace {
+  category: "claimed" | "expected" | "accepted";
   covered: SrcLocRanges[];
   modifications: TxMod[];
   modifiedTx: TxSummary | null;
@@ -309,6 +331,7 @@ export interface ThreatModelTrace {
   outcome: ThreatModelTraceOutcome;
   targetTxIndex: number;
   testId: number;
+  validation: ThreatModelValidation | null;
   [k: string]: unknown;
 }
 export interface ValueSummary {

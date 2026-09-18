@@ -46,7 +46,7 @@
       {
         "command": "pbt-extension.stopTestRun",
         "title": "PBT: Stop All Tests",
-        "icon": "$(debug-stop)"
+        "icon": "$(stop-circle)"
       },
       {
         "command": "pbt-extension.refreshTestConfiguration",

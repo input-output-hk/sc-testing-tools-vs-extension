@@ -5,6 +5,8 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
+import Tooltip from '../../../../components/Tooltip';
+import RoundStatusIcon from './RoundStatusIcon';
 import ThreatModelRoundSubTable from './ThreatModelRoundSubTable';
 
 interface Props {
@@ -23,40 +25,39 @@ type RoundCellProps = {
 });
 
 interface RoundStats {
-  transactions: number;
+  validTxs: number;
+  invalidTxs: number;
   inputs: number;
   outputs: number;
   mints: number;
   attacks: number;
   roundHasError: boolean;
-  txHasError: boolean;
 }
 
 const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
-  let transactions = 0;
+  let validTxs = 0;
+  let invalidTxs = 0;
   let inputs = 0;
   let outputs = 0;
   let mints = 0;
   let attacks = 0;
 
   const roundHasError = round.status === 'failure';
-  let txHasError = false;
 
   for (const trace of round.traces) {
     if (trace.tx) {
-      transactions += 1;
+      validTxs += 1;
       inputs += trace.tx.inputs.length;
       outputs += trace.tx.outputs.length;
       mints += trace.tx.mint ? trace.tx.mint.assets.length : 0;
-
-      if (!txHasError && trace.outcome.status === 'failed') {
-        txHasError = true;
-      }
+    }
+    if (trace.modifiedTx && trace.validation?.status !== 'valid') {
+      invalidTxs += 1;
     }
     attacks += trace.modifiedTx ? 1 : 0;
   }
 
-  return { transactions, inputs, outputs, mints, attacks, roundHasError, txHasError };
+  return { validTxs, invalidTxs, inputs, outputs, mints, attacks, roundHasError };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
@@ -73,7 +74,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 
 const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { transactions, inputs, outputs, mints, attacks, roundHasError, txHasError } = getRoundStats(round);
+  const { validTxs, invalidTxs, inputs, outputs, mints, attacks, roundHasError } = getRoundStats(round);
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -95,27 +96,27 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>
+            <RoundStatusIcon roundId={round.id} status={round.status} />
             <button
+              id={`round-graph-${round.id}`}
               className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
             >
               {round.id}
             </button>
+            <Tooltip
+              content="View Graph"
+              id={`round-graph-${round.id}`}
+              place="bottom-start"
+              positionStrategy="fixed"
+            />
             {roundHasError &&
               <i className="translate-y-0.75 codicon codicon-error text-red-01" />
             }
           </span>
         </RoundCell>
-        <RoundCell>
-            <span className="relative">
-              {transactions}
-              {txHasError &&
-                <span className="absolute -right-6 top-0">
-                  <i className="codicon codicon-warning text-[#E37933]" />
-                </span>
-              }
-            </span>
-        </RoundCell>
+        <RoundCell value={validTxs} />
+        <RoundCell value={invalidTxs} />
         <RoundCell value={inputs} />
         <RoundCell value={outputs} />
         <RoundCell value={mints} />
@@ -123,7 +124,7 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
       </VscodeTableRow>
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
-          <td colSpan={6} className="px-3 pb-3">
+          <td colSpan={7} className="px-3 pb-3">
             <ThreatModelRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>
