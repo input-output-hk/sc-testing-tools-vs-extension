@@ -171,8 +171,8 @@ function collectTests(options: {
     return;
   }
 
-  idState.counter += 1;
   const testKey = `${workspace.id}:${packageName}:${suiteName}:${idState.counter}`;
+  idState.counter += 1;
   tests[testKey] = {
     id: testKey.split(':') as TestId,
     name: normalizeNodeLabel(node.label, node.kind),

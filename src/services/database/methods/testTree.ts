@@ -3,6 +3,52 @@ import { createTestTree } from '../../../utils/testTree';
 
 import type { Database, PackageDocument, SuiteDocument, TestDocument } from '../collections';
 
+export const refreshStaticTestTree = async (database: Database, testTree: StaticTestTree): Promise<void> => {
+  const packages = new Set<string>(Object.keys(testTree.packages));
+  const packageDocuments = await database.packages.find().exec();
+  for (const packageDocument of packageDocuments) {
+    const { workspaceId, packageName } = packageDocument;
+    const packageId = `${workspaceId}:${packageName}`;
+    const packageQuery = { selector: { workspaceId, packageName } };
+    if (!packages.has(packageId)) {
+      await packageDocument.remove();
+      await database.suites.find(packageQuery).remove();
+      await database.tests.find(packageQuery).remove();
+    } else {
+      packages.delete(packageId);
+      const suites = new Set<string>(Object.keys(testTree.packages[packageId].suites));
+      const suiteDocuments = await database.suites.find(packageQuery).exec();
+      for (const suiteDocument of suiteDocuments) {
+        const { suiteName } = suiteDocument;
+        const suiteQuery = { selector: { workspaceId, packageName, suiteName } };
+        if (!suites.has(suiteName)) {
+          await suiteDocument.remove();
+          await database.tests.find(suiteQuery).remove();
+        } else {
+          const tests = new Set<string>(Object.keys(testTree.packages[packageId].suites[suiteName].tests));
+          const testDocuments = await database.tests.find(suiteQuery).exec();
+          if (tests.size !== testDocuments.length) {
+            await suiteDocument.remove();
+            await database.tests.find(suiteQuery).remove();
+          } else {
+            suites.delete(suiteName);
+          }
+        }
+      }
+      for (const suiteName of suites) {
+        await storeStaticTestSuite(database, testTree.packages[packageId].suites[suiteName]);
+      }
+    }
+  }
+  if (packages.size > 0) {
+    const createTree: StaticTestTree = { packages: {} };
+    for (const packageId of packages) {
+      createTree.packages[packageId] = testTree.packages[packageId];
+    }
+    await storeStaticTestTree(database, createTree);
+  }
+};
+
 export const storeStaticTestTree = async (database: Database, testTree: StaticTestTree): Promise<void> => {
   for (const testPackage of Object.values(testTree.packages)) {
     await database.packages.upsert({
@@ -16,9 +62,9 @@ export const storeStaticTestTree = async (database: Database, testTree: StaticTe
       await storeStaticTestSuite(database, suite);
     }
   }
-}
+};
 
-export const storeStaticTestSuite = async (database: Database, testSuite: StaticTestSuite): Promise<void> => {
+const storeStaticTestSuite = async (database: Database, testSuite: StaticTestSuite): Promise<void> => {
   const suiteDocument: SuiteDocument | null = await database.suites.findOne({
     selector: {
       id: testSuite.id.join(':')
@@ -52,7 +98,7 @@ export const storeStaticTestSuite = async (database: Database, testSuite: Static
   }
 
   await storeStaticTestList(database, testSuite.id, testSuite.tests);
-}
+};
 
 const storeStaticTestList = async (database: Database, testSuiteId: TestSuiteId, testList: GenericMap<Test>): Promise<void> => {
   if (await shouldUpdateSuiteTestList(database, testSuiteId, testList)) {
@@ -80,7 +126,7 @@ const storeStaticTestList = async (database: Database, testSuiteId: TestSuiteId,
       percentage: test.percentage,
     }))
   );
-}
+};
 
 export const fetchTestTree = async (database: Database, openState: Record<string, boolean>): Promise<TestTree> => {
   const testTree: TestTree = { packages: {} };
@@ -168,7 +214,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
   }
 
   return testTree;
-}
+};
 
 export const handleTestRunStop = async (database: Database): Promise<void> => {
   database.suites.find().update({ $set: { isWaiting: false, isRunning: false } });
@@ -178,4 +224,4 @@ export const handleTestRunStop = async (database: Database): Promise<void> => {
 export const clearTestTreeResults = async (database: Database): Promise<void> => {
   await database.suites.find().update({ $set: { status: 'undetermined', time: undefined } });
   await database.tests.find().update({ $set: { status: 'undetermined', time: undefined } });
-}
+};
