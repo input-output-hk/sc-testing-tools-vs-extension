@@ -5,9 +5,10 @@ interface RoundsAccordionProps {
     title: string;
     rounds: Array<number>;
     defaultOpen?: boolean;
+    onSelectRound: (roundId: number) => void;
 }
 
-const RoundsAccordion: React.FC<RoundsAccordionProps> = ({ title, rounds, defaultOpen = false }) => {
+const RoundsAccordion: React.FC<RoundsAccordionProps> = ({ title, rounds, defaultOpen = false, onSelectRound }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -25,6 +26,7 @@ const RoundsAccordion: React.FC<RoundsAccordionProps> = ({ title, rounds, defaul
             key={round}
             type="button"
             className={`px-3 py-1 rounded-md border border-base-12 text-base-06 cursor-pointer hover:bg-base-19`}
+            onClick={() => onSelectRound(round)}
           >
             {round}
           </button>

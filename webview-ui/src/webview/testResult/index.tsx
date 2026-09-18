@@ -8,6 +8,7 @@ import TransactionGraphView from './components/TransactionGraphView';
 
 import type { WebviewApi } from 'vscode-webview';
 import type { TransactionGraphViewRef } from './components/TransactionGraphView';
+import type { TestRoundsViewRef } from './components/TestRoundsView';
 
 const TEST_ROUNDS_TAB = 'rounds';
 const TX_GRAPH_TAB = 'graph';
@@ -18,6 +19,7 @@ interface Props {
 
 const TestResultView: React.FC<Props> = ({ vscode }) => {
   const graphRef = useRef<TransactionGraphViewRef>(null);
+  const testRoundsRef = useRef<TestRoundsViewRef>(null);
   const [test, setTest] = useState<Test|null>(null);
   const [testRounds, setTestRounds] = useState<Array<TestRound>>([]);
   const [selectedTab, setSelectedTab] = useState<string>(TEST_ROUNDS_TAB);
@@ -30,6 +32,12 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-result') {
         setTest(message.payload.test);
         setTestRounds(message.payload.rounds);
+      }
+      if (message.type === 'test-result-highlight-round') {
+        setSelectedTab(TEST_ROUNDS_TAB);
+        requestAnimationFrame(() =>
+          testRoundsRef.current?.highlightRound(message.payload.roundId)
+        );
       }
     };
 
@@ -78,6 +86,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
                   testRounds={testRounds}
                   onOpenGraph={handleOpenGraph}
                   isActive={selectedTab === TEST_ROUNDS_TAB}
+                  ref={testRoundsRef}
                 />
               ),
             },

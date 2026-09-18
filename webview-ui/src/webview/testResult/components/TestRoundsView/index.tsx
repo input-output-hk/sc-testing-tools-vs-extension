@@ -1,3 +1,5 @@
+import { useRef, forwardRef, useImperativeHandle } from 'react';
+
 import {
   VscodeTableHeader,
   VscodeTableHeaderCell,
@@ -7,6 +9,12 @@ import {
 import ScrollableTable from '../../../../components/ScrollableTable';
 import TransitionRoundRow from './TransitionRoundRow';
 import ThreatModelRoundRow from './ThreatModelRoundRow';
+
+import type { RoundRowHandle } from './TransitionRoundRow';
+
+interface Handle {
+  highlightRound: (roundId: number) => void;
+}
 
 interface Props {
   test: Test;
@@ -23,6 +31,7 @@ interface TableBodyProps {
   testType?: TestType;
   testRounds: Array<TestRound>;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
+  registerRowRef: (roundId: number, handle: RoundRowHandle | null) => void;
 }
 
 const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
@@ -35,7 +44,7 @@ const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
   </VscodeTableHeader>
 );
 
-const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph }) => (
+const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph, registerRowRef }) => (
   <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-base-14 border-x-base-14">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
       testType !== 'threat-model' ? (
@@ -44,6 +53,7 @@ const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph
           index={index}
           round={round as TransitionTestRound}
           onOpenGraph={onOpenGraph}
+          ref={(handle) => registerRowRef(round.id, handle)}
         />
       ) : (
         <ThreatModelRoundRow
@@ -51,29 +61,49 @@ const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph
           index={index}
           round={round as ThreatModelTestRound}
           onOpenGraph={onOpenGraph}
+          ref={(handle) => registerRowRef(round.id, handle)}
         />
       )
     )}
   </VscodeTableBody>
 );
 
-const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGraph }) => (
-  <ScrollableTable
-    key={test.id.join(':')}
-    isActive={isActive}
-  >
-    <TableHeader
-      headers={test.type !== 'threat-model' ?
-        ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
-        ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
-      }
-    />
-    <TableBody
-      testType={test.type}
-      testRounds={testRounds}
-      onOpenGraph={onOpenGraph}
-    />
-  </ScrollableTable>
-)
+const TestRoundsView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(
+  ({ test, testRounds, isActive, onOpenGraph }, ref) => {
+  const rowRefs = useRef<Map<number, RoundRowHandle>>(new Map());
 
+  const registerRowRef = (roundId: number, handle: RoundRowHandle | null): void => {
+    if (handle) {
+      rowRefs.current.set(roundId, handle);
+    } else {
+      rowRefs.current.delete(roundId);
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    highlightRound: (roundId: number): void => rowRefs.current.get(roundId)?.highlight()
+  }));
+
+  return (
+    <ScrollableTable
+      key={test.id.join(':')}
+      isActive={isActive}
+    >
+      <TableHeader
+        headers={test.type !== 'threat-model' ?
+          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
+          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
+        }
+      />
+      <TableBody
+        testType={test.type}
+        testRounds={testRounds}
+        onOpenGraph={onOpenGraph}
+        registerRowRef={registerRowRef}
+      />
+    </ScrollableTable>
+  );
+});
+
+export type { Handle as TestRoundsViewRef };
 export default TestRoundsView;

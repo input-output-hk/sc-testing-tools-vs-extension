@@ -37,6 +37,11 @@ export default class TestSummaryView {
           case 'webview-ready':
             this.sendTestSummary();
             break;
+          case 'test-summary-open-round':
+            if (this.testId !== null) {
+              this.context.testResultView.highlightRound(this.testId, message.payload.roundId);
+            }
+            break;
         }
       },
       undefined,

@@ -38,6 +38,10 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
     };
   }, [vscode]);
 
+  const onSelectRound = (roundId: number) => {
+    vscode.postMessage({ type: 'test-summary-open-round', payload: { roundId } } as WebviewToExtensionMessage);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 flex flex-col">
@@ -69,8 +73,8 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
                   </table>
                 </div>
 
-                <RoundsAccordion title="Failed Rounds" rounds={testSummary.rounds.failed.failedRounds} defaultOpen />
-                <RoundsAccordion title="Valid Rounds" rounds={testSummary.rounds.valid.validRounds} />
+                <RoundsAccordion title="Failed Rounds" rounds={testSummary.rounds.failed.failedRounds} defaultOpen onSelectRound={onSelectRound} />
+                <RoundsAccordion title="Valid Rounds" rounds={testSummary.rounds.valid.validRounds} onSelectRound={onSelectRound} />
               </>
               : <div className="mt-4 text-base-06">This test has no rounds.</div>
             }
