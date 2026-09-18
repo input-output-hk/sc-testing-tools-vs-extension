@@ -102,7 +102,6 @@ export default class TestStore {
   private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
     this.updateTestJob(event);
     await this.history.handleTestRunUpdateEvent(event);
-    this.history.getTestRuns().then(console.log);
   }
 
   private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {

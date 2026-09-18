@@ -431,10 +431,9 @@ const mapThreatModelTestRoundToGraphData = (
     if (mode === 'attack-timeline' && index > stepIndex) {
       break;
     }
-    const status: GraphNodeTx['status'] = trace.outcome.status === 'passed' ? 'success' : 'failure';
     if (mode === 'result-graph' || index < stepIndex) {
       graphTxs.push({
-        tx: mapTxToGraphTx(trace.tx, index, status),
+        tx: mapTxToGraphTx(trace.tx, index, 'success'),
         inputs: trace.tx.inputs.map(mapTxInputToGraphUTxO),
         outputs: trace.tx.outputs.map(mapTxOutputToGraphUTxO),
         withdrawals: trace.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
@@ -442,7 +441,11 @@ const mapThreatModelTestRoundToGraphData = (
     } else {
       graphTxs.push({
         tx: mapModifiedTxToGraphTx(
-          trace.tx, trace.modifiedTx, trace.modifications, index, status
+          trace.tx,
+          trace.modifiedTx,
+          trace.modifications,
+          index,
+          trace.modifiedTx && trace.validation?.status !== 'valid' ? 'failure' : 'success'
         ),
         inputs: trace.tx.inputs.map((input, index) => {
           const modifiedInput = trace.modifiedTx?.inputs[index];
