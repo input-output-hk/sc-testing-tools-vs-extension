@@ -151,7 +151,7 @@ type TestTreeFilter = {
   status?: RunStatus;
 }
 
-type SortBy = "id" | "status" | "location";
+type SortBy = "location" | "status";
 
 // Test Result
 
@@ -525,14 +525,14 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
+  | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
   | { type: "status-missing-dependency", payload: { error: DependencyError } }
-  | { type: "status-empty-workspaces" }
-  | { type: "test-tree-set-sort", payload: { sortBy: SortBy } };
+  | { type: "status-empty-workspaces" };
 
 type WebviewToExtensionMessage =
   | { type: "webview-ready" }

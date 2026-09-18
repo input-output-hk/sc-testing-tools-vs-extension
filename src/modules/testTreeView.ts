@@ -29,14 +29,14 @@ export default class TestTreeView {
     const collapseAllTestsCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTests', this.collapseAllTests.bind(this));
     context.extension.subscriptions.push(collapseAllTestsCommand);
 
-    const clearAllResultsCommand = vscode.commands.registerCommand('pbt-extension.clearAllResults', this.clearAllResults.bind(this));
-    context.extension.subscriptions.push(clearAllResultsCommand);
+    const clearAllTestsResultsCommand = vscode.commands.registerCommand('pbt-extension.clearAllTestsResults', this.clearAllTestsResults.bind(this));
+    context.extension.subscriptions.push(clearAllTestsResultsCommand);
 
-    const sortByLocationCommand = vscode.commands.registerCommand('pbt-extension.sortByLocation', this.sortByLocation.bind(this));
-    context.extension.subscriptions.push(sortByLocationCommand);
+    const sortTestsByLocationCommand = vscode.commands.registerCommand('pbt-extension.sortTestsByLocation', this.sortTestsByLocation.bind(this));
+    context.extension.subscriptions.push(sortTestsByLocationCommand);
 
-    const sortByStatusCommand = vscode.commands.registerCommand('pbt-extension.sortByStatus', this.sortByStatus.bind(this));
-    context.extension.subscriptions.push(sortByStatusCommand);
+    const sortTestsByStatusCommand = vscode.commands.registerCommand('pbt-extension.sortTestsByStatus', this.sortTestsByStatus.bind(this));
+    context.extension.subscriptions.push(sortTestsByStatusCommand);
 
     vscode.commands.executeCommand('setContext', 'pbt.activeTestRun', false);
   }
@@ -171,16 +171,16 @@ export default class TestTreeView {
     this.fetchTestTree();
   }
 
-  private async clearAllResults(): Promise<void> {
+  private async clearAllTestsResults(): Promise<void> {
     await this.context.store.testStore.clearTestTreeResults();
     this.fetchTestTree();
   }
 
-  private sortByLocation(): void {
+  private sortTestsByLocation(): void {
     this.sendSortToWebview('location');
   }
 
-  private sortByStatus(): void {
+  private sortTestsByStatus(): void {
     this.sendSortToWebview('status');
   }
 

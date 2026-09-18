@@ -65,18 +65,18 @@
       },
       {
         "command": "pbt-extension.collapseAllTests",
-        "title": "Collapse All Tests"
+        "title": "Collapse all Tests"
       },
       {
-        "command": "pbt-extension.clearAllResults",
+        "command": "pbt-extension.clearAllTestsResults",
         "title": "Clear all Results"
       },
       {
-        "command": "pbt-extension.sortByLocation",
+        "command": "pbt-extension.sortTestsByLocation",
         "title": "Sort by Location"
       },
       {
-        "command": "pbt-extension.sortByStatus",
+        "command": "pbt-extension.sortTestsByStatus",
         "title": "Sort by Status"
       }
     ],
@@ -115,22 +115,22 @@
         {
           "command": "pbt-extension.collapseAllTests",
           "when": "view == pbt-test-tree",
-          "group": "2_bulk"
+          "group": "overflow_1"
         },
         {
-          "command": "pbt-extension.clearAllResults",
+          "command": "pbt-extension.clearAllTestsResults",
           "when": "view == pbt-test-tree",
-          "group": "2_bulk"
+          "group": "overflow_1"
         },
         {
-          "command": "pbt-extension.sortByLocation",
+          "command": "pbt-extension.sortTestsByLocation",
           "when": "view == pbt-test-tree",
-          "group": "3_sort"
+          "group": "overflow_2"
         },
         {
-          "command": "pbt-extension.sortByStatus",
+          "command": "pbt-extension.sortTestsByStatus",
           "when": "view == pbt-test-tree",
-          "group": "3_sort"
+          "group": "overflow_2"
         }
       ]
     },
