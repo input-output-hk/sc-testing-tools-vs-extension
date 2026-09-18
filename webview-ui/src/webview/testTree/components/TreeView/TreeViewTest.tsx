@@ -10,7 +10,7 @@ interface TreeViewTestProps {
   path: Array<string>;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
-  onOpenTestResult: (testId: TestId) => void;
+  onOpenTestResult: (testId: TestId, testName: string) => void;
   onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
@@ -39,7 +39,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation();
-    onOpenTestResult(node.test.id);
+    onOpenTestResult(node.test.id, node.test.name);
   };
 
   const handleRunTest = (event: React.MouseEvent<HTMLButtonElement>): void => {

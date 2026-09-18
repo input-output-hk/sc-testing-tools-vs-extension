@@ -20,7 +20,7 @@ interface TreeViewProps {
     suiteName?: string,
     path?: Array<string>
   ) => void;
-  onOpenTestResult: (testId: TestId) => void;
+  onOpenTestResult: (testId: TestId, testName: string) => void;
   onShowCoverage: (testId: TestId, testName: string) => void;
   onShowTestLocation: (testId: TestId) => void;
 }

@@ -3,6 +3,7 @@ import React, {useState, useEffect} from 'react';
 import type { WebviewApi } from 'vscode-webview';
 
 import RoundsAccordion from './components/RoundsAccordion';
+import { formatRunTime } from '../../utils/format';
 
 interface Props {
   vscode: WebviewApi<unknown>;
@@ -40,35 +41,40 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 flex flex-col">
-        <div className="flex items-center gap-2">
-          <i className={`codicon codicon-${testSummary?.status === 'valid' ? 'pass' : 'error'} ${testSummary?.status === 'valid' ? 'text-green-01' : 'text-red-01'}`} />
-          <span className="text-base-06 font-bold text-lg">{testSummary?.testName}</span>
-          <span className="ml-auto text-base-06">{testSummary?.totalTime}</span>
-        </div>
-
-        <div className="text-base-10 mt-1">
-          {testSummary?.path} <span className="text-base-06">&gt; {testSummary?.testName}</span>
-        </div>
-
-        {testSummary?.rounds ? 
-          <>
-            <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
-              <table className="w-full text-left">
-                <tbody>
-                  <tr>
-                    <TableCell amount={testSummary?.rounds.total} label="Test Rounds" color="base-06" />
-                    <TableCell amount={testSummary?.rounds.valid.total} label="Valid" color="green-01" />
-                    <TableCell amount={testSummary?.rounds.failed.total} label="Failed" color="red-01" />
-                    <TableCell amount={testSummary?.rounds.skipped} label="Skipped" color="base-06" />
-                  </tr>
-                </tbody>
-              </table>
+        {testSummary === null
+          ? <div className="text-base-06">No test selected.</div>
+          : <>
+            <div className="flex items-center gap-2">
+              <i className={`codicon codicon-${testSummary.status === 'valid' ? 'pass' : 'error'} ${testSummary.status === 'valid' ? 'text-green-01' : 'text-red-01'}`} />
+              <span className="text-base-06 font-bold text-lg">{testSummary.testName}</span>
+              <span className="ml-auto text-base-06">{formatRunTime(testSummary.totalTime)}</span>
             </div>
-            
-            <RoundsAccordion title="Failed Rounds" rounds={[94, 96, 97, 98, 99, 100]} defaultOpen />
-            <RoundsAccordion title="Valid Rounds" rounds={[1, 2, 3, 4, 5, 6, 7, 8]} />
+
+            <div className="text-base-10 mt-1">
+              {testSummary.path} <span className="text-base-06">&gt; {testSummary.testName}</span>
+            </div>
+
+            {testSummary.rounds ?
+              <>
+                <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
+                  <table className="w-full text-left">
+                    <tbody>
+                      <tr>
+                        <TableCell amount={testSummary.rounds.total} label="Test Rounds" color="base-06" />
+                        <TableCell amount={testSummary.rounds.valid.total} label="Valid" color="green-01" />
+                        <TableCell amount={testSummary.rounds.failed.total} label="Failed" color="red-01" />
+                        <TableCell amount={testSummary.rounds.skipped} label="Skipped" color="base-06" />
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <RoundsAccordion title="Failed Rounds" rounds={testSummary.rounds.failed.failedRounds} defaultOpen />
+                <RoundsAccordion title="Valid Rounds" rounds={testSummary.rounds.valid.validRounds} />
+              </>
+              : <div className="mt-4 text-base-06">This test has no rounds.</div>
+            }
           </>
-          : <div className="mt-4 text-base-06">No rounds data available.</div>
         }
       </div>
     </div>

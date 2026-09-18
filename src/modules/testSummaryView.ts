@@ -6,6 +6,8 @@ import type { PbtContext } from '../extension';
 export default class TestSummaryView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  private testId: TestId | null = null;
+  private testName: string | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -13,9 +15,17 @@ export default class TestSummaryView {
 
   public activate(context: PbtContext) {
     this.context = context;
-    const TestSummaryProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testSummary', this.onWebviewResolved.bind(this));
-    const TestSummaryWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-summary', TestSummaryProvider);
-    context.extension.subscriptions.push(TestSummaryWebviewView);
+    const provider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testSummary', this.onWebviewResolved.bind(this));
+    const testSummaryWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-summary', provider);
+    context.extension.subscriptions.push(testSummaryWebviewView);
+
+    this.context.store.testStore.onTestTreeUpdate(this.onTestTreeUpdate.bind(this));
+  }
+
+  public showTestSummary(testId: TestId, testName: string): void {
+    this.testId = testId;
+    this.testName = testName;
+    this.sendTestSummary();
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -24,12 +34,9 @@ export default class TestSummaryView {
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
-            case 'webview-ready':
-                this.sendTestSummaryDetails();
+          case 'webview-ready':
+            this.sendTestSummary();
             break;
-            // case 'open-round-webview':
-            //     // Send a message to the extension to open the round webview with the provided identifier
-            // break;
         }
       },
       undefined,
@@ -37,29 +44,20 @@ export default class TestSummaryView {
     );
   }
 
-  private sendTestSummaryDetails(): void {
-    this.webview?.postMessage({
-      type: 'test-summary-details',
-      //TODO: update message payload
-      payload: {
-        summaryDetails: {
-          testName: 'Positive Tests',
-          path: 'Project_Package > TestSuite1 > Group1',
-          status: 'valid',
-          rounds: {
-            total: 100,
-          valid: {
-            total: 75,
-            validRounds: [1, 2, 3, 4, 5, 6, 7, 8]
-          },
-          failed: {
-            total: 25,
-            failedRounds: [94, 96, 97, 98, 99, 100]
-          },
-          skipped: 0
-        },
-        totalTime: '4s',
+  private onTestTreeUpdate(payload: TestTreeUpdate): void {
+    if (payload.type === 'test' && this.testId !== null && payload.test.id.join(':') === this.testId.join(':')) {
+      this.sendTestSummary();
+    }
+  }
+
+  private sendTestSummary(): void {
+    if (this.webview === null || this.testId === null || this.testName === null) return;
+
+    this.context.store.testStore.getTestSummary(this.testId).then(summary => {
+      if (summary !== undefined) {
+        const summaryDetails: TestSummaryDetails = { testName: this.testName!, ...summary };
+        this.webview?.postMessage({ type: 'test-summary-details', payload: { summaryDetails } } as ExtensionToWebviewMessage);
       }
-    }});
+    });
   }
 }

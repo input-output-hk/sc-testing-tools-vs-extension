@@ -90,8 +90,8 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     } as WebviewToExtensionMessage);
   };
 
-  const onOpenTestResult = (testId: TestId) => {
-    vscode.postMessage({ type: 'test-tree-open-results', payload: { testId } } as WebviewToExtensionMessage);
+  const onOpenTestResult = (testId: TestId, testName: string) => {
+    vscode.postMessage({ type: 'test-tree-open-results', payload: { testId, testName } } as WebviewToExtensionMessage);
   };
 
   const onShowCoverage = (testId: TestId, testName: string) => {

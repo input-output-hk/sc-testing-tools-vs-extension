@@ -535,7 +535,7 @@ type TestSummaryDetails = {
     };
     skipped: number;
   }
-  totalTime: string;
+  totalTime: number;
 }
 
 type ExtensionToWebviewMessage =
@@ -555,7 +555,7 @@ type WebviewToExtensionMessage =
   | { type: "webview-ready" }
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
-  | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-tree-open-results", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
