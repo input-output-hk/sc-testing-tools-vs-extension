@@ -11,6 +11,7 @@ import { packageMatchesFilter } from '../../utils/treeUtils';
 interface TreeViewProps {
   testJob: TestJob | null;
   testTree: TestTree;
+  sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onUpdateOpenTestTreeNode: (
@@ -34,6 +35,7 @@ const renderTruncatedNodeName = ({ activeAnchor }: { activeAnchor: Element | nul
 const TreeView: React.FC<TreeViewProps> = ({
   testJob,
   testTree,
+  sortBy,
   onRunTest,
   onBuildTestSuite,
   onUpdateOpenTestTreeNode,
@@ -105,6 +107,7 @@ const TreeView: React.FC<TreeViewProps> = ({
               key={testPackage.name}
               testPackage={testPackage}
               filter={filter}
+              sortBy={sortBy}
               onRunTest={handleRunTest}
               onBuildTestSuite={onBuildTestSuite}
               onUpdateSelection={handleUpdateSelection}

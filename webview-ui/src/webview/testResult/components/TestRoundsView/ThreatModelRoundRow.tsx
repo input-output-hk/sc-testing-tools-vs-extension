@@ -102,6 +102,8 @@ const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>>
             <button
               className="py-2 pl-3 pr-0 opacity-40 cursor-pointer"
               onClick={() => setCollapsed(!collapsed)}
+              data-tooltip-id="round-row-action"
+              data-tooltip-content={collapsed ? 'Expand' : 'Collapse'}
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>

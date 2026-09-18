@@ -112,6 +112,8 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"
             onClickCapture={handleShowCoverage}
+            data-tooltip-id="tree-node-action"
+            data-tooltip-content="Show Coverage"
           >
             <i className="codicon codicon-coverage" />
           </button>

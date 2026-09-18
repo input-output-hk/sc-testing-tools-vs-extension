@@ -7,6 +7,7 @@ import {
 } from '@vscode-elements/react-elements';
 
 import ScrollableTable from '../../../../components/ScrollableTable';
+import Tooltip from '../../../../components/Tooltip';
 import TransitionRoundRow from './TransitionRoundRow';
 import ThreatModelRoundRow from './ThreatModelRoundRow';
 
@@ -85,23 +86,26 @@ const TestRoundsView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef
   }));
 
   return (
-    <ScrollableTable
-      key={test.id.join(':')}
-      isActive={isActive}
-    >
-      <TableHeader
-        headers={test.type !== 'threat-model' ?
-          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
-          ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
-        }
-      />
-      <TableBody
-        testType={test.type}
-        testRounds={testRounds}
-        onOpenGraph={onOpenGraph}
-        registerRowRef={registerRowRef}
-      />
-    </ScrollableTable>
+    <>
+      <ScrollableTable
+        key={test.id.join(':')}
+        isActive={isActive}
+      >
+        <TableHeader
+          headers={test.type !== 'threat-model' ?
+            ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints'] :
+            ['Rounds', 'Transactions', 'Inputs', 'Outputs', 'Mints', 'Attacks']
+          }
+        />
+        <TableBody
+          testType={test.type}
+          testRounds={testRounds}
+          onOpenGraph={onOpenGraph}
+          registerRowRef={registerRowRef}
+        />
+      </ScrollableTable>
+      <Tooltip id="round-row-action" place="right" />
+    </>
   );
 });
 

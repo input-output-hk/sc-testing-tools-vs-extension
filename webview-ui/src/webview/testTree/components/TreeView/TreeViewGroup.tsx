@@ -21,6 +21,7 @@ interface TreeViewGroupProps {
   node: TestTreeGroupNode;
   path: Array<string>;
   filter: TestTreeFilter;
+  sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
   onUpdateOpenTestTreeNode: (
@@ -41,6 +42,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   node,
   path,
   filter,
+  sortBy,
   onRunTest,
   onUpdateSelection,
   onUpdateOpenTestTreeNode,
@@ -72,8 +74,8 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     () =>
       Object.values(node.nodes)
         .filter(node => nodeMatchesFilter(node, filter))
-        .sort(sortTreeNodes),
-    [node.nodes, filter]
+        .sort(sortTreeNodes(sortBy)),
+    [node.nodes, filter, sortBy]
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -132,6 +134,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           node={childNode}
           path={[...path, node.name]}
           filter={filter}
+          sortBy={sortBy}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}

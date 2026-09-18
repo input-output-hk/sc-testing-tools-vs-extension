@@ -151,6 +151,8 @@ type TestTreeFilter = {
   status?: RunStatus;
 }
 
+type SortBy = "location" | "status";
+
 // Test Result
 
 type TestRoundType = "positive" | "negative" | "threat-model";
@@ -542,6 +544,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
   | { type: "test-tree-test-run-update", payload: { job: TestJob | null } }
+  | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails } }
