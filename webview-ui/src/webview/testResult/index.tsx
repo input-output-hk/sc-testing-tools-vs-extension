@@ -33,10 +33,10 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
         setTest(message.payload.test);
         setTestRounds(message.payload.rounds);
       }
-      if (message.type === 'test-result-highlight-round') {
+      if (message.type === 'test-result-expand-round') {
         setSelectedTab(TEST_ROUNDS_TAB);
         requestAnimationFrame(() =>
-          testRoundsRef.current?.highlightRound(message.payload.roundId)
+          testRoundsRef.current?.expandRound(message.payload.roundId)
         );
       }
     };

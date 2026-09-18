@@ -7,7 +7,7 @@ export default class TestResultView {
   private context: PbtContext;
   private panel: vscode.WebviewPanel | null = null;
   private testResult: TestResult | null = null;
-  private pendingHighlightRoundId: number | null = null;
+  private pendingExpandRoundId: number | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -70,8 +70,8 @@ export default class TestResultView {
     );
   }
 
-  public highlightRound(testId: TestId, roundId: number): void {
-    this.pendingHighlightRoundId = roundId;
+  public expandRound(testId: TestId, roundId: number): void {
+    this.pendingExpandRoundId = roundId;
     this.open(testId);
   }
 
@@ -117,9 +117,9 @@ export default class TestResultView {
     if (this.panel !== null) {
       this.panel!.webview.postMessage({ type: 'test-result', payload: this.testResult } as ExtensionToWebviewMessage);
 
-      if (this.pendingHighlightRoundId !== null) {
-        this.panel!.webview.postMessage({ type: 'test-result-highlight-round', payload: { roundId: this.pendingHighlightRoundId } } as ExtensionToWebviewMessage);
-        this.pendingHighlightRoundId = null;
+      if (this.pendingExpandRoundId !== null) {
+        this.panel!.webview.postMessage({ type: 'test-result-expand-round', payload: { roundId: this.pendingExpandRoundId } } as ExtensionToWebviewMessage);
+        this.pendingExpandRoundId = null;
       }
     }
   }

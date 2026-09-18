@@ -10,7 +10,7 @@ import type { VscodeTableRow as VscodeTableRowElement } from '@vscode-elements/e
 import TransitionRoundSubTable from './TransitionRoundSubTable';
 
 export interface RoundRowHandle {
-  highlight: () => void;
+  expand: () => void;
 }
 
 interface Props {
@@ -81,7 +81,7 @@ const TransitionRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> 
   const rowRef = useRef<VscodeTableRowElement>(null);
 
   useImperativeHandle(ref, () => ({
-    highlight: (): void => {
+    expand: (): void => {
       setCollapsed(false);
       requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center' }));
     }

@@ -14,7 +14,7 @@ import ThreatModelRoundRow from './ThreatModelRoundRow';
 import type { RoundRowHandle } from './TransitionRoundRow';
 
 interface Handle {
-  highlightRound: (roundId: number) => void;
+  expandRound: (roundId: number) => void;
 }
 
 interface Props {
@@ -82,7 +82,7 @@ const TestRoundsView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef
   };
 
   useImperativeHandle(ref, () => ({
-    highlightRound: (roundId: number): void => rowRefs.current.get(roundId)?.highlight()
+    expandRound: (roundId: number): void => rowRefs.current.get(roundId)?.expand()
   }));
 
   return (

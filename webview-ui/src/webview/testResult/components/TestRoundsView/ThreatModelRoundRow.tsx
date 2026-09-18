@@ -81,7 +81,7 @@ const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>>
   const rowRef = useRef<VscodeTableRowElement>(null);
 
   useImperativeHandle(ref, () => ({
-    highlight: (): void => {
+    expand: (): void => {
       setCollapsed(false);
       requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center' }));
     }

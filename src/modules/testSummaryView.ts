@@ -39,7 +39,7 @@ export default class TestSummaryView {
             break;
           case 'test-summary-open-round':
             if (this.testId !== null) {
-              this.context.testResultView.highlightRound(this.testId, message.payload.roundId);
+              this.context.testResultView.expandRound(this.testId, message.payload.roundId);
             }
             break;
         }

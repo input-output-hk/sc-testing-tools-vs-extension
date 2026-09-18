@@ -548,7 +548,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails } }
-  | { type: "test-result-highlight-round", payload: { roundId: number } }
+  | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
