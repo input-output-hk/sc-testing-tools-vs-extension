@@ -49,11 +49,6 @@
         "icon": "$(debug-stop)"
       },
       {
-        "command": "pbt-extension.clearTestTreeResults",
-        "title": "PBT: Clear Test Tree Results",
-        "icon": "$(trash)"
-      },
-      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "PBT: Refresh Test Configuration",
         "icon": "$(refresh)"
@@ -64,14 +59,25 @@
         "icon": "$(close)"
       },
       {
-        "command": "pbt-extension.collapseAllTestTree",
-        "title": "PBT: Collapse All Test Tree",
-        "icon": "$(collapse-all)"
-      },
-      {
         "command": "pbt-extension.collapseAllTestCoverage",
         "title": "PBT: Collapse All Coverage",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "pbt-extension.collapseAllTests",
+        "title": "Collapse all Tests"
+      },
+      {
+        "command": "pbt-extension.clearAllTestsResults",
+        "title": "Clear all Results"
+      },
+      {
+        "command": "pbt-extension.sortTestsByLocation",
+        "title": "Sort by Location"
+      },
+      {
+        "command": "pbt-extension.sortTestsByStatus",
+        "title": "Sort by Status"
       }
     ],
     "menus": {
@@ -105,6 +111,26 @@
           "command": "pbt-extension.closeTestCoverage",
           "when": "view == pbt-test-coverage",
           "group": "navigation@2"
+        },
+        {
+          "command": "pbt-extension.collapseAllTests",
+          "when": "view == pbt-test-tree",
+          "group": "overflow_1"
+        },
+        {
+          "command": "pbt-extension.clearAllTestsResults",
+          "when": "view == pbt-test-tree",
+          "group": "overflow_1"
+        },
+        {
+          "command": "pbt-extension.sortTestsByLocation",
+          "when": "view == pbt-test-tree",
+          "group": "overflow_2"
+        },
+        {
+          "command": "pbt-extension.sortTestsByStatus",
+          "when": "view == pbt-test-tree",
+          "group": "overflow_2"
         }
       ]
     },
