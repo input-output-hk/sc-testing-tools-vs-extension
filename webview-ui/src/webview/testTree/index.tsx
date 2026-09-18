@@ -7,7 +7,6 @@ import TreeView from './components/TreeView';
 import {
   updateTest,
   updateTestSuite,
-  updatePackages,
   updateOpenTestTreeNode
 } from './utils/treeUpdateUtils';
 
@@ -46,8 +45,6 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
               return updateTest(testTree, message.payload.test);
             case 'suite':
               return updateTestSuite(testTree, message.payload.suite);
-            case 'tree':
-              return updatePackages(testTree, message.payload.packages);
           }
         });
       }

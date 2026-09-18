@@ -17,6 +17,7 @@ export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob)
     )) {
       try {
         const testEvent = parseTestSuiteBuildEvent(
+          job.id,
           job.params.workspace.id,
           job.params.packageName,
           job.params.suiteName,

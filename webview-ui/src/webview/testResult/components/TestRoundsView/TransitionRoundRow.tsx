@@ -37,7 +37,7 @@ const getRoundStats = (round: TransitionTestRound): RoundStats => {
   let outputs = 0;
   let mints = 0;
 
-  const roundHasError = round.status.status === 'failure';
+  const roundHasError = round.status === 'failure';
   let txHasError = false;
 
   for (const transition of round.transitions) {
@@ -87,6 +87,8 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
             <button
               className="py-2 pl-3 pr-0 opacity-40 cursor-pointer"
               onClick={() => setCollapsed(!collapsed)}
+              data-tooltip-id="round-row-action"
+              data-tooltip-content={collapsed ? 'Expand' : 'Collapse'}
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>

@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
+import History from '../history';
 import { PbtContext } from '../../extension';
 import {
   renderCoverageForEditor,
@@ -18,6 +19,7 @@ import type { QueueObject } from 'async';
 export default class TestStore {
   private context: PbtContext = {} as PbtContext;
   private database: Database;
+  private history: History;
   private rpcClient: RpcClient;
   private eventQueue: QueueObject<TestEvent>;
 
@@ -31,6 +33,7 @@ export default class TestStore {
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
     this.database = new Database();
+    this.history = new History();
     this.eventQueue = queue<TestEvent>(this.handleTestEvent.bind(this), 1);
     this.testJob = new BehaviorSubject<TestJob | null>(null);
 
@@ -62,22 +65,48 @@ export default class TestStore {
   private async handleTestEvent(event: TestEvent): Promise<void> {
     switch (event.eventType) {
       case 'test-suite-update':
-        await this.database.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
+        await this.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
         break;
       case 'test-update':
-        await this.database.handleTestUpdateEvent(event as TestUpdateEvent);
+        await this.handleTestUpdateEvent(event as TestUpdateEvent);
         break;
       case 'test-context':
-        await this.database.handleTestContextEvent(event as TestContextEvent);
+        await this.handleTestContextEvent(event as TestContextEvent);
         break;
       case 'test-run-update':
-        this.updateTestJob(event as TestRunUpdateEvent);
-        await this.database.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
+        await this.handleTestRunUpdateEvent(event as TestRunUpdateEvent);
         break;
       case 'test-run-error':
-        await this.database.handleTestRunErrorEvent(event as TestRunErrorEvent);
+        await this.handleTestRunErrorEvent(event as TestRunErrorEvent);
         break;
     }
+  }
+
+  private async handleTestSuiteUpdateEvent(event: TestSuiteUpdateEvent): Promise<void> {
+    await this.database.handleTestSuiteUpdateEvent(event);
+    await this.history.handleTestSuiteUpdateEvent(event);
+  }
+
+  private async handleTestUpdateEvent(event: TestUpdateEvent): Promise<void> {
+    await this.database.handleTestUpdateEvent(event);
+    const test = await this.database.getTest(event.payload.id);
+    await this.history.handleTestUpdateEvent(event, test);
+  }
+
+  private async handleTestContextEvent(event: TestContextEvent): Promise<void> {
+    await this.database.handleTestContextEvent(event);
+    const test = await this.database.getTest(event.payload.context.testId);
+    await this.history.handleTestContextEvent(event, test);
+  }
+
+  private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    this.updateTestJob(event);
+    await this.history.handleTestRunUpdateEvent(event);
+    this.history.getTestRuns().then(console.log);
+  }
+
+  private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
+    await this.database.handleTestRunErrorEvent(event);
   }
 
   private setupCoverageListener(): void {
@@ -233,14 +262,26 @@ export default class TestStore {
   }
 
   public async getTestResult(testId: TestId): Promise<TestResult> {
-    return {
-      test: await this.database.getTest(testId),
-      rounds: await this.database.getTestRounds(testId),
-    };
+    const test = await this.database.getTest(testId);
+    const rounds = test.lastRunId ? await this.history.getTestRounds(test.lastRunId, testId) : [];
+    return { test, rounds };
   }
 
   public async getTestRounds(testId: TestId): Promise<Array<TestRound>> {
-    return await this.database.getTestRounds(testId);
+    const test = await this.database.getTest(testId);
+    if (test.lastRunId !== undefined) {
+      return await this.history.getTestRounds(test.lastRunId, testId);
+    } else {
+      return [];
+    }
+  }
+
+  public async getTestRunsHistory(): Promise<Array<TestRunHistory>> {
+    return await this.history.getTestRuns();
+  }
+
+  public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
+    return await this.history.getTestRounds(runId, testId);
   }
   
   public async getCoverage(): Promise<CoverageTree> {
