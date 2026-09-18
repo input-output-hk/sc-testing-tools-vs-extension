@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
-import { BehaviorSubject } from 'rxjs';
-import { queue } from 'async';
 import * as vscode from 'vscode';
+import { createHash } from 'node:crypto';
+import { queue } from 'async';
+import { BehaviorSubject, Subject, concatMap, debounceTime, from } from 'rxjs';
 
 import RpcClient from '../rpcClient';
 import Database from '../database';
@@ -16,12 +16,15 @@ import {
 
 import type { QueueObject } from 'async';
 
+const TEST_TREE_REFRESH_DEBOUNCE_MS = 1000;
+
 export default class TestStore {
   private context: PbtContext = {} as PbtContext;
   private database: Database;
   private history: History;
   private rpcClient: RpcClient;
   private eventQueue: QueueObject<TestEvent>;
+  private testTreeRefreshQueue = new Subject<void>();
 
   private isPrefetched: boolean = false;
   private workspaces: Map<string, string>;
@@ -59,6 +62,7 @@ export default class TestStore {
       this.eventQueue.push(event);
     });
 
+    this.setupWorkspaceListener();
     this.setupCoverageListener();
   }
 
@@ -102,11 +106,34 @@ export default class TestStore {
   private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
     this.updateTestJob(event);
     await this.history.handleTestRunUpdateEvent(event);
-    this.history.getTestRuns().then(console.log);
   }
 
   private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
     await this.database.handleTestRunErrorEvent(event);
+  }
+
+  private setupWorkspaceListener(): void {
+    const testTreeRefreshSubscription = this.testTreeRefreshQueue.pipe(
+      debounceTime(TEST_TREE_REFRESH_DEBOUNCE_MS),
+      concatMap(() => from(this.refreshTestTree()))
+    ).subscribe();
+
+    this.context.extension.subscriptions.push({
+      dispose: () => {
+        testTreeRefreshSubscription.unsubscribe();
+        this.testTreeRefreshQueue.complete();
+      }
+    });
+
+    vscode.workspace.onDidChangeTextDocument(event => {
+      if (event.contentChanges.length > 0) {
+        this.testTreeRefreshQueue.next();
+      }
+    }, null, this.context.extension.subscriptions);
+    
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      this.testTreeRefreshQueue.next();
+    }, null, this.context.extension.subscriptions);
   }
 
   private setupCoverageListener(): void {
@@ -126,6 +153,23 @@ export default class TestStore {
         clearCoverageForEditor(activeEditor);
       }
     }, null, this.context.extension.subscriptions);
+  }
+
+  private async refreshTestTree(): Promise<void> {
+    this.workspaces = new Map(
+      vscode.workspace.workspaceFolders?.map(folder => [
+        this.makeWorkspaceId(folder.uri.fsPath),
+        folder.uri.fsPath
+      ]) || []
+    );
+
+    const staticTestTree = await this.rpcClient.prefetch({
+      workspaces: Array.from(this.workspaces.entries()).map(([id, path]) => ({ id, path }))
+    });
+
+    await this.database!.refreshStaticTestTree(staticTestTree);
+
+    this.context.testTreeView.refreshTestTree();
   }
 
   public async getTestTree(): Promise<TestTree> {

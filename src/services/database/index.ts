@@ -9,7 +9,7 @@ import {
   clearTestTreeResults,
   handleTestRunStop,
   storeStaticTestTree,
-  storeStaticTestSuite
+  refreshStaticTestTree
 } from './methods/testTree';
 
 import {
@@ -83,8 +83,8 @@ export default class Database {
     return await storeStaticTestTree(this.database!, testTree);
   }
 
-  public async storeStaticTestSuite(testSuite: StaticTestSuite): Promise<void> {
-    return await storeStaticTestSuite(this.database!, testSuite);
+  public async refreshStaticTestTree(testTree: StaticTestTree): Promise<void> {
+    return await refreshStaticTestTree(this.database!, testTree);
   }
 
   public async fetchTestTree(openState: Record<string, boolean>): Promise<TestTree> {
