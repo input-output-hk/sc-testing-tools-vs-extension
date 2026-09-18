@@ -7,7 +7,7 @@ import {
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
-import Tooltip from '../../../../components/Tooltip';
+import Tooltip from '../../../../../components/Tooltip';
 
 interface Column {
   key: string;

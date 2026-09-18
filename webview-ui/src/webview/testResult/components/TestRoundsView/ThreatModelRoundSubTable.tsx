@@ -1,138 +1,24 @@
 import { useState } from 'react';
 
-import Tooltip from '../../../../components/Tooltip';
 import Tabs from '../Tabs';
-import type { TabItem } from '../Tabs';
-import GenericTable from './GenericTable';
+import { InputTable, OutputTable, MintTable, WithdrawalTable } from './SubTable';
 
-import { txValueToString } from '../../utils/txUtils';
+import type { TabItem } from '../Tabs';
 
 interface Props {
   round: ThreatModelTestRound;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
 }
 
-interface TableProps {
-  index: number;
-  tx: Tx;
-  tooltipId: string;
-  onClickNode: (nodeId: string) => void;
-}
-
-interface TxTitleProps {
-  index: number;
-  txId?: string;
-  tooltipId: string;
-  onClickTxId: () => void;
-}
-
-const TxTitle: React.FC<TxTitleProps> = ({ index, txId, tooltipId, onClickTxId }) => (
-  <h3 className="mb-3 text-base-10 font-bold">
-    {`Transaction #${index + 1}`}
-    {txId &&
-      <>
-        <span
-          id={tooltipId}
-          onClick={onClickTxId}
-          className="ml-3 pl-3 border-l border-l-base-14 text-blue-05 cursor-pointer"
-        >
-          {txId}
-        </span>
-        <Tooltip
-          content="View Graph"
-          id={tooltipId}
-          place="bottom-start"
-          positionStrategy="fixed"
-        />
-      </>
-    }
-  </h3>
-);
-
-const InputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
-    <TxTitle
-      index={index}
-      txId={tx.id}
-      tooltipId={tooltipId}
-      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
-    />
-    <GenericTable
-      columns={[
-        { key: 'utxo', label: 'UTxO', clickable: true },
-        { key: 'address', label: 'Address' },
-        { key: 'amount', label: 'Amount' },
-        { key: 'redeemer', label: 'Redeemer' }
-      ]}
-      rows={tx.inputs.map(input => ({
-        utxo: input.utxo,
-        address: input.address,
-        amount: txValueToString(input.value),
-        redeemer: input.redeemerRaw || ''
-      })) ?? []}
-      tooltip={{ content: 'View Graph', idPrefix: `${tooltipId}-cell` }}
-      onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
-    />
-  </div>
-);
-
-const OutputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
-    <TxTitle
-      index={index}
-      txId={tx.id}
-      tooltipId={tooltipId}
-      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
-    />
-    <GenericTable
-      columns={[
-        { key: 'index', label: '#' },
-        { key: 'utxo', label: 'UTxO', clickable: true },
-        { key: 'address', label: 'Address' },
-        { key: 'amount', label: 'Amount' },
-        { key: 'datum', label: 'Datum' }
-      ]}
-      rows={tx.outputs.map(output => ({
-        index: output.index,
-        utxo: output.utxo,
-        address: output.address,
-        amount: txValueToString(output.value),
-        datum: output.datum || ''
-      })) ?? []}
-      tooltip={{ content: 'View Graph', idPrefix: `${tooltipId}-cell` }}
-      onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
-    />
-  </div>
-);
-
-const MintTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
-    <TxTitle
-      index={index}
-      txId={tx.id}
-      tooltipId={tooltipId}
-      onClickTxId={() => onClickNode(`tx-${tx.id}`)}
-    />
-    <GenericTable
-      columns={[
-        { key: 'quantity', label: 'Quantity' },
-        { key: 'name', label: 'Name' },
-        { key: 'policyId', label: 'Policy ID' }
-      ]}
-      rows={tx.mint?.assets.map(mint => ({
-        quantity: mint.quantity,
-        name: mint.name,
-        policyId: mint.policyId
-      })) ?? []}
-    />
-  </div>
-);
-
 const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   const [selectedTab, setSelectedTab] = useState<string>('inputs');
   const traces = round.traces.filter(trace => trace.tx);
-  const hasMintTransaction = traces.some(trace => (trace.tx.mint?.assets.length ?? 0) > 0);
-  const effectiveSelectedTab = selectedTab === 'mints' && !hasMintTransaction ? 'inputs' : selectedTab;
+  const hasMints = traces.some(trace => (trace.tx.mint?.assets.length ?? 0) > 0);
+  const hasWithdrawals = traces.some(trace => trace.tx.withdrawals.length > 0);
+  const effectiveSelectedTab =
+    selectedTab === 'mints' && !hasMints ? 'inputs' :
+    selectedTab === 'withdrawals' && !hasWithdrawals ? 'inputs' :
+    selectedTab;
 
   const tabs: Array<TabItem> = [
     {
@@ -171,21 +57,47 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
     },
   ];
 
-  if (hasMintTransaction) {
+  if (hasMints) {
     tabs.push({
       id: 'mints',
       label: 'Mints',
       panel: (
         <div>
-          {traces.map((trace, index) => (
-            <div key={index}>
-              <MintTable
-                index={index} tx={trace.tx}
-                tooltipId={`tx-graph-${round.id}-mints-${index}`}
-                onClickNode={nodeId => onOpenGraph(round, nodeId)}
-              />
-            </div>
-          ))}
+          {traces
+            .filter(trace => trace.tx.mint)
+            .map((trace, index) => (
+              <div key={index}>
+                <MintTable
+                  index={index} tx={trace.tx}
+                  tooltipId={`tx-graph-${round.id}-mints-${index}`}
+                  onClickNode={nodeId => onOpenGraph(round, nodeId)}
+                />
+              </div>
+            ))
+          }
+        </div>
+      ),
+    });
+  }
+
+  if (hasWithdrawals) {
+    tabs.push({
+      id: 'withdrawals',
+      label: 'Withdrawals',
+      panel: (
+        <div>
+          {traces
+            .filter(trace => trace.tx.withdrawals.length > 0)
+            .map((trace, index) => (
+              <div key={index}>
+                <WithdrawalTable
+                  index={index} tx={trace.tx}
+                  tooltipId={`tx-graph-${round.id}-withdrawals-${index}`}
+                  onClickNode={nodeId => onOpenGraph(round, nodeId)}
+                />
+              </div>
+            ))
+          }
         </div>
       ),
     });
@@ -194,7 +106,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   return (
     <div className="relative z-1">
       <Tabs
-        className="px-3 pt-1 bg-base-20"
+        className="px-3 pt-3 pb-1 bg-base-20"
         panelClassName="mt-3"
         selectedId={effectiveSelectedTab}
         onSelect={setSelectedTab}
