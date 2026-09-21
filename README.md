@@ -19,6 +19,9 @@
   - [6. Run your tests](#6-run-your-tests)
   - [7. Read the results](#7-read-the-results)
 - [Troubleshooting](#troubleshooting)
+- [Get Support](#get-support)
+- [Contributions](#contributions)
+
 
 ## Overview
 
@@ -178,4 +181,3 @@ These are the icons you will see:
 A skipped threat model is one PBT could not run because a precondition was not met, so it has no result rather than a passing or failing one.
 
 Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
-
