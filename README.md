@@ -18,6 +18,8 @@
   - [5. Set the number of test rounds](#5-set-the-number-of-test-rounds)
   - [6. Run your tests](#6-run-your-tests)
   - [7. Read the results](#7-read-the-results)
+  - [8. Read the coverage](#8-read-the-coverage)
+  - [9. Refresh after changing your tests](#9-refresh-after-changing-your-tests)
 - [Troubleshooting](#troubleshooting)
 - [Get Support](#get-support)
 - [Contributions](#contributions)
@@ -161,7 +163,7 @@ Right-clicking on a row will show a menu with options that perform similar actio
 
 Run everything, or run a specific suite, and the test ID mapping will be filled in as results are returned. From then on you can run a single group or a single test.
 
-**Refresh after you add or rename a test.** Changing the set of tests makes the existing ID mapping stale. Once the ID mapping becomes stale, the play buttons for individual tests will become disabled and you must refresh the tree to rebuild the map. Refresh the whole tree from the header, or refresh a single package or suite from its own row.
+Adding a new test or renaming an existing one makes that mapping stale again, which is covered in [step 9](#9-refresh-after-changing-your-tests).
 
 **Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button.
 
@@ -181,3 +183,58 @@ These are the icons you will see:
 A skipped threat model is one PBT could not run because a precondition was not met, so it has no result rather than a passing or failing one.
 
 Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
+
+### 7. Read the results
+
+Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
+
+<img src="images/resultsIcon.png" alt="A passed test row in the Test Panel with the View Results button to the left of the Run Test button" width="330" />
+
+Click that button to open view the results panel. Inside the results panel you will have two views to choose from:
+
+- **Test rounds**: a table of every round the test generated, from a high level summary down to the data inside each individual transaction
+
+<img src="images/testRounds.png" alt="The Test rounds table listing rounds 0 to 9, each with a status icon and counts for valid transactions, invalid transactions, inputs, outputs, and mints" width="760" />
+
+  Each row is one round, summarizing the status of that round and what that round produced: how many valid and invalid transactions it generated, and how many inputs and outputs those transactions used. A threat model table carries one more column, the number of attacks performed in the round.
+
+  Open a round row to see the transactions inside it with one sub-table per transaction. 
+
+  The blue links in the table take you to the **Transaction Graph**. Click a round number to open the graph at that round, a transaction ID to open it with that transaction centered, or a UTxO to open it with that UTxO centered.
+
+- **Transaction Graph**: an interactive graph of a round, laying out its transactions alongside the UTxOs they consume and produce so you can scan the whole transaction flow, every input and output, in one view
+
+<img src="images/txGraph.png" alt="The Transaction Graph view showing wallet, script and transaction nodes connected left to right, with a round selector, zoom controls and a minimap" width="760" />
+
+  The graph is fully interactive. Drag to pan, and zoom in and out with the controls in the bottom left corner to trade breadth for detail: zoomed out you see the shape of the whole round, zoomed in you read the fields on each node. The minimap in the bottom right corner shows where you are in the graph and can be dragged to move somewhere else without losing your place.
+
+  The selector at the top right switches between rounds, so you can compare the same flow across the rounds the test generated. The map icon at the top left opens the **Graph Explorer**, a panel listing every transaction in the round with its valid or invalid status. Click one and the graph moves that transaction into the center of the view.
+
+  Nodes are colored by what they are: transactions are green, wallet UTxOs blue, script UTxOs green, and withdrawals purple. Each node shows its key fields inline, and its **View details** button switches to a view of the node's complete detail as formatted raw JSON. The lines running into a transaction tell you how a script node is involved: a solid line is a UTxO the transaction consumes, and a dashed line is a reference script.
+
+  A threat model adds an **Attack Timeline** alongside the **Result Graph**. The timeline is an interactive stepper, so you can walk through the attack one step at a time and watch how the transaction was modified at each one. Changed fields are highlighted on the node, with the previous value struck through next to the new one.
+
+### 8. Read the coverage
+
+Coverage from the run appears in the **Plinth Script Coverage** view. Coverage is reported by the testing interface, so it shows up here only if the interface your tests were written against defines it, and it covers the tests that belong to that interface. Where no coverage was reported, the view says **No coverage detected**.
+
+<img src="images/entireCoverage.png" alt="The Plinth Script Coverage view titled Coverage: Entire Test Run, with a tree of packages, suites and folders down to Scripts.hs at 100% and PingPong.hs at 88%, each row showing a percentage and a colored bar" width="420" />
+
+Titled **Coverage: Entire Test Run**, the tree tells you how much coverage the whole run provided for each of the files in it. It is grouped by package, then test suite, then the folders the files sit in, and every row carries its own percentage and a bar, rolled up from the files beneath it. 
+
+Click a file in the tree to open it in the editor with the coverage marked directly on the source. Covered statements are shaded green and uncovered ones red, and both are marked in the overview ruler, so you can see which parts of a script the run reached and which it never touched.
+
+**Coverage from one test.** Any test that provided coverage of its own also picks up a **Show Coverage** button in the Test Panel, to the left of its **Run Test** button:
+
+<img src="images/coverageIcon.png" alt="Two passed test rows in the Test Panel, each with a View Results button, a Show Coverage button, and a Run Test button" width="330" />
+
+Click it and the view narrows to that one test: the title becomes **Coverage: \<test name\>**, and the tree shows only the files that this single test covered, with its own percentages. Use the close button next to the title to clear that scope and go back to the coverage for the entire test run.
+
+### 9. Refresh after changing your tests
+
+Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
+
+The tree itself keeps up on its own. PBT watches your workspace, so once you save the change your new or renamed test appears in the Test Panel without you doing anything.
+
+Rebuilding the ID mapping is the part you trigger. Click the refresh button on the parent test suite, and PBT rebuilds the mapping for every test in that suite in one go, which makes them runnable again.
+
