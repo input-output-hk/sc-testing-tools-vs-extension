@@ -69,7 +69,7 @@ export default class TestTreeView {
             this.buildTestSuite(message.payload.suiteId);
             break;
           case 'test-tree-open-results':
-            this.openTestResults(message.payload.testId, message.payload.testName);
+            this.openTestResults(message.payload.testId);
             break;
           case 'test-tree-show-coverage':
             this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName);
@@ -190,9 +190,9 @@ export default class TestTreeView {
     }
   }
 
-  private openTestResults(testId: TestId, testName: string): void {
+  private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
-    this.context.testSummaryView.showTestSummary(testId, testName);
+    this.context.testSummaryView.showTestSummary(testId);
   }
 
   private async showTestLocation(testId: TestId): Promise<void> {

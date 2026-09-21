@@ -7,7 +7,6 @@ export default class TestSummaryView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
   private testId: TestId | null = null;
-  private testName: string | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -22,9 +21,8 @@ export default class TestSummaryView {
     this.context.store.testStore.onTestTreeUpdate(this.onTestTreeUpdate.bind(this));
   }
 
-  public showTestSummary(testId: TestId, testName: string): void {
+  public showTestSummary(testId: TestId): void {
     this.testId = testId;
-    this.testName = testName;
     this.sendTestSummary();
   }
 
@@ -56,11 +54,10 @@ export default class TestSummaryView {
   }
 
   private sendTestSummary(): void {
-    if (this.webview === null || this.testId === null || this.testName === null) return;
+    if (this.webview === null || this.testId === null) return;
 
-    this.context.store.testStore.getTestSummary(this.testId).then(summary => {
-      if (summary !== undefined) {
-        const summaryDetails: TestSummaryDetails = { testName: this.testName!, ...summary };
+    this.context.store.testStore.getTestSummary(this.testId).then(summaryDetails => {
+      if (summaryDetails !== undefined) {
         this.webview?.postMessage({ type: 'test-summary-details', payload: { summaryDetails } } as ExtensionToWebviewMessage);
       }
     });

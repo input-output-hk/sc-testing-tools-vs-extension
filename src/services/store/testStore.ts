@@ -284,14 +284,16 @@ export default class TestStore {
     return await this.history.getTestRounds(runId, testId);
   }
 
-  public async getTestSummary(testId: TestId): Promise<Omit<TestSummaryDetails, 'testName'> | undefined> {
+  public async getTestSummary(testId: TestId): Promise<TestSummaryDetails | undefined> {
+    const test = await this.database.getTest(testId);
     const runs = await this.getTestRunsHistory();
     const latestRun = runs.find(run => run.tests.some(result => result.id.join(':') === testId.join(':')));
     const result = latestRun?.tests.find(result => result.id.join(':') === testId.join(':'));
 
     if (result === undefined || result.status === 'undetermined') return undefined;
 
-    const summary: Omit<TestSummaryDetails, 'testName'> = {
+    const summary: TestSummaryDetails = {
+      testName: test.name,
       path: [testId[1], testId[2], ...result.group].join(' > '),
       status: result.status,
       totalTime: result.time ?? 0,
