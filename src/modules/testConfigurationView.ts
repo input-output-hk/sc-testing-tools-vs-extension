@@ -19,8 +19,10 @@ export default class TestConfigurationView {
     this.context = context;
     // create a webview view provider for the test configuration panel
     const TestConfigurationProvider = new GenericWebviewViewProvider(context.extension.extensionUri, 'testConfiguration', this.onWebviewResolved.bind(this));
-    const TestConfigurationWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
-    context.extension.subscriptions.push(TestConfigurationWebviewView);
+    // register the webview view provider with the extension context
+    const TestConfigurationPanel = vscode.window.registerWebviewViewProvider('pbt-test-run-configuration', TestConfigurationProvider);
+    // add the webview view provider to the extension context subscriptions
+    context.extension.subscriptions.push(TestConfigurationPanel);
 
     // any dependency recheck, no matter who triggers it (this view, a "Retry" click, or a
     // pre-flight check from testTreeView before listing/running tests) flows back through
