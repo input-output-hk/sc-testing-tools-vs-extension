@@ -284,38 +284,6 @@ export default class TestStore {
     return await this.history.getTestRounds(runId, testId);
   }
 
-  public async getTestSummary(testId: TestId): Promise<TestSummaryDetails | undefined> {
-    const test = await this.database.getTest(testId);
-    const runs = await this.getTestRunsHistory();
-    const latestRun = runs.find(run => run.tests.some(result => result.id.join(':') === testId.join(':')));
-    const result = latestRun?.tests.find(result => result.id.join(':') === testId.join(':'));
-
-    if (result === undefined || result.status === 'undetermined') return undefined;
-
-    const summary: TestSummaryDetails = {
-      testName: test.name,
-      path: [testId[1], testId[2], ...result.group].join(' > '),
-      status: result.status,
-      totalTime: result.time ?? 0,
-    };
-
-    if (result.type === 'positive' || result.type === 'negative' || result.type === 'threat-model') {
-      const rounds = await this.getTestRoundsHistory(latestRun!.runId, testId);
-      const validRounds = rounds.filter(round => round.status === 'success').map(round => round.id);
-      const failedRounds = rounds.filter(round => round.status === 'failure').map(round => round.id);
-      const skipped = rounds.filter(round => round.status === 'discarded').length;
-
-      summary.rounds = {
-        total: rounds.length,
-        valid: { total: validRounds.length, validRounds },
-        failed: { total: failedRounds.length, failedRounds },
-        skipped,
-      };
-    }
-
-    return summary;
-  }
-
   public async getCoverage(): Promise<CoverageTree> {
     const files = await this.database.getCoverage();
     this.coverageTree = buildCoverageTree(files, this.coverageOpenState);

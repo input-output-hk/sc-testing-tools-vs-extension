@@ -56,10 +56,9 @@ export default class TestSummaryView {
   private sendTestSummary(): void {
     if (this.webview === null || this.testId === null) return;
 
-    this.context.store.testStore.getTestSummary(this.testId).then(summaryDetails => {
-      if (summaryDetails !== undefined) {
-        this.webview?.postMessage({ type: 'test-summary-details', payload: { summaryDetails } } as ExtensionToWebviewMessage);
-      }
+    this.context.store.testStore.getTestResult(this.testId).then(testResult => {
+      if (testResult.test.status === 'undetermined') return;
+      this.webview?.postMessage({ type: 'test-summary-details', payload: testResult } as ExtensionToWebviewMessage);
     });
   }
 }

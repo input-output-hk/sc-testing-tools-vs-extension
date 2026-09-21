@@ -521,25 +521,6 @@ type TestResult = {
   rounds: Array<TestRound>;
 };
 
-type TestSummaryDetails = {
-  testName: string;
-  path: string;
-  status: 'valid' | 'invalid';
-  rounds?: {
-    total: number;
-    valid: {
-      total: number;
-      validRounds: Array<number>;
-    };
-    failed: {
-      total: number;
-      failedRounds: Array<number>;
-    };
-    skipped: number;
-  }
-  totalTime: number;
-}
-
 type ExtensionToWebviewMessage =
   | { type: "test-tree", payload: { testTree: TestTree } }
   | { type: "test-tree-update", payload: TestTreeUpdate }
@@ -547,7 +528,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
-  | { type: "test-summary-details", payload: { summaryDetails: TestSummaryDetails } }
+  | { type: "test-summary-details", payload: TestResult }
   | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
