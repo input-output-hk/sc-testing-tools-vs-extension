@@ -238,3 +238,66 @@ The tree itself keeps up on its own. PBT watches your workspace, so once you sav
 
 Rebuilding the ID mapping is the part you trigger. Click the refresh button on the parent test suite, and PBT rebuilds the mapping for every test in that suite in one go, which makes them runnable again.
 
+## Troubleshooting
+
+Most PBT failures report themselves in one of three places: the Test Tree, the Test Run Configuration view, or a notification in the bottom right corner.
+
+### The PBT Extension output channel
+
+PBT writes its own diagnostic log to an output channel named **PBT Extension**. The views in the sidebar tell you that something failed, and this channel is where the detail behind that failure ends up, so it is the first place to look when a message in the UI is not specific enough to act on.
+
+To open it, open the Output panel from **View**, **Output**, then choose **PBT Extension** in the panel's dropdown. When a failure raises a notification in the bottom right corner, its **Show output** button takes you to the same place.
+
+Three kinds of information are written here:
+
+- **Failed suite builds and test runs.** Each one is logged as a heading naming the package and suite that failed, followed by the exit code the command returned and whatever the test binary wrote to its error output.
+- **Errors from the PBT server.** The extension runs a background server process, and anything that process reports as an error is appended here.
+- **A trace of the communication between the extension and that server.** The requests and notifications they exchange are logged as they happen, which is mostly useful when reporting a problem.
+
+### No folders detected in the workspace
+
+The Test Tree shows this when VS Code has no folder open at all, and offers an **Open Folder** button. Open the Haskell or Plinth folder you want to test, as described in [step 2](#2-open-your-project).
+
+### No test suites found in this workspace
+
+A folder is open, but PBT found nothing in it that it can run. The Test Panel offers **Open Folder** so you can point at a different folder.
+
+### Error occurred while attempting to discover tests
+
+Discovery started but failed partway through. The Test Tree offers a **Retry** button, which runs the scan again.
+
+### No dependencies were detected
+
+Neither Docker nor Nix is installed, so PBT has no way to run anything. You also get an error in the status bar and a notification offering **Install Nix**, **Install Docker**, and **Retry**.
+
+Install one of them, following [Requirements](#requirements), then click **Retry** on the notification. If you have already dismissed it, use the refresh icon on the **Test Run Configuration** view, which runs the whole dependency check again.
+
+### Docker not detected, Nix not detected, or Problem connecting to Docker
+
+These three appear in the **Test Run Configuration** view, next to Execution Mode, and each means your selected mode is unavailable:
+
+| Message | What it means |
+|---|---|
+| **Docker not detected** | Your mode is Docker, but the `docker` command was not found. |
+| **Nix not detected** | Your mode is Nix, but the `nix` command was not found. |
+| **Problem connecting to Docker** | Docker is installed, but the daemon did not respond. It is usually not running. |
+
+Any of them can show up when you open the PBT views, and also part way through a session, because PBT re-checks before it starts a test run, a suite build, or a tree refresh. When one of these is showing, that action is reported as an error instead of starting.
+
+You have two ways to resolve this error. Either fix the tool, by installing it or by starting Docker, or switch Execution Mode to the one you do have installed.
+
+How the error clears depends on your mode. In **Docker** mode it clears on its own: PBT re-checks Docker before each run, so start Docker and run again. In **Nix** mode there is no automatic re-check, so after installing Nix click the refresh icon on the **Test Run Configuration** view to check again.
+
+### The mode I picked is not the mode PBT is using
+
+PBT writes your choice to your User settings, but VS Code lets a Workspace value override that. If `pbt-extension.executionMode` also has a Workspace value, that one wins, and picking a mode in the sidebar will look like it had no effect.
+
+Open the Settings editor, search for `pbt-extension.executionMode`, and check the **Workspace** tab. Clear the value there to let your User setting apply.
+
+### A test run fails immediately
+
+A notification appears with a **Show output** button, and the status bar turns red. This is your test suite or the backend failing rather than the extension, so the output channel is where the answer is. It records the exit code along with whatever the run printed.
+
+### The first Docker run takes a very long time
+
+This is expected rather than an error. The first run pulls the `nixos/nix` image and populates a persistent Nix store volume. Later runs reuse that volume and start much faster.
