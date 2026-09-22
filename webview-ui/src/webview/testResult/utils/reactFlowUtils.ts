@@ -1,23 +1,11 @@
 import { MarkerType } from '@xyflow/react';
 import type { Node, Edge, XYPosition } from '@xyflow/react';
 
-const COLUMN_WIDTH = 340;
-const NODE_VERTICAL_GAP = 20;
-
-type CollisionBox = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  moved: boolean;
-  node: Node;
-};
-
-type CollisionOptions = {
-  maxIterations?: number;
-  overlapThreshold?: number;
-  margin?: number;
-};
+const NODE_COLUMN_WIDTH = 340;
+const NODE_VERTICAL_GAP = 40;
+const NODE_COLLISION_MARGIN = 20;
+const NODE_COLLISION_ITERATIONS = 50;
+const NODE_COLLISION_OVERLAP_THRESHOLD = 0.5;
 
 type InternalGraphData = {
   nodes: Array<Node>;
@@ -30,24 +18,26 @@ export type GraphData = {
   stepNodes: Array<string>;
 };
 
-export const resolveNodeCollisions = (
-  nodes: Array<Node>,
-  {
-    maxIterations = 50,
-    overlapThreshold = 0.5,
-    margin = NODE_VERTICAL_GAP,
-  }: CollisionOptions = {}
-): Array<Node> => {
+type CollisionBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  moved: boolean;
+  node: Node;
+};
+
+export const resolveNodeCollisions = (nodes: Array<Node>): Array<Node> => {
   const boxes: Array<CollisionBox> = nodes.map(node => ({
-    x: node.position.x - margin,
-    y: node.position.y - margin,
-    width: (node.measured?.width ?? node.width ?? 0) + margin * 2,
-    height: (node.measured?.height ?? node.height ?? 0) + margin * 2,
+    x: node.position.x - NODE_COLLISION_MARGIN,
+    y: node.position.y - NODE_COLLISION_MARGIN,
+    width: (node.measured?.width ?? node.width ?? 0) + NODE_COLLISION_MARGIN * 2,
+    height: (node.measured?.height ?? node.height ?? 0) + NODE_COLLISION_MARGIN * 2,
     moved: false,
     node,
   }));
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
+  for (let iteration = 0; iteration < NODE_COLLISION_ITERATIONS; iteration++) {
     let moved = false;
 
     for (let i = 0; i < boxes.length; i++) {
@@ -59,7 +49,7 @@ export const resolveNodeCollisions = (
         const overlapX = (first.width + second.width) / 2 - Math.abs(deltaX);
         const overlapY = (first.height + second.height) / 2 - Math.abs(deltaY);
 
-        if (overlapX <= overlapThreshold || overlapY <= overlapThreshold) continue;
+        if (overlapX <= NODE_COLLISION_OVERLAP_THRESHOLD || overlapY <= NODE_COLLISION_OVERLAP_THRESHOLD) continue;
 
         first.moved = true;
         second.moved = true;
@@ -83,8 +73,8 @@ export const resolveNodeCollisions = (
   return boxes.map(box => box.moved ? {
     ...box.node,
     position: {
-      x: box.x + margin,
-      y: box.y + margin,
+      x: box.x + NODE_COLLISION_MARGIN,
+      y: box.y + NODE_COLLISION_MARGIN,
     },
   } : box.node);
 };
@@ -135,7 +125,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
       data: tx,
       zIndex: 10,
       position: {
-        x: tColN * COLUMN_WIDTH,
+        x: tColN * NODE_COLUMN_WIDTH,
         y: 0
       }
     };
@@ -161,7 +151,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           },
           zIndex: 10,
           position: {
-            x: iColN * COLUMN_WIDTH,
+            x: iColN * NODE_COLUMN_WIDTH,
             y: 0
           }
         };
@@ -204,7 +194,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           data: graphTxs[i].outputs[j],
           zIndex: 10,
           position: {
-            x: oColN * COLUMN_WIDTH,
+            x: oColN * NODE_COLUMN_WIDTH,
             y: 0
           }
         };
@@ -243,7 +233,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           data: graphTxs[i].withdrawals[j],
           zIndex: 10,
           position: {
-            x: oColN * COLUMN_WIDTH,
+            x: oColN * NODE_COLUMN_WIDTH,
             y: 0
           }
         };
