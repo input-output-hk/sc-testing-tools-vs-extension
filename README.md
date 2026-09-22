@@ -301,3 +301,17 @@ A notification appears with a **Show output** button, and the status bar turns r
 ### The first Docker run takes a very long time
 
 This is expected rather than an error. The first run pulls the `nixos/nix` image and populates a persistent Nix store volume. Later runs reuse that volume and start much faster.
+
+## Get Support
+
+If something is not working as expected and [Troubleshooting](#troubleshooting) does not cover it, open an issue on the repository as a support request and we will take a look.
+
+[Open a support request](https://github.com/input-output-hk/sc-testing-tools-vs-extension/issues/new)
+
+It helps us a lot if you include:
+
+- Your operating system.
+- Whether you are running in **Docker** or **Nix** mode, from [step 4](#4-choose-an-execution-mode).
+- The exact error message PBT showed you. The full text, including the exit code, is in the [PBT Extension output channel](#the-pbt-extension-output-channel), so copying it from there gives us more to work with than the notification alone.
+
+Issues about the tests themselves, rather than this extension, belong on [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT runs your suites with.
