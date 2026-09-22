@@ -274,5 +274,11 @@
     "tree-sitter-haskell": "^0.23.1",
     "vscode-jsonrpc": "^8.2.1",
     "web-tree-sitter": "^0.26.11"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "tree-sitter-haskell@0.23.1": true
   }
 }

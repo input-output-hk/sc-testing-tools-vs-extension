@@ -1,22 +1,42 @@
 import { MarkerType } from '@xyflow/react';
-import type { Node, Edge } from '@xyflow/react';
+import type { Node, Edge, XYPosition } from '@xyflow/react';
 
 const COLUMN_WIDTH = 340;
-const ROW_HEIGHT = 340;
-
-const GRAPH_NODE_WIDTH = 240;
-const GRAPH_TX_NODE_HEIGHT = 120;
-const GRAPH_UTXO_NODE_HEIGHT = 240;
+const NODE_VERTICAL_GAP = 20;
 
 type InternalGraphData = {
-  nodes: Record<string, Node>;
-  edges: Record<string, Edge>;
+  nodes: Array<Node>;
+  edges: Array<Edge>;
 };
 
 export type GraphData = {
-  nodes: Record<string, Node>;
-  edges: Record<string, Edge>;
+  nodes: Array<Node>;
+  edges: Array<Edge>;
   stepNodes: Array<string>;
+};
+
+export const applyMeasuredLayout = (nodes: Array<Node>): Record<string, XYPosition> => {
+  const columns: Record<number, Array<Node>> = {};
+  for (const node of nodes) {
+    columns[node.position.x] = columns[node.position.x] ?? [];
+    columns[node.position.x].push(node);
+  }
+
+  const getColumnHeight = (column: Array<Node>): number =>
+    column.reduce((height, node) => height + (node.measured?.height ?? node.height ?? 0), 0) +
+    Math.max(0, column.length - 1) * NODE_VERTICAL_GAP;
+
+  const maxColumnHeight = Math.max(0, ...Array.from(Object.values(columns), getColumnHeight));
+  const positions: Record<string, XYPosition> = {};
+  for (const column of Object.values(columns)) {
+    let positionY = (maxColumnHeight - getColumnHeight(column)) / 2;
+    for (const node of column) {
+      positions[node.id] = { x: node.position.x, y: positionY };
+      positionY += (node.measured?.height ?? node.height ?? 0) + NODE_VERTICAL_GAP;
+    }
+  }
+
+  return positions;
 };
 
 const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => {
@@ -40,11 +60,9 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
       type: 'tx',
       data: tx,
       zIndex: 10,
-      initialWidth: GRAPH_NODE_WIDTH,
-      initialHeight: GRAPH_TX_NODE_HEIGHT,
       position: {
         x: tColN * COLUMN_WIDTH,
-        y: columns[tColN].length * ROW_HEIGHT
+        y: 0
       }
     };
 
@@ -68,11 +86,9 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
             consumed: true,
           },
           zIndex: 10,
-          initialWidth: GRAPH_NODE_WIDTH,
-          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
             x: iColN * COLUMN_WIDTH,
-            y: columns[iColN].length * ROW_HEIGHT
+            y: 0
           }
         };
         columns[iColN].push(nodes[utxoId]);
@@ -113,11 +129,9 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           type: graphTxs[i].outputs[j].type,
           data: graphTxs[i].outputs[j],
           zIndex: 10,
-          initialWidth: GRAPH_NODE_WIDTH,
-          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
             x: oColN * COLUMN_WIDTH,
-            y: columns[oColN].length * ROW_HEIGHT
+            y: 0
           }
         };
         columns[oColN].push(nodes[utxoId]);
@@ -154,11 +168,9 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           type: graphTxs[i].withdrawals[j].type,
           data: graphTxs[i].withdrawals[j],
           zIndex: 10,
-          initialWidth: GRAPH_NODE_WIDTH,
-          initialHeight: GRAPH_UTXO_NODE_HEIGHT,
           position: {
             x: oColN * COLUMN_WIDTH,
-            y: columns[oColN].length * ROW_HEIGHT
+            y: 0
           }
         };
         columns[oColN].push(nodes[utxoId]);
@@ -177,22 +189,15 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
         markerEnd: {
           type: MarkerType.Arrow,
           height: 20, width: 20
-        },
+        }
       } as Edge;
     }
   }
 
-  const maxHeight = Math.max(...columns.map(nodes => nodes.length));
-  for (const nodes of columns) {
-    if (nodes.length < maxHeight) {
-      const diff = (maxHeight - nodes.length) * ROW_HEIGHT / 2;
-      for (const node of nodes) {
-        node.position.y += diff;
-      }
-    }
-  }
-
-  return { edges, nodes };
+  return {
+    edges: Object.values(edges),
+    nodes: Object.values(nodes)
+  };
 };
 
 const mapTxToGraphTx = (tx: Tx, index: number, status: GraphNodeTx['status']): GraphNodeTx => ({
@@ -481,24 +486,15 @@ const mapThreatModelTestRoundToGraphData = (
 export const mapTestRoundToGraphData = (
   mode: GraphMode,
   round: TestRound,
-  stepIndex: number,
-  onViewDetails: (node: GraphNode) => void
+  stepIndex: number
 ): GraphData => {
-  let graphData: GraphData;
-
   if (round.type === 'positive' || round.type === 'negative') {
-    graphData = mapTransitionTestRoundToGraphData(
+    return mapTransitionTestRoundToGraphData(
       round as TransitionTestRound
     );
   } else {
-    graphData = mapThreatModelTestRoundToGraphData(
+    return mapThreatModelTestRoundToGraphData(
       mode, round as ThreatModelTestRound, stepIndex
     );
   }
-
-  for (const node of Object.values(graphData.nodes)) {
-    node.data = { ...node.data, onViewDetails };
-  }
-
-  return graphData;
-}
+};

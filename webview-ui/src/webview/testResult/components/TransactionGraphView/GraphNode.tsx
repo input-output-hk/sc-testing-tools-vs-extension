@@ -4,20 +4,8 @@ import { txValueToString } from '../../utils/txUtils';
 import CopyButton from '../../../../components/CopyButton';
 
 interface GraphNodeProps {
-  data: GraphNodeData;
+  data: GraphNode;
 };
-
-interface GraphNodeData extends GraphNode {
-  onViewDetails: (node: GraphNode) => void;
-};
-
-interface GraphNodeTxData extends GraphNodeTx {
-  onViewDetails: (node: GraphNode) => void;
-}
-
-interface GraphNodeUTxOData extends GraphNodeUTxO {
-  onViewDetails: (node: GraphNode) => void;
-}
 
 interface GraphNodeRowProps {
   label: string;
@@ -26,7 +14,7 @@ interface GraphNodeRowProps {
 }
 
 interface GraphNodeFooterProps {
-  onViewDetails: () => void;
+  onExpandNode: () => void;
 }
 
 const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ label, value, copyButton }) => {
@@ -50,10 +38,10 @@ const GraphNodeRow: React.FC<GraphNodeRowProps> = ({ label, value, copyButton })
   );
 };
 
-const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onViewDetails }) => (
+const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onExpandNode }) => (
   <div className="flex flex-row justify-end">
     <button
-      onClick={onViewDetails}
+      onClick={onExpandNode}
       className="flex-none flex flex-row items-center gap-0.5 py-1 pl-1 pr-1.5 rounded-sm text-base-06 border border-base-15 bg-base-20 cursor-pointer"
     >
       <i className="codicon codicon-chevron-right" style={{ fontSize: '12px' }} />
@@ -62,7 +50,7 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onViewDetails }) => (
   </div>
 );
 
-const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
+const GraphNodeTx: React.FC<GraphNodeTx> = (data) => (
   <div className="relative">
     <div className="w-60 overflow-clip border border-base-13">
       <div className="flex flex-row items-center py-1 px-2 gap-1 bg-green-05">
@@ -101,7 +89,7 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
           }}
         />
         <GraphNodeFooter
-          onViewDetails={() => data.onViewDetails(data)}
+          onExpandNode={() => {}}
         />
       </div>
     </div>
@@ -151,7 +139,7 @@ const GraphNodeTx: React.FC<GraphNodeTxData> = (data) => (
   </div>
 );
 
-const getUTxOColor = (data: GraphNodeUTxOData): string => {
+const getUTxOColor = (data: GraphNodeUTxO): string => {
   switch (data.type) {
     case "wallet":
       return "bg-blue-09";
@@ -162,7 +150,7 @@ const getUTxOColor = (data: GraphNodeUTxOData): string => {
   }
 };
 
-const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => (
+const GraphNodeUTxO: React.FC<GraphNodeUTxO> = (data) => (
   <>
     <div className="w-60 overflow-clip border border-base-13">
       <div className={`flex flex-row items-center py-1 px-2 gap-1 ${getUTxOColor(data)}`}>
@@ -210,7 +198,7 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => (
           value={data.datum}
         />
         <GraphNodeFooter
-          onViewDetails={() => data.onViewDetails(data)}
+          onExpandNode={() => {}}
         />
       </div>
     </div>
@@ -233,8 +221,8 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxOData> = (data) => (
 
 const GraphNode: React.FC<GraphNodeProps> = ({ data }) => (
   data.type === 'tx' ?
-    <GraphNodeTx {...(data as GraphNodeTxData)} /> :
-    <GraphNodeUTxO {...(data as GraphNodeUTxOData)} />
+    <GraphNodeTx {...(data as GraphNodeTx)} /> :
+    <GraphNodeUTxO {...(data as GraphNodeUTxO)} />
 );
 
 export default GraphNode;
