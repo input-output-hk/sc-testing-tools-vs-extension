@@ -23,6 +23,7 @@
 - [Troubleshooting](#troubleshooting)
 - [Get Support](#get-support)
 - [Contributions](#contributions)
+- [License](#license)
 
 
 ## Overview
@@ -315,3 +316,11 @@ It helps us a lot if you include:
 - The exact error message PBT showed you. The full text, including the exit code, is in the [PBT Extension output channel](#the-pbt-extension-output-channel), so copying it from there gives us more to work with than the notification alone.
 
 Issues about the tests themselves, rather than this extension, belong on [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT runs your suites with.
+
+## Contributions
+
+PBT is developed and maintained by the Cardano High Assurance team at IOG, and community contributions are welcome. Reporting a bug, suggesting an improvement, and pointing out documentation that could be clearer are all handled through GitHub Issues. See [CONTRIBUTING.md](CONTRIBUTING.md) for what to include in an issue and how the team triages what comes in.
+
+## License
+
+PBT is released under the Apache License 2.0. The full text is in [LICENSE](LICENSE).
