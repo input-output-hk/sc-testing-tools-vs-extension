@@ -55,12 +55,12 @@
       },
       {
         "command": "pbt-extension.closeTestCoverage",
-        "title": "PBT: Close Test Coverage",
+        "title": "PBT: Close Plinth Script Coverage",
         "icon": "$(close)"
       },
       {
         "command": "pbt-extension.collapseAllTestCoverage",
-        "title": "PBT: Collapse All Coverage",
+        "title": "PBT: Collapse Coverage Tree",
         "icon": "$(collapse-all)"
       },
       {

@@ -30,8 +30,8 @@ export default class TestCoverageView {
     this.fetchCoverage();
   }
 
-  public showTestCoverage(testId: TestId, testName: string): void {
-    this.scope = { type: 'test', testId, testName };
+  public showTestCoverage(testId: TestId, testName: string, group: Array<string>): void {
+    this.scope = { type: 'test', testId, testName, group };
     this.fetchCoverage();
     vscode.commands.executeCommand('pbt-test-coverage.focus');
   }
@@ -50,11 +50,13 @@ export default class TestCoverageView {
     this.webview = webview;
 
     this.context.store.testStore.onCoverageUpdate(this.sendCoverageUpdate.bind(this));
+    this.context.store.settingStore.onCoverageBarThresholdsChange(this.sendCoverageBarThresholds.bind(this));
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
         switch (message.type) {
           case 'webview-ready':
+            this.sendCoverageBarThresholds(this.context.store.settingStore.getCoverageBarThresholds());
             this.fetchCoverage();
             break;
           case 'coverage-show-all':
@@ -80,6 +82,10 @@ export default class TestCoverageView {
       ? await this.context.store.testStore.getCoverageForTest(this.scope.testId)
       : await this.context.store.testStore.getCoverage();
     this.webview?.postMessage({ type: 'coverage-tree', payload: { coverageTree, scope: this.scope } } as ExtensionToWebviewMessage);
+  }
+
+  private sendCoverageBarThresholds(thresholds: CoverageBarThresholds): void {
+    this.webview?.postMessage({ type: 'config-coverage-bar-thresholds', payload: { thresholds } } as ExtensionToWebviewMessage);
   }
 
   private sendCoverageUpdate(coverageTree: CoverageTree): void {
