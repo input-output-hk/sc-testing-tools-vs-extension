@@ -284,6 +284,8 @@ const parseTestTraceEvent = (
       modifications: tm.modifications,
       outcome: tm.outcome,
       targetTxIndex: tm.targetTxIndex,
+      category: tm.category,
+      validation: tm.validation ?? undefined,
     });
   }
 

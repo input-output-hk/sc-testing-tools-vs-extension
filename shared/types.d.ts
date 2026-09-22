@@ -202,6 +202,8 @@ type ThreatModelTrace = {
   modifications: Array<TxMod>;
   outcome: ThreatModelOutcome;
   targetTxIndex: number;
+  validation?: ThreatModelValidation;
+  category: "claimed" | "expected" | "accepted";
 };
 
 type ThreatModelOutcome =
@@ -219,6 +221,20 @@ type ThreatModelOutcome =
 } | {
   message: string;
   status: "error";
+};
+
+type ThreatModelValidation =
+{
+  status: "valid";
+} | {
+  errors: string[];
+  status: "phase1_invalid";
+} | {
+  errors: string[];
+  status: "phase2_invalid";
+} | {
+  reason: string;
+  status: "rebalance_failed";
 };
 
 type TxAddressType = "public-key" | "script";
