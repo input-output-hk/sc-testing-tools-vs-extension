@@ -30,7 +30,7 @@
 
 Property-based testing finds the edge case you would never have thought to write a test for. PBT brings the entire property-based testing process into one seamless user interface.
 
-- **Nothing to configure:** Write your test suites in your Haskell project as you normally would and PBT picks them up on its own. There is nothing to register on the extension side, no paths to point at, and no settings to keep in sync as the project grows.
+- **Nothing to configure:** Write your test suites in your Plinth project as you normally would and PBT picks them up on its own. There is nothing to register on the extension side, no paths to point at, and no settings to keep in sync as the project grows.
 - **One place to drive everything:** Run a whole package, a single suite, or one test, and see the results of all the tests in a single view.
 - **Round-level results:** See the status of every test at a glance, then open a test's result views to inspect the status of each of its rounds and the transactions produced by each round.
 - **Transactions you can actually read:** An interactive graph showing every transaction, input, and output from a test in a single view.
@@ -78,7 +78,7 @@ npm run compile
 
 ### 2. Open your project
 
-PBT works on a Haskell/Plinth smart contract folder, so the first step is having that folder open in VS Code. Either open a workspace that already contains the folder, or open the folder in the workspace you are already in.
+PBT works on a Plinth project folder, so the first step is having that folder open in VS Code. Either open a workspace that already contains the folder, or open the folder in the workspace you are already in.
 
 From there, PBT scans on its own. There is no command to run and nothing to configure.
 
@@ -93,7 +93,7 @@ Project_Package              a package, from one .cabal file
 
 Groups can sit inside other groups, so a suite that is organized in depth keeps that structure in the tree.
 
-If the Test Panel tells you no test suites were found, the folder has nothing PBT can run. See [Troubleshooting](#no-test-suites-found-in-this-workspace).
+If the Test Tree  tells you no test suites were found, the folder has nothing PBT can run. See [Troubleshooting](#no-test-suites-found-in-this-workspace).
 
 ### 3. Open the PBT sidebar
 
@@ -101,11 +101,11 @@ Click the PBT icon <img src="images/extensionIcon.png" alt="PBT" width="22" alig
 
 | View | What it's for |
 |---|---|
-| **Test Panel** | The test tree, where you run tests and open additional views to inspect results |
+| **Test Tree** | The test tree, where you run tests and open additional views to inspect results |
 | **Test Run Configuration** | Allows you to configure how a test run is performed |
 | **Plinth Script Coverage** | Shows coverage results after a test run |
 
-<img src="images/initialTreeView.png" alt="The PBT sidebar with the Test Panel listing discovered packages and suites, and the Plinth Script Coverage and Test Run Configuration views below it" width="330" />
+<img src="images/initialTreeView.png" alt="The PBT sidebar with the Test Tree listing discovered packages and suites, and the Plinth Script Coverage and Test Run Configuration views below it" width="330" />
 
 ### 4. Choose an execution mode
 
@@ -144,9 +144,9 @@ Lower the count for a quick check while you are iterating, and raise it when you
 
 ### 6. Run your tests
 
-The two buttons at the top of the Test Panel act on the entire tree.
+The two buttons at the top of the Test Tree act on the entire tree.
 
-<img src="images/treeHead.png" alt="The Test Panel header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
+<img src="images/treeHead.png" alt="The Test Tree header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
 
 **Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rescans your project and rebuilds the tree. 
 
@@ -169,7 +169,7 @@ Adding a new test or renaming an existing one makes that mapping stale again, wh
 
 **Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button.
 
-<img src="images/runningTests.png" alt="The Test Panel during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
+<img src="images/runningTests.png" alt="The Test Tree during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
 
 These are the icons you will see:
 
@@ -190,7 +190,7 @@ Because a package or suite rolls up the tests beneath it, its icon reflects the 
 
 Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
 
-<img src="images/resultsIcon.png" alt="A passed test row in the Test Panel with the View Results button to the left of the Run Test button" width="330" />
+<img src="images/resultsIcon.png" alt="A passed test row in the Test Tree with the View Results button to the left of the Run Test button" width="330" />
 
 Click that button to open view the results panel. Inside the results panel you will have two views to choose from:
 
@@ -226,9 +226,9 @@ Titled **Coverage: Entire Test Run**, the tree tells you how much coverage the w
 
 Click a file in the tree to open it in the editor with the coverage marked directly on the source. Covered statements are shaded green and uncovered ones red, and both are marked in the overview ruler, so you can see which parts of a script the run reached and which it never touched.
 
-**Coverage from one test.** Any test that provided coverage of its own also picks up a **Show Coverage** button in the Test Panel, to the left of its **Run Test** button:
+**Coverage from one test.** Any test that provided coverage of its own also picks up a **Show Coverage** button in the Test Tree, to the left of its **Run Test** button:
 
-<img src="images/coverageIcon.png" alt="Two passed test rows in the Test Panel, each with a View Results button, a Show Coverage button, and a Run Test button" width="330" />
+<img src="images/coverageIcon.png" alt="Two passed test rows in the Test Tree, each with a View Results button, a Show Coverage button, and a Run Test button" width="330" />
 
 Click it and the view narrows to that one test: the title becomes **Coverage: \<test name\>**, and the tree shows only the files that this single test covered, with its own percentages. Use the close button next to the title to clear that scope and go back to the coverage for the entire test run.
 
@@ -236,7 +236,7 @@ Click it and the view narrows to that one test: the title becomes **Coverage: \<
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
-The tree itself keeps up on its own. PBT watches your workspace, so once you save the change your new or renamed test appears in the Test Panel without you doing anything.
+The tree itself keeps up on its own. PBT watches your workspace, so once you save the change your new or renamed test appears in the Test Tree without you doing anything.
 
 Rebuilding the ID mapping is the part you trigger. Click the refresh button on the parent test suite, and PBT rebuilds the mapping for every test in that suite in one go, which makes them runnable again.
 
@@ -262,7 +262,7 @@ The Test Tree shows this when VS Code has no folder open at all, and offers an *
 
 ### No test suites found in this workspace
 
-A folder is open, but PBT found nothing in it that it can run. The Test Panel offers **Open Folder** so you can point at a different folder.
+A folder is open, but PBT found nothing in it that it can run. The Test Tree offers **Open Folder** so you can point at a different folder.
 
 ### Error occurred while attempting to discover tests
 
