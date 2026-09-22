@@ -117,7 +117,7 @@ There are two ways to set it, and both write the same value.
 
 <img src="images/testConfig.png" alt="The Test Run Configuration view showing Rounds Per Test and an Execution Mode choice between NIX and Docker" width="420" />
 
-**The Settings editor** lists it under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**. Searching for `pbt-extension.executionMode` takes you straight to it.
+**The Settings editor** is the other way. Open it from **File**, **Preferences**, **Settings**, or with <kbd>Ctrl</kbd>+<kbd>,</kbd> (<kbd>Cmd</kbd>+<kbd>,</kbd> on macOS). The setting is listed under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**, and searching for `pbt-extension.executionMode` takes you straight to it.
 
 <img src="images/settings.png" alt="The VS Code Settings editor filtered to pbt-extension.executionMode, with the mode set to docker" width="760" />
 
