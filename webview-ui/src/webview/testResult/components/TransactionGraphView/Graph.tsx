@@ -88,7 +88,10 @@ const Graph: React.FC<Props> = (props) => {
       [edgeId]: {
         ...oldEdges[edgeId],
         zIndex: 1,
-        style: { stroke: '#BBB' }
+        style: {
+          ...oldEdges[edgeId].style,
+          stroke: '#BBB'
+        }
       }
     }));
   };
@@ -99,7 +102,10 @@ const Graph: React.FC<Props> = (props) => {
       [edgeId]: {
         ...oldEdges[edgeId],
         zIndex: undefined,
-        style: {}
+        style: {
+          ...oldEdges[edgeId].style,
+          stroke: undefined
+        }
       }
     }));
   };

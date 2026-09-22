@@ -7,6 +7,8 @@ import {
 
 import type { VscodeTableRow as VscodeTableRowElement } from '@vscode-elements/elements/dist/vscode-table-row/vscode-table-row.js';
 
+import Tooltip from '../../../../components/Tooltip';
+import RoundStatusIcon from './RoundStatusIcon';
 import TransitionRoundSubTable from './TransitionRoundSubTable';
 
 export interface RoundRowHandle {
@@ -29,37 +31,37 @@ type RoundCellProps = {
 });
 
 interface RoundStats {
-  transactions: number;
+  validTxs: number;
+  invalidTxs: number;
   inputs: number;
   outputs: number;
   mints: number;
   roundHasError: boolean;
-  txHasError: boolean;
 }
 
 const getRoundStats = (round: TransitionTestRound): RoundStats => {
-  let transactions = 0;
+  let validTxs = 0;
+  let invalidTxs = 0;
   let inputs = 0;
   let outputs = 0;
   let mints = 0;
 
   const roundHasError = round.status === 'failure';
-  let txHasError = false;
 
   for (const transition of round.transitions) {
     if (transition.tx) {
-      transactions += 1;
+      if (transition.result.status === 'success') {
+        validTxs += 1;
+      } else {
+        invalidTxs += 1;
+      }
       inputs += transition.tx.inputs.length;
       outputs += transition.tx.outputs.length;
       mints += transition.tx.mint ? transition.tx.mint.assets.length : 0;
-
-      if (!txHasError && transition.result.status === 'failure') {
-        txHasError = true;
-      }
     }
   }
 
-  return { transactions, inputs, outputs, mints, roundHasError, txHasError };
+  return { validTxs, invalidTxs, inputs, outputs, mints, roundHasError };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
@@ -77,7 +79,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 const TransitionRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> = forwardRef<RoundRowHandle, Props>(
   ({ index, round, onOpenGraph }, ref) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { transactions, inputs, outputs, mints, roundHasError, txHasError } = getRoundStats(round);
+  const { validTxs, invalidTxs, inputs, outputs, mints, roundHasError } = getRoundStats(round);
   const rowRef = useRef<VscodeTableRowElement>(null);
 
   useImperativeHandle(ref, () => ({
@@ -107,26 +109,30 @@ const TransitionRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> 
             >
               <i className={`translate-y-0.75 codicon ${collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}`} />
             </button>
+            <RoundStatusIcon roundId={round.id} status={round.status} />
             <button
+              id={`round-graph-${round.id}`}
               className="p-2 text-blue-05 cursor-pointer"
               onClick={handleOpenRoundGraph}
             >
               {round.id}
             </button>
+            <Tooltip
+              content="View Graph"
+              id={`round-graph-${round.id}`}
+              place="bottom-start"
+              positionStrategy="fixed"
+            />
             {roundHasError &&
               <i className="translate-y-0.75 codicon codicon-error text-red-01" />
             }
           </span>
         </RoundCell>
+        <RoundCell value={validTxs} />
         <RoundCell>
-            <span className="relative">
-              {transactions}
-              {txHasError &&
-                <span className="absolute -right-6 top-0">
-                  <i className="codicon codicon-warning text-[#E37933]" />
-                </span>
-              }
-            </span>
+          <span className={invalidTxs > 0 ? 'text-red-01' : undefined}>
+            {invalidTxs}
+          </span>
         </RoundCell>
         <RoundCell value={inputs} />
         <RoundCell value={outputs} />
@@ -134,7 +140,7 @@ const TransitionRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> 
       </VscodeTableRow>
       {!collapsed &&
         <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
-          <td colSpan={5} className="px-3 pb-3">
+          <td colSpan={6} className="px-3 pb-3">
             <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} />
           </td>
         </VscodeTableRow>

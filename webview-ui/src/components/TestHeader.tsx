@@ -41,6 +41,22 @@ const TestHeader: React.FC<Props> = ({ test }) => (
           )}
         </span>
         <span className="flex-none text-base-08 font-medium">{test.group[test.group.length - 1]}</span>
+      <span className="flex min-w-0 flex-1">
+        <span id="test-header-path" className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="text-base-10 font-medium">
+            <span>{test.id[1]}</span>
+            <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
+            <span>{test.id[2]}</span>
+            <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
+          </span>
+          {test.group.slice(0, -1).map(group =>
+            <span key={group} className="text-base-10 font-medium">
+              <span>{group}</span>
+              <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
+            </span>
+          )}
+        </span>
+        <span className="flex-none text-base-08 font-medium">{test.group[test.group.length - 1]}</span>
       </span>
       <Tooltip
         content={[test.id[1], test.id[2], ...test.group.slice(0, -1)].join(' / ')}
@@ -48,6 +64,7 @@ const TestHeader: React.FC<Props> = ({ test }) => (
         maxWidth="300px"
         place="bottom-end"
       />
+    </span>
     </div>
   </div>
 );
