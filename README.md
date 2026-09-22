@@ -31,9 +31,9 @@
 Property-based testing finds the edge case you would never have thought to write a test for. PBT brings the entire property-based testing process into one seamless user interface.
 
 - **Nothing to configure:** Write your test suites in your Haskell project as you normally would and PBT picks them up on its own. There is nothing to register on the extension side, no paths to point at, and no settings to keep in sync as the project grows.
-- **One place to drive everything:** Run a whole package, a single suite, or one test, and watch status and timings arrive live while the test run is still running.
-- **Round-level results:** See the status of every test at a glance, then open a test's result views to inspect the status of each of its rounds and the transactions inside them.
-- **Transactions you can actually read:** An interactive graph of any round, with its inputs, outputs, fees, script addresses and datums laid out, plus an explorer for moving through a large round without losing your place.
+- **One place to drive everything:** Run a whole package, a single suite, or one test, and see the results of all the tests in a single view.
+- **Round-level results:** See the status of every test at a glance, then open a test's result views to inspect the status of each of its rounds and the transactions produced by each round.
+- **Transactions you can actually read:** An interactive graph showing every transaction, input, and output from a test in a single view.
 - **Coverage where you are already looking:** See how much of each Plinth script a test run exercised, both as percentages in the sidebar and as highlighting on the lines of the script itself.
 
 ## Requirements
@@ -41,6 +41,7 @@ Property-based testing finds the edge case you would never have thought to write
 **Docker or Nix.** PBT runs your test suites using either Docker or Nix. you **MUST HAVE** one of them installed and working in order for the extension to run.
 
 **Docker**: install Docker Desktop or Docker Engine and make sure it is actually running. 
+
 **Nix**: install Nix. 
 
 Whichever one you install is the one you tell PBT to use later, in [step 4](#4-choose-an-execution-mode).
