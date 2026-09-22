@@ -204,7 +204,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
   The blue links in the table take you to the **Transaction Graph**. Click a round number to open the graph at that round, a transaction ID to open it with that transaction centered, or a UTxO to open it with that UTxO centered.
 
-- **Transaction Graph**: an interactive graph of a round, laying out its transactions alongside the UTxOs they consume and produce so you can scan the whole transaction flow, every input and output, in one view
+- **Transaction Graph**: an interactive graph of a round, laying out its transactions alongside the UTxOs they consume and produce so you can scan the whole transaction flow, every input and output, in one view.
 
 <img src="images/txGraph.png" alt="The Transaction Graph view showing wallet, script and transaction nodes connected left to right, with a round selector, zoom controls and a minimap" width="760" />
 
