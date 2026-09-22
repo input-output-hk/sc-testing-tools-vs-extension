@@ -14,9 +14,13 @@ import {
 import GraphNode from './GraphNode';
 import MiniMapNode from './MiniMapNode';
 
-import { mapTestRoundToGraphData, applyMeasuredLayout } from '../../utils/reactFlowUtils';
+import {
+  mapTestRoundToGraphData,
+  applyMeasuredLayout,
+  resolveNodeCollisions
+} from '../../utils/reactFlowUtils';
 
-import type { Node, Edge } from '@xyflow/react';
+import type { Node, Edge, OnNodeDrag } from '@xyflow/react';
 
 import "@xyflow/react/dist/style.css";
 
@@ -132,6 +136,15 @@ const Graph: React.FC<Props> = (props) => {
     ));
   };
 
+  const onNodeDrag: OnNodeDrag<Node> = (_, draggedNode) => {
+    setNodes(currentNodes => resolveNodeCollisions(
+      currentNodes.map(node => node.id === draggedNode.id ? {
+        ...node,
+        position: draggedNode.position,
+      } : node)
+    ));
+  };
+
   return (
     <ReactFlow
       colorMode="dark"
@@ -139,6 +152,7 @@ const Graph: React.FC<Props> = (props) => {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onNodeDrag={onNodeDrag}
       onEdgeMouseEnter={(_, edge) => onActiveEdge(edge.id)}
       onEdgeMouseLeave={(_, edge) => onInactiveEdge(edge.id)}
       nodeTypes={{ tx: GraphNode, wallet: GraphNode, script: GraphNode, withdrawal: GraphNode }}

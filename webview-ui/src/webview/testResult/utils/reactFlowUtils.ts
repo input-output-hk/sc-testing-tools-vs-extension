@@ -4,6 +4,21 @@ import type { Node, Edge, XYPosition } from '@xyflow/react';
 const COLUMN_WIDTH = 340;
 const NODE_VERTICAL_GAP = 20;
 
+type CollisionBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  moved: boolean;
+  node: Node;
+};
+
+type CollisionOptions = {
+  maxIterations?: number;
+  overlapThreshold?: number;
+  margin?: number;
+};
+
 type InternalGraphData = {
   nodes: Array<Node>;
   edges: Array<Edge>;
@@ -13,6 +28,65 @@ export type GraphData = {
   nodes: Array<Node>;
   edges: Array<Edge>;
   stepNodes: Array<string>;
+};
+
+export const resolveNodeCollisions = (
+  nodes: Array<Node>,
+  {
+    maxIterations = 50,
+    overlapThreshold = 0.5,
+    margin = NODE_VERTICAL_GAP,
+  }: CollisionOptions = {}
+): Array<Node> => {
+  const boxes: Array<CollisionBox> = nodes.map(node => ({
+    x: node.position.x - margin,
+    y: node.position.y - margin,
+    width: (node.measured?.width ?? node.width ?? 0) + margin * 2,
+    height: (node.measured?.height ?? node.height ?? 0) + margin * 2,
+    moved: false,
+    node,
+  }));
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    let moved = false;
+
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const first = boxes[i];
+        const second = boxes[j];
+        const deltaX = first.x + first.width / 2 - (second.x + second.width / 2);
+        const deltaY = first.y + first.height / 2 - (second.y + second.height / 2);
+        const overlapX = (first.width + second.width) / 2 - Math.abs(deltaX);
+        const overlapY = (first.height + second.height) / 2 - Math.abs(deltaY);
+
+        if (overlapX <= overlapThreshold || overlapY <= overlapThreshold) continue;
+
+        first.moved = true;
+        second.moved = true;
+        moved = true;
+
+        if (overlapX < overlapY) {
+          const amount = overlapX / 2 * (deltaX > 0 ? 1 : -1);
+          first.x += amount;
+          second.x -= amount;
+        } else {
+          const amount = overlapY / 2 * (deltaY > 0 ? 1 : -1);
+          first.y += amount;
+          second.y -= amount;
+        }
+      }
+    }
+
+    if (!moved) break;
+  }
+
+  return boxes.map(box => box.moved ? {
+    ...box.node,
+    position: {
+      x: box.x + margin,
+      y: box.y + margin,
+    },
+  } : box.node);
 };
 
 export const applyMeasuredLayout = (nodes: Array<Node>): Record<string, XYPosition> => {
