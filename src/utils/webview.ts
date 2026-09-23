@@ -4,9 +4,9 @@ import * as fs from 'fs';
 export class GenericWebviewViewProvider implements vscode.WebviewViewProvider {
   private extensionUri: vscode.Uri;
   private webviewName: string;
-  private onResolve: (webview: vscode.Webview) => void;
+  private onResolve: (webview: vscode.Webview, webviewView: vscode.WebviewView) => void;
 
-  constructor(extensionUri: vscode.Uri, webviewName: string, onResolve: (webview: vscode.Webview) => void) {
+  constructor(extensionUri: vscode.Uri, webviewName: string, onResolve: (webview: vscode.Webview, webviewView: vscode.WebviewView) => void) {
     this.extensionUri = extensionUri;
     this.webviewName = webviewName;
     this.onResolve = onResolve;
@@ -24,7 +24,7 @@ export class GenericWebviewViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri, this.webviewName);
 
-    this.onResolve(webviewView.webview);
+    this.onResolve(webviewView.webview, webviewView);
   }
 }
 

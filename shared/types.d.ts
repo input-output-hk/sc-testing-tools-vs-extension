@@ -530,7 +530,15 @@ type CoverageTreeUpdate = {
 
 type CoverageScope =
   | { type: "all" }
-  | { type: "test", testId: TestId, testName: string };
+  | { type: "test", testId: TestId, testName: string, group: Array<string> };
+
+// Mirrors VS Code's built-in `testing.coverageBarThresholds` setting: the
+// minimum coverage percentage at which each colour applies.
+type CoverageBarThresholds = {
+  red: number;
+  yellow: number;
+  green: number;
+};
 
 type TestResult = {
   test: Test;
@@ -545,6 +553,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
+  | { type: "config-coverage-bar-thresholds", payload: { thresholds: CoverageBarThresholds } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
   | { type: "status-missing-dependency", payload: { error: DependencyError } }
@@ -556,7 +565,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
   | { type: "test-tree-show-location", payload: { testId: TestId } }
-  | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
+  | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string, group: Array<string> } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
   | { type: "test-tree-update-open-state", payload: TestTreeUpdateOpenState }
   | { type: "test-tree-build-suite", payload: { suiteId: TestSuiteId } }
