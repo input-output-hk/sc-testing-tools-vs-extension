@@ -212,8 +212,8 @@
           },
           {
             "id": "backendtool",
-            "title": "Install the Backend Tool",
-            "description": "This extension is the user interface. Test suites are built and executed by the PBT backend tool, which has to be available on your machine before the extension can run anything.\nPBT invokes the backend through whichever execution mode you selected in the previous step, so finish that step first.\nThe backend tool lives in its own repository, and its README covers how to install it.\n[Open the backend tool repository](https://github.com/input-output-hk/sc-testing-tools)\nOnce the backend is in place, you are all set to start using the extension.",
+            "title": "Install sc-testing-tools",
+            "description": "This extension is the user interface. Test suites are built and executed by sc-testing-tools, which has to be available on your machine before the extension can run anything.\nPBT invokes sc-testing-tools through whichever execution mode you selected in the previous step, so finish that step first.\nsc-testing-tools lives in its own repository, and its README covers how to install it.\n[Open sc-testing-tools repository](https://github.com/input-output-hk/sc-testing-tools)\nOnce sc-testing-tools is in place, you are all set to start using the extension.",
             "completionEvents": [
               "onLink:https://github.com/input-output-hk/sc-testing-tools"
             ],
