@@ -79,11 +79,11 @@ const CoverageTreeLabel: React.FC<LabelProps> = ({ node, onClick }) => {
       onClickCapture={onClick}
       className="flex flex-row w-full items-center justify-between gap-1.5 cursor-pointer"
     >
-      <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis text-base-06">
+      <span className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis text-[var(--vscode-editor-foreground)] text-[13px]">
         {node.name}
       </span>
       <span className="flex items-center gap-1.5 shrink-0">
-        {percentage > 0 && <span className="text-base-06">{percentage}%</span>}
+        {percentage > 0 && <span className="text-[var(--vscode-editor-foreground)] text-[11px]">{percentage}%</span>}
         <CoveragePercentageBar percentage={percentage} />
       </span>
     </span>

@@ -40,7 +40,7 @@ const TxTitle: React.FC<TxTitleProps> = ({ index, txId, tooltipId, onClickTxId }
 );
 
 export const InputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-3 mb-3">
     <TxTitle
       index={index}
       txId={tx.id}
@@ -69,7 +69,7 @@ export const InputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClick
 );
 
 export const OutputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-3 mb-3">
     <TxTitle
       index={index}
       txId={tx.id}
@@ -98,7 +98,7 @@ export const OutputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClic
 );
 
 export const MintTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-3 mb-3">
     <TxTitle
       index={index}
       txId={tx.id}
@@ -121,7 +121,7 @@ export const MintTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickN
 );
 
 export const WithdrawalTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClickNode }) => (
-  <div className="p-3 mb-3 bg-base-19">
+  <div className="p-3 mb-3">
     <TxTitle
       index={index}
       txId={tx.id}

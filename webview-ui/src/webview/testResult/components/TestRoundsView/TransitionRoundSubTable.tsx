@@ -8,9 +8,11 @@ import type { TabItem } from '../Tabs';
 interface Props {
   round: TransitionTestRound;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
+  // Matches the parent row so the table's column resize handles stay hidden behind the tabs.
+  backgroundClass: string;
 }
 
-const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
+const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph, backgroundClass }) => {
   const [selectedTab, setSelectedTab] = useState<string>('inputs');
   const transitions = round.transitions.filter(transition => transition.tx);
   const hasMints = transitions.some(transition => (transition.tx?.mint?.assets.length ?? 0) > 0);
@@ -106,7 +108,7 @@ const TransitionRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   return (
     <div className="relative z-1">
       <Tabs
-        className="px-3 pt-3 pb-1 bg-base-20"
+        className={`px-3 pt-3 pb-1 ${backgroundClass}`}
         panelClassName="mt-3"
         selectedId={effectiveSelectedTab}
         onSelect={setSelectedTab}
