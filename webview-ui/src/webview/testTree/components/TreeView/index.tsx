@@ -6,7 +6,7 @@ import TreeViewFilter from '../TreeViewFilter';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
 import Tooltip from '../../../../components/Tooltip';
-import { packageMatchesFilter } from '../../utils/treeUtils';
+import { packageMatchesFilter, sortPackages, testTreeHasResults } from '../../utils/treeUtils';
 
 interface TreeViewProps {
   testJob: TestJob | null;
@@ -50,9 +50,12 @@ const TreeView: React.FC<TreeViewProps> = ({
   const filteredPackages = useMemo(
     () =>
       Object.values(testTree.packages)
-        .filter(testPackage => packageMatchesFilter(testPackage, filter)),
-    [testTree.packages, filter],
+        .filter(testPackage => packageMatchesFilter(testPackage, filter))
+        .sort(sortPackages(sortBy)),
+    [testTree.packages, filter, sortBy],
   );
+
+  const hasResults = useMemo(() => testTreeHasResults(testTree), [testTree]);
 
   const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
     setSelected((prevSelected) => {
@@ -99,7 +102,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         filter={filter}
         onChangeFilter={setFilter}
       />
-      <TestJob testJob={testJob} />
+      <TestJob testJob={testJob} hasResults={hasResults} />
       <div className="flex-1 overflow-y-auto">
         <VscodeTree multiSelect>
           {filteredPackages.map(testPackage => (

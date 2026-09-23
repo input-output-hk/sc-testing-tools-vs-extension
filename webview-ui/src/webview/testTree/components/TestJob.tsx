@@ -5,6 +5,7 @@ import { formatRunTime } from '../../../utils/format';
 
 interface Props {
   testJob: TestJob | null;
+  hasResults: boolean;
 }
 
 const mapStatusToClassName = (status: TestJobStatus): string => {
@@ -20,7 +21,8 @@ const mapStatusToClassName = (status: TestJobStatus): string => {
   }
 };
 
-const TestJob: React.FC<Props> = ({ testJob }) => {
+const TestJob: React.FC<Props> = ({ testJob: job, hasResults }) => {
+  const testJob = job?.type === 'run' && job.status === 'failed' && !hasResults ? null : job;
   const [currentTime, setCurrentTime] = useState(0);
   const startedOn = testJob?.startedOn;
   const finishedOn = testJob?.finishedOn;
@@ -46,6 +48,8 @@ const TestJob: React.FC<Props> = ({ testJob }) => {
     if (testJob.type === 'run') {
       if (testJob.status === 'running' || testJob.status === 'waiting') {
         message = `Running tests...`;
+      } else if (testJob.status === 'failed') {
+        message = `Test run failed.`;
       } else {
         message = `Test run complete.`;
       }
