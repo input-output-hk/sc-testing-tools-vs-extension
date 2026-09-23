@@ -73,6 +73,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const { validTxs, invalidTxs, inputs, outputs, mints, roundHasError } = getRoundStats(round);
+  const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -83,7 +84,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
 
   return (
     <>
-      <VscodeTableRow className={index % 2 === 0 ? 'bg-transparent' : 'bg-[var(--vscode-sideBar-background)]'}>
+      <VscodeTableRow className={rowBackgroundClass}>
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
@@ -124,9 +125,9 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
         <RoundCell value={mints} />
       </VscodeTableRow>
       {!collapsed &&
-        <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+        <VscodeTableRow className={rowBackgroundClass}>
           <td colSpan={6} className="px-3 pb-3">
-            <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} />
+            <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} backgroundClass={rowBackgroundClass} />
           </td>
         </VscodeTableRow>
       }

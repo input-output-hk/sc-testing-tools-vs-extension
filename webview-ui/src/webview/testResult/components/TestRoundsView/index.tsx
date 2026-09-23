@@ -58,7 +58,7 @@ const filterRounds = (rounds: Array<TestRound>, filter: string | null, testType?
 };
 
 const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph }) => (
-  <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-[var(--vscode-sideBar-border)] border-x-[var(--vscode-sideBar-border)]">
+  <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
       testType !== 'threat-model' ? (
         <TransitionRoundRow

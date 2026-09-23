@@ -8,9 +8,11 @@ import type { TabItem } from '../Tabs';
 interface Props {
   round: ThreatModelTestRound;
   onOpenGraph: (round: TestRound, nodeId?: string) => void;
+  // Matches the parent row so the table's column resize handles stay hidden behind the tabs.
+  backgroundClass: string;
 }
 
-const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
+const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph, backgroundClass }) => {
   const [selectedTab, setSelectedTab] = useState<string>('inputs');
   const traces = round.traces.filter(trace => trace.tx);
   const hasMints = traces.some(trace => (trace.tx.mint?.assets.length ?? 0) > 0);
@@ -106,7 +108,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph }) => {
   return (
     <div className="relative z-1">
       <Tabs
-        className="px-3 pt-3 pb-1 bg-base-20"
+        className={`px-3 pt-3 pb-1 ${backgroundClass}`}
         panelClassName="mt-3"
         selectedId={effectiveSelectedTab}
         onSelect={setSelectedTab}

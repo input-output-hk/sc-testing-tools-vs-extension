@@ -82,7 +82,7 @@ const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
               <button
                 key={option.value}
                 type="button"
-                className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left text-[var(--vscode-menu-foreground)]  cursor-pointer hover:bg-white/10"
+                className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left text-[var(--vscode-menu-foreground)]  cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] hover:text-[var(--vscode-list-hoverForeground)]"
                 onClick={() => onSelectFilter(option.value)}
               >
                 <i className={`codicon codicon-check ${option.value === selectedFilter ? 'opacity-100' : 'opacity-0'}`} />
