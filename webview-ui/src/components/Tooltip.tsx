@@ -15,7 +15,7 @@ const Tooltip: React.FC<Props> = ({ content, id, place = 'right', maxWidth = '25
   return (
     <>
       <ReactTooltip
-        id={`${id}-tooltip`}
+        id={content !== undefined ? `${id}-tooltip` : id}
         anchorSelect={content !== undefined ? `#${id}` : undefined}
         content={content}
         render={render}
