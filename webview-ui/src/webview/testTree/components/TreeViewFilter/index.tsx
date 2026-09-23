@@ -47,11 +47,13 @@ const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
     setIsMenuOpen(false);
   };
 
+  const hasActiveFilter = filter.status !== undefined || filter.type !== undefined;
+
   return (
     <div className="relative flex items-center w-full px-2 py-2">
       <input
         type="text"
-        className="w-full pl-2 pr-6 py-1 text-sm rounded border border-transparent dark:bg-[#3c3c3c] dark:text-base-06 outline-none focus:border-blue-06 dark:placeholder:text-base-06"
+        className="w-full pl-2 pr-8 py-1 text-sm rounded border border-transparent dark:bg-[#3c3c3c] dark:text-base-06 outline-none focus:border-blue-06 dark:placeholder:text-base-06"
         placeholder="Filter (e.g. test)"
         value={filter.text ?? ''}
         onChange={handleFilterTextInput}
@@ -60,16 +62,27 @@ const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
         ref={wrapperRef}
         className="absolute right-3 inline-flex items-center"
       >
-        <i
+        <button
+          type="button"
           className={
-            `codicon cursor-pointer hover:opacity-100 ` +
-            (filter.status !== undefined || filter.type !== undefined ?
-              'codicon-filter-filled text-blue-06 opacity-100' : 'codicon-filter opacity-70')
+            'group flex items-center justify-center rounded-[4px] border p-[3px] cursor-pointer ' +
+            (hasActiveFilter ?
+              'bg-blue-06/50 border-blue-06' :
+              isMenuOpen ?
+                'bg-base-12/50 border-transparent' :
+                'bg-transparent border-transparent hover:bg-base-12/50')
           }
           onClick={handleFilterToggle}
           data-tooltip-id="tree-node-action"
           data-tooltip-content="Filter"
-        />
+        >
+          <i
+            className={
+              'codicon codicon-filter ' +
+              (hasActiveFilter || isMenuOpen ? 'text-base-01' : 'text-base-06 group-hover:text-base-01')
+            }
+          />
+        </button>
         <FilterMenu
           isOpen={isMenuOpen}
           filter={filter}

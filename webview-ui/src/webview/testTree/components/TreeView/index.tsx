@@ -125,6 +125,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         onRunTest={handleRunTest}
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
+        onOpenTestResult={onOpenTestResult}
+        onShowCoverage={onShowCoverage}
       />
       <Tooltip id="tree-node-action" place="left" />
       <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />

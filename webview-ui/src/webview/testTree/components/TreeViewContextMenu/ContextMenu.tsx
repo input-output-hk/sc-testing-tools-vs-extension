@@ -7,9 +7,13 @@ interface Props {
   isBuildable: boolean;
   isBuildEnabled: boolean;
   hasLocation: boolean;
+  hasResults: boolean;
+  hasCoverage: boolean;
   onRun: () => void;
   onBuild: () => void;
   onShowLocation: () => void;
+  onViewResults: () => void;
+  onViewCoverage: () => void;
 }
 
 const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwardRef<HTMLDivElement, Props>(({
@@ -19,9 +23,13 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
   isBuildable,
   isBuildEnabled,
   hasLocation,
+  hasResults,
+  hasCoverage,
   onRun,
   onBuild,
   onShowLocation,
+  onViewResults,
+  onViewCoverage,
 }, ref) => {
   const handleContextMenu = (event: React.MouseEvent): void => {
     event.preventDefault();
@@ -51,6 +59,26 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
         >
           <i className="codicon codicon-refresh" />
           <span>Refresh Test Tree</span>
+        </button>
+      }
+      {hasResults &&
+        <button
+          type="button"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
+          onClick={onViewResults}
+        >
+          <i className="codicon codicon-tasklist" />
+          <span>View Results</span>
+        </button>
+      }
+      {hasCoverage &&
+        <button
+          type="button"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
+          onClick={onViewCoverage}
+        >
+          <i className="codicon codicon-coverage" />
+          <span>View Test Coverage</span>
         </button>
       }
       {hasLocation &&
