@@ -45,7 +45,7 @@
       },
       {
         "command": "pbt-extension.stopTestRun",
-        "title": "PBT: Stop All Tests",
+        "title": "PBT: Cancel Test Run",
         "icon": "$(stop-circle)"
       },
       {
@@ -162,7 +162,7 @@
       "pbt-test-tree": [
         {
           "id": "pbt-test-tree",
-          "name": "Test Panel",
+          "name": "Test Tree",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
         },
