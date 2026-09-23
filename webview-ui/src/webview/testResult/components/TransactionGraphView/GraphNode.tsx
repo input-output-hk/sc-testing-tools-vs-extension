@@ -19,6 +19,66 @@ interface GraphNodeFooterProps {
   onExpandNode: () => void;
 }
 
+interface GraphNodeHeaderProps {
+  label: string;
+  content: string;
+  status?: GraphStatus;
+  colorClass: string;
+  expanded: boolean;
+  onCollapseNode: () => void;
+}
+
+const getExpandedRowContent = (
+  label: string,
+  value?: GraphNodeValue<string | undefined>
+): string | null => {
+  const currentIsEmpty = value?.current === undefined || value.current === '';
+  const previousIsEmpty = value?.previous === undefined || value.previous === '';
+  if (value === undefined || currentIsEmpty && previousIsEmpty) return null;
+
+  const isModified = value.current !== value.previous;
+  const hasPrevious = value.previous !== undefined && value.previous.length > 0;
+  const current = currentIsEmpty ? 'Empty' : value.current;
+
+  return isModified && hasPrevious
+    ? `${label}:\nPrevious value:\n${value.previous}\nCurrent value:\n${current}`
+    : `${label}:\n${current}`;
+};
+
+const getNodeContent = (label: string, rows: Array<string | null>): string =>
+  [label, ...rows.filter(row => row !== null)].join('\n\n');
+
+const getTxNodeContent = (data: GraphNodeTx): string => getNodeContent(data.label, [
+  getExpandedRowContent('Transaction ID', data.id),
+  getExpandedRowContent('Mints', {
+    current: txValueToString(data.mint.current),
+    previous: txValueToString(data.mint.previous),
+  }),
+  getExpandedRowContent('Fee', {
+    current: `${data.fee.current} lovelace`,
+    previous: data.fee.previous ? `${data.fee.previous} lovelace` : undefined,
+  }),
+  getExpandedRowContent('Signers', {
+    current: data.signers.current?.join(', '),
+    previous: data.signers.previous?.join(', '),
+  }),
+]);
+
+const getUTxONodeContent = (data: GraphNodeUTxO): string => getNodeContent(data.label, [
+  getExpandedRowContent('Address', data.address),
+  getExpandedRowContent('Stake Address', data.stakeAddress),
+  getExpandedRowContent('UTxO', data.utxo),
+  getExpandedRowContent('Amount', data.value ? {
+    current: txValueToString(data.value.current),
+    previous: txValueToString(data.value.previous),
+  } : data.amount ? {
+    current: data.amount.current.toString(),
+    previous: data.amount.previous?.toString(),
+  } : undefined),
+  getExpandedRowContent('Redeemer', data.redeemer),
+  getExpandedRowContent('Datum', data.datum),
+]);
+
 const GraphNodeRow: React.FC<GraphNodeRowProps> = (props) => (
   props.expanded
     ? <GraphNodeExpandedRow {...props} />
@@ -94,29 +154,48 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onExpandNode }) => (
   </div>
 );
 
+const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, content, colorClass, expanded, onCollapseNode }) => (
+  <div className={`flex flex-row items-center py-1 px-2 gap-1 ${colorClass}`}>
+    <span className="flex-1 text-base-01 text-[12px] capitalize">
+      {label}
+    </span>
+    {expanded &&
+      <>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100"
+          onClick={() => navigator.clipboard.writeText(content)}
+        >
+          <i className="codicon codicon-copy text-base-01" style={{ fontSize: '14px' }} />
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100"
+          onClick={onCollapseNode}
+        >
+          <i className="codicon codicon-close text-base-01" style={{ fontSize: '14px' }} />
+        </button>
+      </>
+    }
+    {status !== undefined && status !== 'success' &&
+      <i className="codicon codicon-warning text-base-01" />
+    }
+  </div>
+);
+
 const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
   const [expanded, setExpanded] = useState<boolean>(false);
   return (
     <div className="relative">
       <div className="w-60 overflow-clip border border-base-13">
-        <div className="flex flex-row items-center py-1 px-2 gap-1 bg-green-05">
-          <span className="flex-1 text-base-01 text-[12px] capitalize">
-            {data.label}
-            {expanded ? ' - Full Details' : ''}
-          </span>
-          {expanded &&
-            <button
-            type="button"
-            className="inline-flex size-6 shrink-0 items-center justify-center cursor-pointer"
-            onClick={() => setExpanded(false)}
-            >
-              <i className="codicon codicon-close text-base-01" />
-            </button>
-          }
-          {data.status !== 'success' &&
-            <i className="codicon codicon-warning text-base-01" />
-          }
-        </div>
+        <GraphNodeHeader
+          label={data.label}
+          content={getTxNodeContent(data)}
+          status={data.status}
+          colorClass="bg-green-05"
+          expanded={expanded}
+          onCollapseNode={() => setExpanded(false)}
+        />
         <div className={`bg-base-18 ${expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}`}>
           <GraphNodeRow
             copyButton
@@ -216,21 +295,13 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxO> = (data) => {
   return (
     <>
       <div className="w-60 overflow-clip border border-base-13">
-        <div className={`flex flex-row items-center py-1 px-2 gap-1 ${getUTxOColor(data)}`}>
-          <span className="flex-1 text-base-01 text-[12px] capitalize">
-            {data.label}
-            {expanded ? ' - Full Details' : ''}
-          </span>
-          {expanded &&
-            <button
-              type="button"
-              className="inline-flex size-6 shrink-0 items-center justify-center cursor-pointer"
-              onClick={() => setExpanded(false)}
-            >
-              <i className="codicon codicon-close text-base-01" />
-            </button>
-          }
-        </div>
+        <GraphNodeHeader
+          label={data.label}
+          content={getUTxONodeContent(data)}
+          colorClass={getUTxOColor(data)}
+          expanded={expanded}
+          onCollapseNode={() => setExpanded(false)}
+        />
         <div className={`bg-base-18 ${expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}`}>
           <GraphNodeRow
             copyButton
