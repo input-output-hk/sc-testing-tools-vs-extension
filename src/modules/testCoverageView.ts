@@ -46,11 +46,16 @@ export default class TestCoverageView {
     this.fetchCoverage();
   }
 
-  private onWebviewResolved(webview: vscode.Webview): void {
+  private onWebviewResolved(webview: vscode.Webview, webviewView: vscode.WebviewView): void {
     this.webview = webview;
 
     this.context.store.testStore.onCoverageUpdate(this.sendCoverageUpdate.bind(this));
-    this.context.store.settingStore.onCoverageBarThresholdsChange(this.sendCoverageBarThresholds.bind(this));
+
+    // VS Code disposes and re-resolves a webview view as the user hides and
+    // reopens it, so this resolve's subscription has to go with this view.
+    const thresholdsSubscription = this.context.store.settingStore
+      .onCoverageBarThresholdsChange(this.sendCoverageBarThresholds.bind(this));
+    webviewView.onDidDispose(() => thresholdsSubscription.unsubscribe());
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
