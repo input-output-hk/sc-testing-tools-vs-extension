@@ -8,7 +8,8 @@ import {
   useReactFlow,
   useNodesInitialized,
   useNodesState,
-  useEdgesState
+  useEdgesState,
+  applyNodeChanges
 } from '@xyflow/react';
 
 import GraphNode from './GraphNode';
@@ -20,7 +21,7 @@ import {
   resolveNodeCollisions
 } from '../../utils/reactFlowUtils';
 
-import type { Node, Edge, OnNodeDrag } from '@xyflow/react';
+import type { Node, Edge, OnNodeDrag, OnNodesChange } from '@xyflow/react';
 
 import "@xyflow/react/dist/style.css";
 
@@ -54,7 +55,7 @@ const Graph: React.FC<Props> = (props) => {
   const [stepNodes, setStepNodes] = useState<Array<string> | null>(null);
   const [layouted, setLayouted] = useState<boolean>(false);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [nodes, setNodes] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowInstance = useReactFlow();
   const nodesInitialized = useNodesInitialized();
@@ -143,6 +144,16 @@ const Graph: React.FC<Props> = (props) => {
         position: draggedNode.position,
       } : node)
     ));
+  };
+
+  const onNodesChange: OnNodesChange<Node> = changes => {
+    const dimensionsChanged = changes.some(change => change.type === 'dimensions');
+    setNodes(currentNodes => {
+      const changedNodes = applyNodeChanges(changes, currentNodes);
+      return layouted && dimensionsChanged
+        ? resolveNodeCollisions(changedNodes)
+        : changedNodes;
+    });
   };
 
   return (
