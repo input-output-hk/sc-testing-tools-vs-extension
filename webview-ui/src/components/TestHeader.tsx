@@ -17,9 +17,9 @@ const TestHeader: React.FC<Props> = ({ test }) => (
           isRunning: test.isRunning
         }}
       />
-      <span className="flex-1 ml-1.5 text-base-06 font-semibold text-[15.6px]">{test.name}</span>
+      <span className="flex-1 ml-1.5 text-[var(--vscode-surface-foreground)] font-semibold text-[15.6px]">{test.name}</span>
       {test.time !== undefined && test.time > 0 &&
-        <span className="flex-none text-base-06 font-medium">
+        <span className="flex-none text-[var(--vscode-surface-foreground)] font-medium">
           {formatRunTime(test.time)}
         </span>
       }
@@ -27,20 +27,20 @@ const TestHeader: React.FC<Props> = ({ test }) => (
     <div className="flex min-w-0 flex-1 items-center">
       <span className="flex min-w-0 flex-1">
         <span id="test-header-path" className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-          <span className="text-base-10 font-medium">
+          <span className="text-[var(--vscode-descriptionForeground)] font-medium">
             <span>{test.id[1]}</span>
             <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
             <span>{test.id[2]}</span>
             <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
           </span>
           {test.group.slice(0, -1).map(group =>
-            <span key={group} className="text-base-10 font-medium">
+            <span key={group} className="text-[var(--vscode-descriptionForeground)] font-medium">
               <span>{group}</span>
               <i className="codicon codicon-chevron-right mx-0.5 translate-y-0.5" style={{ fontSize: '12px' }} />
             </span>
           )}
         </span>
-        <span className="flex-none text-base-08 font-medium">{test.group[test.group.length - 1]}</span>
+        <span className="flex-none text-[var(--vscode-editor-foreground)] font-medium">{test.group[test.group.length - 1]}</span>
       </span>
       <Tooltip
         content={[test.id[1], test.id[2], ...test.group.slice(0, -1)].join(' / ')}

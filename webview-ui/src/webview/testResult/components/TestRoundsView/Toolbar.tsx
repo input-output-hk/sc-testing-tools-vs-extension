@@ -43,7 +43,7 @@ const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
   const hasActiveFilter = selectedFilter !== null;
 
   return (
-    <div className="flex-none p-2 flex flex-row justify-end items-center gap-2 bg-base-18">
+    <div className="flex-none p-2 flex flex-row justify-end items-center gap-2 bg-[var(--vscode-sideBar-background)]">
       <span ref={wrapperRef} className="relative inline-flex items-center">
         <button
           id="test-rounds-filter"
@@ -77,12 +77,12 @@ const Toolbar: React.FC<Props> = ({ selectedFilter, onSelectFilter }) => {
           />
         }
         {isMenuOpen && (
-          <div className="absolute right-0 top-full mt-1 z-10 w-56 bg-base-19 shadow-lg py-2">
+          <div className="absolute right-0 top-full mt-1 z-10 w-56 bg-[var(--vscode-menu-background)] shadow-[var(--vscode-context-view-menu-motion-shadow)] rounded-[var(--vscode-cornerRadius-large)] border border-[var(--vscode-menu-border)] py-2">
             {FILTER_OPTIONS.map(option => (
               <button
                 key={option.value}
                 type="button"
-                className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
+                className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left text-[var(--vscode-menu-foreground)]  cursor-pointer hover:bg-white/10"
                 onClick={() => onSelectFilter(option.value)}
               >
                 <i className={`codicon codicon-check ${option.value === selectedFilter ? 'opacity-100' : 'opacity-0'}`} />

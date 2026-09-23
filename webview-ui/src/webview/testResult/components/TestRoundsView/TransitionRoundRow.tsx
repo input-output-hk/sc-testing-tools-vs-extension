@@ -83,7 +83,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
 
   return (
     <>
-      <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+      <VscodeTableRow className={index % 2 === 0 ? 'bg-transparent' : 'bg-[var(--vscode-sideBar-background)]'}>
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button

@@ -30,9 +30,9 @@ interface TableBodyProps {
 }
 
 const TableHeader: React.FC<TableHeaderProps> = ({ headers }) => (
-  <VscodeTableHeader slot="header" className="bg-base-20 min-w-24">
+  <VscodeTableHeader slot="header" className="bg-[var(--vscode-sideBar-background)] min-w-24">
     {headers.map(column => (
-      <VscodeTableHeaderCell key={column} className="p-2 border border-base-14 text-center">
+      <VscodeTableHeaderCell key={column} className="p-2 border border-[var(--vscode-sideBar-border)] text-[var(--vscode-sideBar-foreground)] text-center">
         {column}
       </VscodeTableHeaderCell>
     ))}
@@ -58,7 +58,7 @@ const filterRounds = (rounds: Array<TestRound>, filter: string | null, testType?
 };
 
 const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph }) => (
-  <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-base-14 border-x-base-14">
+  <VscodeTableBody slot="body" className="flex-1 min-h-0 overflow-y-auto border-b border-x border-b-[var(--vscode-sideBar-border)] border-x-[var(--vscode-sideBar-border)]">
     {testRounds.sort((a, b) => a.id - b.id).map((round, index) =>
       testType !== 'threat-model' ? (
         <TransitionRoundRow
@@ -88,7 +88,7 @@ const TestRoundsView: React.FC<Props> = ({ test, testRounds, isActive, onOpenGra
 
   return (
     <>
-      <div className="flex flex-col h-full border border-base-14">
+      <div className="flex flex-col h-full border border-[var(--vscode-sideBar-border)]">
         <Toolbar
           selectedFilter={selectedFilter}
           onSelectFilter={handleSelectFilter}
