@@ -82,7 +82,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
             </VscodeRadioGroup>
             <VscodeTextfield
               id="rounds-per-test-textfield"
-              className="w-full rounded-[var(--vscode-cornerRadius-small)] border-1 border-[var(--vscode-settings-textInputBorder)] focus:border-[var(--vscode-focusBorder)]"
+              className="w-full bg-[var(--vscode-input-background)]  text-[var(--vscode-input-foreground)] rounded-[var(--vscode-cornerRadius-small)] border-1 border-[var(--vscode-commandCenter-border)] focus:border-[var(--vscode-focusBorder)]"
               type="number"
               min={0}
               value={rounds}
