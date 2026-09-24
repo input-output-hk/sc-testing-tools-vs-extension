@@ -53,7 +53,7 @@ const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
     <div className="relative flex items-center w-full px-2 py-2">
       <input
         type="text"
-        className="w-full pl-2 pr-8 py-1 text-sm rounded border border-transparent dark:bg-[#3c3c3c] dark:text-base-06 outline-none focus:border-blue-06 dark:placeholder:text-base-06"
+        className="w-full pl-2 pr-6 py-1 text-sm rounded-[var(--vscode-cornerRadius-small)] border border-[var(--vscode-commandCenter-border)] bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)] outline-none focus:border-[var(--vscode-focusBorder)]"
         placeholder="Filter (e.g. test)"
         value={filter.text ?? ''}
         onChange={handleFilterTextInput}

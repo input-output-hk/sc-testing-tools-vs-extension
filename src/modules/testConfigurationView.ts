@@ -53,13 +53,16 @@ export default class TestConfigurationView {
     this.sendDependencyStatus();
   }
 
-  private onWebviewResolved(webview: vscode.Webview): void {
+  private onWebviewResolved(webview: vscode.Webview, webviewView: vscode.WebviewView): void {
     this.webview = webview;
 
-    this.context.store.settingStore.onModeChange(() => {
+    // VS Code disposes and re-resolves a webview view as the user hides and
+    // reopens it, so this resolve's subscription has to go with this view.
+    const modeSubscription = this.context.store.settingStore.onModeChange(() => {
       this.sendExecutionModeConfig();
       this.checkDependencyStatus();
     });
+    webviewView.onDidDispose(() => modeSubscription.unsubscribe());
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
