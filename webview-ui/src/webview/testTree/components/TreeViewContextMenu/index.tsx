@@ -18,7 +18,7 @@ interface Props {
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onShowTestLocation: (testId: TestId) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowCoverage: (test: Test) => void;
 }
 
 const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
@@ -97,7 +97,7 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
 
   const handleViewCoverage = (): void => {
     setContextMenu(null);
-    if (test) props.onShowCoverage(test.id, test.name);
+    if (test) props.onShowCoverage(test);
   };
 
   return (
