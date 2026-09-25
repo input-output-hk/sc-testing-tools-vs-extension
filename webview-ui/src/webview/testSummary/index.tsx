@@ -39,7 +39,11 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   }, [vscode]);
 
   const onSelectRound = (roundId: number) => {
-    vscode.postMessage({ type: 'test-summary-open-round', payload: { roundId } } as WebviewToExtensionMessage);
+    if (testSummary?.test.lastRunId === undefined) return;
+    vscode.postMessage({
+      type: 'test-summary-open-round',
+      payload: { testId: testSummary.test.id, runId: testSummary.test.lastRunId, roundId }
+    } as WebviewToExtensionMessage);
   };
 
   const path = testSummary ? [testSummary.test.id[1], testSummary.test.id[2], ...testSummary.test.group].join(' > ') : '';

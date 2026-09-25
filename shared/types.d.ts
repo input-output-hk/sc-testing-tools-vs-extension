@@ -557,7 +557,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
-  | { type: "test-summary-open-round", payload: { roundId: number } }
+  | { type: "test-summary-open-round", payload: { testId: TestId, runId: string, roundId: number } }
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }
