@@ -55,7 +55,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
   if (!test) return <></>;
 
   return (
-    <div className="flex flex-col h-full bg-base-20">
+    <div className="flex flex-col h-full bg-transparent">
       <div className="flex-none pt-4 px-4">
         <TestHeader test={test} />
       </div>

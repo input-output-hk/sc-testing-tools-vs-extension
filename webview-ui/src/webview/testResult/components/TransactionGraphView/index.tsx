@@ -100,7 +100,6 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
             round={props.testRounds[testRoundIndex]}
             nodeId={nodeId || undefined}
             stepIndex={stepIndex}
-            onViewNodeDetails={console.log}
             isActive={props.isActive}
           />
         </div>

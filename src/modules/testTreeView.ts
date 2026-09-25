@@ -78,7 +78,7 @@ export default class TestTreeView {
             this.openTestResults(message.payload.testId);
             break;
           case 'test-tree-show-coverage':
-            this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName);
+            this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName, message.payload.group);
             break;
           case 'test-tree-show-location':
             this.showTestLocation(message.payload.testId);

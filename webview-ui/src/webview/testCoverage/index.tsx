@@ -6,6 +6,10 @@ import type { WebviewApi } from 'vscode-webview';
 
 import CoverageTitle from './components/CoverageTitle';
 import CoverageTree from './components/CoverageTree';
+import {
+  CoverageBarThresholdsContext,
+  DEFAULT_COVERAGE_BAR_THRESHOLDS,
+} from './context/coverageBarThresholds';
 
 interface TestCoverageProps {
   vscode: WebviewApi<unknown>;
@@ -14,6 +18,7 @@ interface TestCoverageProps {
 const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
   const [scope, setScope] = useState<CoverageScope>({ type: 'all' });
   const [coverageTree, setCoverageTree] = useState<CoverageTree | null>(null);
+  const [barThresholds, setBarThresholds] = useState<CoverageBarThresholds>(DEFAULT_COVERAGE_BAR_THRESHOLDS);
   const hasItems = coverageTree !== null && Object.keys(coverageTree).length > 0;
 
   useEffect(() => {
@@ -24,6 +29,9 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
       if (message.type === 'coverage-tree') {
         setScope(message.payload.scope);
         setCoverageTree(message.payload.coverageTree);
+      }
+      if (message.type === 'config-coverage-bar-thresholds') {
+        setBarThresholds(message.payload.thresholds);
       }
     };
 
@@ -45,7 +53,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
   };
 
   return (
-    <>
+    <CoverageBarThresholdsContext.Provider value={barThresholds}>
       {coverageTree === null &&
         <div className="h-full">
           <VscodeProgressBar />
@@ -54,14 +62,8 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
       {coverageTree !== null &&
         <div className="flex h-full flex-col">
           <CoverageTitle
-            title={!hasItems
-              ? 'No coverage detected'
-              : scope.type === 'test'
-              ? `Coverage: ${scope.testName}`
-              : 'Coverage: Entire Test Run'
-            }
+            scope={scope}
             hasItems={hasItems}
-            isFullCoverage={scope.type === 'all'}
             onClearFullCoverage={onShowAllCoverage}
           />
           <div className="min-h-0 flex-1">
@@ -73,7 +75,7 @@ const TestCoverageView: React.FC<TestCoverageProps> = ({ vscode }) => {
           </div>
         </div>
       }
-    </>
+    </CoverageBarThresholdsContext.Provider>
   );
 };
 

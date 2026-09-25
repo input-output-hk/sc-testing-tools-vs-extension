@@ -24,7 +24,7 @@ interface TreeViewSuiteProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowCoverage: (test: Test) => void;
   onShowTestLocation: (testId: TestId) => void;
   onContextMenu: (event: React.MouseEvent, item: TestTreeItem) => void;
 }

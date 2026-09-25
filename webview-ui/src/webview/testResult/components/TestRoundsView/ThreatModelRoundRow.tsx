@@ -79,6 +79,7 @@ const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>>
   ({ index, round, onOpenGraph }, ref) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const { validTxs, invalidTxs, inputs, outputs, mints, attacks, roundHasError } = getRoundStats(round);
+  const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
   const rowRef = useRef<VscodeTableRowElement>(null);
 
   useImperativeHandle(ref, () => ({
@@ -97,7 +98,7 @@ const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>>
 
   return (
     <>
-      <VscodeTableRow ref={rowRef} className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+      <VscodeTableRow ref={rowRef} className={rowBackgroundClass}>
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
@@ -135,9 +136,9 @@ const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>>
         <RoundCell value={attacks} />
       </VscodeTableRow>
       {!collapsed &&
-        <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+        <VscodeTableRow className={rowBackgroundClass}>
           <td colSpan={7} className="px-3 pb-3">
-            <ThreatModelRoundSubTable round={round} onOpenGraph={onOpenGraph} />
+            <ThreatModelRoundSubTable round={round} onOpenGraph={onOpenGraph} backgroundClass={rowBackgroundClass} />
           </td>
         </VscodeTableRow>
       }
