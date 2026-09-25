@@ -92,6 +92,9 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           type: MarkerType.Arrow,
           height: 20, width: 20
         },
+        style: graphTxs[i].inputs[j].type === 'script' ? {
+          strokeDasharray: "6 3"
+        } : undefined
       } as Edge;
     }
 

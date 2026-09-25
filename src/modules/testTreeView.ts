@@ -198,6 +198,7 @@ export default class TestTreeView {
 
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
+    this.context.testSummaryView.showTestSummary(testId);
   }
 
   private async showTestLocation(testId: TestId): Promise<void> {

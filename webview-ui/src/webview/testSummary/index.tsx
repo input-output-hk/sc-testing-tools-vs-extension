@@ -1,0 +1,97 @@
+import React, {useState, useEffect} from 'react';
+
+import type { WebviewApi } from 'vscode-webview';
+
+import RoundsAccordion from './components/RoundsAccordion';
+import { formatRunTime } from '../../utils/format';
+
+interface Props {
+  vscode: WebviewApi<unknown>;
+}
+
+const TableCell: React.FC<{ amount: number, label: string, color: string }> = ({ amount, label, color }) => {
+  return (
+    <td className="py-3 pl-4">
+      <span className={`text-${color} font-bold`}>{amount}</span>{' '}
+      <span className="text-base-10">{label}</span>
+    </td>
+  )
+}
+
+const TestSummaryView: React.FC<Props> = ({ vscode }) => {
+  const [testSummary, setTestSummary] = useState<TestResult | null>(null);
+
+  useEffect(() => {
+    vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
+
+    const messageHandler = (event: MessageEvent) => {
+      const message = event.data as ExtensionToWebviewMessage;
+      if (message.type === 'test-summary-details') {
+        setTestSummary(message.payload);
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    return () => {
+      window.removeEventListener('message', messageHandler);
+    };
+  }, [vscode]);
+
+  const onSelectRound = (roundId: number) => {
+    if (testSummary?.test.lastRunId === undefined) return;
+    vscode.postMessage({
+      type: 'test-summary-open-round',
+      payload: { testId: testSummary.test.id, runId: testSummary.test.lastRunId, roundId }
+    } as WebviewToExtensionMessage);
+  };
+
+  const path = testSummary ? [testSummary.test.id[1], testSummary.test.id[2], ...testSummary.test.group].join(' > ') : '';
+  const validRounds = testSummary?.rounds.filter(round => round.status === 'success').map(round => round.id) ?? [];
+  const failedRounds = testSummary?.rounds.filter(round => round.status === 'failure').map(round => round.id) ?? [];
+  const skippedRounds = testSummary?.rounds.filter(round => round.status === 'discarded').length ?? 0;
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+        {testSummary === null
+          ? <div className="text-base-06">No test selected.</div>
+          : <>
+            <div className="flex items-center gap-2">
+              <i className={`codicon codicon-${testSummary.test.status === 'valid' ? 'pass' : 'error'} ${testSummary.test.status === 'valid' ? 'text-green-01' : 'text-red-01'}`} />
+              <span className="text-base-06 font-bold text-lg">{testSummary.test.name}</span>
+              <span className="ml-auto text-base-06">{formatRunTime(testSummary.test.time ?? 0)}</span>
+            </div>
+
+            <div className="text-base-10 mt-1">
+              {path} <span className="text-base-06">&gt; {testSummary.test.name}</span>
+            </div>
+
+            {testSummary.rounds.length > 0 ?
+              <>
+                <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
+                  <table className="w-full text-left">
+                    <tbody>
+                      <tr>
+                        <TableCell amount={testSummary.rounds.length} label="Test Rounds" color="base-06" />
+                        <TableCell amount={validRounds.length} label="Valid" color="green-01" />
+                        <TableCell amount={failedRounds.length} label="Failed" color="red-01" />
+                        <TableCell amount={skippedRounds} label="Skipped" color="base-06" />
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <RoundsAccordion title="Failed Rounds" rounds={failedRounds} defaultOpen onSelectRound={onSelectRound} />
+                <RoundsAccordion title="Valid Rounds" rounds={validRounds} onSelectRound={onSelectRound} />
+              </>
+              : <div className="mt-4 text-base-06">This test has no rounds.</div>
+            }
+          </>
+        }
+      </div>
+    </div>
+  );
+};
+
+export default TestSummaryView;

@@ -327,7 +327,7 @@ export default class TestStore {
   public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
     return await this.history.getTestRounds(runId, testId);
   }
-  
+
   public async getCoverage(): Promise<CoverageTree> {
     const files = await this.database.getCoverage();
     this.coverageTree = buildCoverageTree(files, this.coverageOpenState);

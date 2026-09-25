@@ -544,6 +544,8 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
+  | { type: "test-summary-details", payload: TestResult }
+  | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
   | { type: "config-test-rounds", payload: { rounds: number } }
@@ -555,6 +557,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-summary-open-round", payload: { testId: TestId, runId: string, roundId: number } }
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }

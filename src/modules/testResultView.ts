@@ -7,6 +7,8 @@ export default class TestResultView {
   private context: PbtContext;
   private panel: vscode.WebviewPanel | null = null;
   private testResult: TestResult | null = null;
+  private pendingExpandRoundId: number | null = null;
+  private runId: string | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -18,6 +20,17 @@ export default class TestResultView {
   }
 
   public open(testId: TestId): void {
+    this.runId = null;
+    this.show(testId);
+  }
+
+  public openRun(testId: TestId, runId: string, roundId: number): void {
+    this.runId = runId;
+    this.pendingExpandRoundId = roundId;
+    this.show(testId);
+  }
+
+  private show(testId: TestId): void {
     // If webview panel is already open
     if (this.panel !== null) {
       this.panel.reveal();
@@ -70,10 +83,46 @@ export default class TestResultView {
   }
 
   private sendTestResult(testId: TestId): void {
-    this.context.store.testStore.getTestResult(testId).then(testResult => {
-      this.testResult = testResult;
-      this.sendTestResultToWebview();
-    });
+    const request = this.runId === null
+      ? this.context.store.testStore.getTestResult(testId)
+      : this.getTestRunResult(testId, this.runId);
+    request.then(this.onTestResultLoaded.bind(this));
+  }
+
+  private async getTestRunResult(testId: TestId, runId: string): Promise<TestResult> {
+    const testStore = this.context.store.testStore;
+    const liveTest = (await testStore.getTestResult(testId)).test;
+    const rounds = await testStore.getTestRoundsHistory(runId, testId);
+    const result = this.findRunTestResult(await testStore.getTestRunsHistory(), runId, testId);
+
+    if (result === undefined) return { test: liveTest, rounds };
+
+    const test: Test = {
+      ...liveTest,
+      status: result.status,
+      time: result.time,
+      type: result.type,
+      group: result.group,
+      isWaiting: false,
+      isRunning: false,
+    };
+    return { test, rounds };
+  }
+
+  private findRunTestResult(runs: Array<TestRunHistory>, runId: string, testId: TestId): TestResultHistory | undefined {
+    const key = testId.join(':');
+    for (const run of runs) {
+      if (run.runId !== runId) continue;
+      for (const result of run.tests) {
+        if (result.id.join(':') === key) return result;
+      }
+    }
+    return undefined;
+  }
+
+  private onTestResultLoaded(testResult: TestResult): void {
+    this.testResult = testResult;
+    this.sendTestResultToWebview();
   }
 
   private onTestTreUpdate(payload: TestTreeUpdate): void {
@@ -83,6 +132,7 @@ export default class TestResultView {
         this.panel !== null &&
         this.testResult !== null &&
         test.id.join(':') === this.testResult.test.id.join(':') &&
+        (this.runId === null || this.runId === test.lastRunId) &&
         test.status !== this.testResult.test.status
       ) {
         if (test.status !== "valid" && test.status !== "invalid") {
@@ -110,6 +160,11 @@ export default class TestResultView {
   private sendTestResultToWebview(): void {
     if (this.panel !== null) {
       this.panel!.webview.postMessage({ type: 'test-result', payload: this.testResult } as ExtensionToWebviewMessage);
+
+      if (this.pendingExpandRoundId !== null) {
+        this.panel!.webview.postMessage({ type: 'test-result-expand-round', payload: { roundId: this.pendingExpandRoundId } } as ExtensionToWebviewMessage);
+        this.pendingExpandRoundId = null;
+      }
     }
   }
 }
