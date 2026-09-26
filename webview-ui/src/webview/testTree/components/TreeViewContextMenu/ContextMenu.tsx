@@ -36,12 +36,12 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
   };
 
   return (
-    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 w-44 py-2 text-[13px] bg-(--vscode-menu-background) text-(color:--vscode-menu-foreground) rounded-(--vscode-cornerRadius-large) border border-(--vscode-menu-border) shadow-(--vscode-context-view-menu-motion-shadow)">
+    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 w-44 py-2 text-[13px] bg-(--vscode-menu-background) text-(--vscode-menu-foreground) rounded-(--vscode-cornerRadius-large) border border-(--vscode-menu-border) shadow-(--vscode-context-view-menu-motion-shadow)">
       <button
         type="button"
         disabled={!isRunnable}
         className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-          !isRunnable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(color:--vscode-menu-selectionForeground)'
+          !isRunnable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)'
         }`}
         onClick={onRun}
       >
@@ -53,7 +53,7 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
           type="button"
           disabled={!isBuildEnabled}
           className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-            !isBuildEnabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(color:--vscode-menu-selectionForeground)'
+            !isBuildEnabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)'
           }`}
           onClick={onBuild}
         >
@@ -64,7 +64,7 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
       {hasResults &&
         <button
           type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(color:--vscode-menu-selectionForeground)"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
           onClick={onViewResults}
         >
           <i className="codicon codicon-tasklist" />
@@ -74,7 +74,7 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
       {hasCoverage &&
         <button
           type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(color:--vscode-menu-selectionForeground)"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
           onClick={onViewCoverage}
         >
           <i className="codicon codicon-coverage" />
@@ -84,7 +84,7 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
       {hasLocation &&
         <button
           type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(color:--vscode-menu-selectionForeground)"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
           onClick={onShowLocation}
         >
           <i className="codicon codicon-go-to-file" />

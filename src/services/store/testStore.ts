@@ -280,8 +280,8 @@ export default class TestStore {
   }
 
   public async clearTestTreeResults(): Promise<void> {
-    this.testJob.next(null);
     await this.database!.clearTestTreeResults();
+    this.testJob.next(null);
   }
 
   public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {

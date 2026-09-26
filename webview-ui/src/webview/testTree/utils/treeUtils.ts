@@ -65,16 +65,6 @@ export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
   return tests;
 };
 
-const nodeHasResult = (node: TestTreeNode): boolean => {
-  if (node.type === 'test') return (node as TestTreeTestNode).test.status !== 'undetermined';
-  return Object.values((node as TestTreeGroupNode).nodes).some(nodeHasResult);
-};
-
-export const testTreeHasResults = (testTree: TestTree): boolean =>
-  Object.values(testTree.packages).some(testPackage =>
-    Object.values(testPackage.suites).some(suite =>
-      Object.values(suite.tests).some(nodeHasResult)));
-
 export const getGroupTestRunnableIds =(group: TestTreeGroupNode): Array<TestId> => {
   return getGroupTests(group).filter(isTestRunnable).map((test) => test.id);
 };
@@ -116,11 +106,11 @@ const compareTestsById = (a: Test, b: Test): number => {
 };
 
 const getStatusRank = (context: RunStatusContext): number => {
-  if (context.isRunning) return 4;
-  if (context.status === 'valid') return 0;
-  if (context.status === 'invalid') return 1;
-  if (context.isWaiting) return 2;
-  return 3;
+  if (context.isRunning) return 0;
+  if (context.status === 'valid') return 1;
+  if (context.status === 'invalid') return 2;
+  if (context.isWaiting) return 3;
+  return 4;
 };
 
 const compareTestsByStatus = (a: Test, b: Test): number =>
@@ -148,9 +138,9 @@ const getTestComparator = (sortBy: SortBy): (a: Test, b: Test) => number => {
 
 export const sortTreeNodes = (sortBy: SortBy) => (a: TestTreeNode, b: TestTreeNode): number => {
   if (a.type === 'group' && b.type === 'test') {
-    return -1;
-  } else if (a.type === 'test' && b.type === 'group') {
     return +1;
+  } else if (a.type === 'test' && b.type === 'group') {
+    return -1;
   } else if (a.type === 'group' && b.type === 'group') {
     return compareGroups(sortBy, a as TestTreeGroupNode, b as TestTreeGroupNode);
   } else {
