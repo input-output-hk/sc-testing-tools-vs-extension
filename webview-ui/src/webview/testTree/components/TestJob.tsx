@@ -46,6 +46,8 @@ const TestJob: React.FC<Props> = ({ testJob }) => {
     if (testJob.type === 'run') {
       if (testJob.status === 'running' || testJob.status === 'waiting') {
         message = `Running tests...`;
+      } else if (testJob.status === 'failed') {
+        message = `Test run failed.`;
       } else {
         message = `Test run complete.`;
       }

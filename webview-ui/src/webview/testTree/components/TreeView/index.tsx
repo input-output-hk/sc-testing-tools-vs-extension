@@ -6,7 +6,7 @@ import TreeViewFilter from '../TreeViewFilter';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
 import Tooltip from '../../../../components/Tooltip';
-import { packageMatchesFilter } from '../../utils/treeUtils';
+import { packageMatchesFilter, sortPackages } from '../../utils/treeUtils';
 
 interface TreeViewProps {
   testJob: TestJob | null;
@@ -50,8 +50,9 @@ const TreeView: React.FC<TreeViewProps> = ({
   const filteredPackages = useMemo(
     () =>
       Object.values(testTree.packages)
-        .filter(testPackage => packageMatchesFilter(testPackage, filter)),
-    [testTree.packages, filter],
+        .filter(testPackage => packageMatchesFilter(testPackage, filter))
+        .sort(sortPackages(sortBy)),
+    [testTree.packages, filter, sortBy],
   );
 
   const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
@@ -125,6 +126,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         onRunTest={handleRunTest}
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
+        onOpenTestResult={onOpenTestResult}
+        onShowCoverage={onShowCoverage}
       />
       <Tooltip id="tree-node-action" place="left" />
       <Tooltip id="tree-node-name" place="top-start" render={renderTruncatedNodeName} />

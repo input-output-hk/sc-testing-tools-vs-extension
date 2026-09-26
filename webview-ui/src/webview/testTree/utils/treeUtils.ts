@@ -65,7 +65,7 @@ export const getGroupTests = (group: TestTreeGroupNode): Array<Test> => {
   return tests;
 };
 
-export const getGroupTestRunnableIds = (group: TestTreeGroupNode): Array<TestId> => {
+export const getGroupTestRunnableIds =(group: TestTreeGroupNode): Array<TestId> => {
   return getGroupTests(group).filter(isTestRunnable).map((test) => test.id);
 };
 
@@ -105,16 +105,31 @@ const compareTestsById = (a: Test, b: Test): number => {
   return parseInt(testIdA) - parseInt(testIdB);
 };
 
-const getTestStatusRank = (test: Test): number => {
-  if (test.isRunning) return 0;
-  if (test.status === 'valid') return 1;
-  if (test.status === 'invalid') return 2;
-  if (test.isWaiting) return 3;
+const getStatusRank = (context: RunStatusContext): number => {
+  if (context.isRunning) return 0;
+  if (context.status === 'valid') return 1;
+  if (context.status === 'invalid') return 2;
+  if (context.isWaiting) return 3;
   return 4;
 };
 
 const compareTestsByStatus = (a: Test, b: Test): number =>
-  getTestStatusRank(a) - getTestStatusRank(b) || compareTestsById(a, b);
+  getStatusRank(a) - getStatusRank(b) || compareTestsById(a, b);
+
+const compareGroups = (sortBy: SortBy, a: TestTreeGroupNode, b: TestTreeGroupNode): number => {
+  const statusOrder = sortBy === 'status' ? getStatusRank(getGroupStatus(a)) - getStatusRank(getGroupStatus(b)) : 0;
+  return statusOrder || a.name.localeCompare(b.name);
+};
+
+export const sortPackages = (sortBy: SortBy) => (a: TestPackage, b: TestPackage): number => {
+  if (sortBy !== 'status') return 0;
+  return getStatusRank(getPackageStatus(a)) - getStatusRank(getPackageStatus(b));
+};
+
+export const sortSuites = (sortBy: SortBy) => (a: TestSuite, b: TestSuite): number => {
+  if (sortBy !== 'status') return 0;
+  return getStatusRank(a) - getStatusRank(b);
+};
 
 const getTestComparator = (sortBy: SortBy): (a: Test, b: Test) => number => {
   if (sortBy === 'status') return compareTestsByStatus;
@@ -127,9 +142,7 @@ export const sortTreeNodes = (sortBy: SortBy) => (a: TestTreeNode, b: TestTreeNo
   } else if (a.type === 'test' && b.type === 'group') {
     return -1;
   } else if (a.type === 'group' && b.type === 'group') {
-    const groupA = a as TestTreeGroupNode;
-    const groupB = b as TestTreeGroupNode;
-    return groupA.name.localeCompare(groupB.name);
+    return compareGroups(sortBy, a as TestTreeGroupNode, b as TestTreeGroupNode);
   } else {
     const testA = (a as TestTreeTestNode).test;
     const testB = (b as TestTreeTestNode).test;

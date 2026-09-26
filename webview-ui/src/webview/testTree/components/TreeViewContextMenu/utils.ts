@@ -9,9 +9,12 @@ interface ItemContext {
   isBuildable: boolean;
   isBuildEnabled: boolean;
   hasLocation: boolean;
+  hasResults: boolean;
+  hasCoverage: boolean;
   runnableIds: Array<RunnableTestId>;
   buildableIds?: Array<TestSuiteId>;
   locationId?: TestId;
+  test?: Test;
 }
 
 export const getItemContext = (item: TestTreeItem): ItemContext => {
@@ -35,6 +38,8 @@ const getPackageContext = (packageNode: TestPackage): ItemContext => {
     isBuildable: true,
     isBuildEnabled: isRunnable,
     hasLocation: false,
+    hasResults: false,
+    hasCoverage: false,
     runnableIds: suiteIds,
     buildableIds: suiteIds,
   };
@@ -47,6 +52,8 @@ const getSuiteContext = (suiteId: TestSuiteId, suiteNode: TestSuite): ItemContex
     isBuildable: true,
     isBuildEnabled: isRunnable,
     hasLocation: false,
+    hasResults: false,
+    hasCoverage: false,
     runnableIds: [suiteId],
     buildableIds: [suiteId],
   };
@@ -60,6 +67,8 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: false,
+      hasResults: false,
+      hasCoverage: false,
       runnableIds,
     };
   } else {
@@ -69,8 +78,11 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: test.location !== undefined,
+      hasResults: test.type !== undefined && test.type !== 'unit-test',
+      hasCoverage: test.hasCoverage === true,
       runnableIds: [test.id],
       locationId: test.location !== undefined ? test.id : undefined,
+      test,
     };
   }
 };
