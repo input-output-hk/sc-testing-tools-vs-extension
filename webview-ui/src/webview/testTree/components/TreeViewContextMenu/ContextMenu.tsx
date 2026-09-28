@@ -1,4 +1,6 @@
 import { forwardRef } from 'react';
+import { VscodeContextMenu } from '@vscode-elements/react-elements';
+import type { VscContextMenuSelectEvent } from '@vscode-elements/elements/dist/vscode-context-menu/vscode-context-menu.js';
 
 interface Props {
   x: number;
@@ -14,6 +16,11 @@ interface Props {
   onShowLocation: () => void;
   onViewResults: () => void;
   onViewCoverage: () => void;
+}
+
+interface MenuItem {
+  label: string;
+  value: string;
 }
 
 const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwardRef<HTMLDivElement, Props>(({
@@ -35,62 +42,38 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
     event.preventDefault();
   };
 
+  const handleSelect = (event: VscContextMenuSelectEvent): void => {
+    switch (event.detail.value) {
+      case 'run':
+        onRun();
+        break;
+      case 'build':
+        onBuild();
+        break;
+      case 'results':
+        onViewResults();
+        break;
+      case 'coverage':
+        onViewCoverage();
+        break;
+      case 'location':
+        onShowLocation();
+        break;
+    }
+  };
+
+  const items: Array<MenuItem> = [];
+  if (isRunnable) items.push({ label: 'Run Tests', value: 'run' });
+  if (isBuildable && isBuildEnabled) items.push({ label: 'Refresh Test Tree', value: 'build' });
+  if (hasResults) items.push({ label: 'View Results', value: 'results' });
+  if (hasCoverage) items.push({ label: 'View Test Coverage', value: 'coverage' });
+  if (hasLocation) items.push({ label: 'View in source file', value: 'location' });
+
+  if (items.length === 0) return null;
+
   return (
-    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 w-44 py-2 text-[13px] bg-(--vscode-menu-background) text-(--vscode-menu-foreground) rounded-(--vscode-cornerRadius-large) border border-(--vscode-menu-border) shadow-(--vscode-context-view-menu-motion-shadow)">
-      <button
-        type="button"
-        disabled={!isRunnable}
-        className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-          !isRunnable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)'
-        }`}
-        onClick={onRun}
-      >
-        <i className="codicon codicon-run-all" />
-        <span>Run Tests</span>
-      </button>
-      {isBuildable &&
-        <button
-          type="button"
-          disabled={!isBuildEnabled}
-          className={`flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left ${
-            !isBuildEnabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)'
-          }`}
-          onClick={onBuild}
-        >
-          <i className="codicon codicon-refresh" />
-          <span>Refresh Test Tree</span>
-        </button>
-      }
-      {hasResults &&
-        <button
-          type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
-          onClick={onViewResults}
-        >
-          <i className="codicon codicon-tasklist" />
-          <span>View Results</span>
-        </button>
-      }
-      {hasCoverage &&
-        <button
-          type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
-          onClick={onViewCoverage}
-        >
-          <i className="codicon codicon-coverage" />
-          <span>View Test Coverage</span>
-        </button>
-      }
-      {hasLocation &&
-        <button
-          type="button"
-          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
-          onClick={onShowLocation}
-        >
-          <i className="codicon codicon-go-to-file" />
-          <span>View in source file</span>
-        </button>
-      }
+    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20">
+      <VscodeContextMenu show data={items} onVscContextMenuSelect={handleSelect} />
     </div>
   );
 });

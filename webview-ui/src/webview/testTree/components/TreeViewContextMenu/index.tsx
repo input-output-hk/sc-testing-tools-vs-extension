@@ -102,6 +102,7 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
 
   return (
     <ContextMenu
+      key={`${contextMenu.x}:${contextMenu.y}`}
       ref={menuRef}
       x={contextMenu.x}
       y={contextMenu.y}
