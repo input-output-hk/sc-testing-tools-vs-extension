@@ -253,15 +253,17 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "db:generate": "drizzle-kit generate --dialect sqlite --schema ./src/services/history/schema.ts --out ./drizzle",
-    "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview",
+    "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview && npm run compile:binary",
     "compile:extension": "tsc -p ./",
     "compile:server": "npm run build -w server",
-    "compile:webview": "npm run build -w webview-ui"
+    "compile:webview": "npm run build -w webview-ui",
+    "compile:binary": "bun scripts/build-server.mjs"
   },
   "devDependencies": {
     "@types/async": "^3.2.25",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
+    "bun": "^1.4.2",
     "drizzle-kit": "^1.0.0-rc.4",
     "typescript": "^5.9.3"
   },

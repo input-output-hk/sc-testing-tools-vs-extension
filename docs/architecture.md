@@ -25,15 +25,15 @@ There are three implementation layers:
 ```mermaid
 flowchart LR
 	UI[Webviews] <-->|postMessage| Extension[VS Code extension host]
-	Extension <-->|JSON-RPC over stdio| Server[Local Node.js server]
+	Extension <-->|JSON-RPC over stdio| Server[Bundled RPC executable]
 	Server -->|Docker or Nix commands| Backend[Haskell test executable]
 	Backend -->|JSON events on stdout| Server
 	Server -->|Read workspace sources| Workspace[Project files]
 ```
 
-Here, **server** means the bundled adapter process, not the Haskell backend and not an HTTP service. [src/services/rpcClient.ts](../src/services/rpcClient.ts) spawns `node out/server/index.js` and connects `vscode-jsonrpc` to its standard streams. No listening port is involved. The webviews do not call the server or execute backend commands directly.
+Here, **server** means the bundled adapter process, not the Haskell backend and not an HTTP service. [src/services/rpcClient.ts](../src/services/rpcClient.ts) spawns the platform-specific `bin/pbt-server-<platform>-<arch>` executable and connects `vscode-jsonrpc` to its standard streams. No listening port or system Node.js installation is involved. The webviews do not call the server or execute backend commands directly.
 
-The npm workspace builds these layers separately: `compile:extension`, `compile:server`, and `compile:webview`; `npm run compile` runs all three. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
+The npm workspace builds these layers separately: `compile:extension`, `compile:server`, `compile:webview`, and `compile:binary`; `npm run compile` runs all four. Bun compiles the server source and its dependencies into six executables for macOS, Linux, and Windows (arm64 and x64). Runtime shell scripts ship alongside the binaries. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
 
 ## Backend Context
 
@@ -422,7 +422,7 @@ RxDB observations and webview messages are asynchronous; the diagram groups them
 
 ### Build And Verification
 
-From the repository root, `npm install` installs the npm workspaces and `npm run compile` builds all three layers. Narrow commands are `npm run compile:extension`, `npm run compile:server`, and `npm run compile:webview`. The UI also exposes `npm run lint -w webview-ui`. Use the repository's VS Code launch configuration with F5 to exercise host APIs and real webview messaging; a standalone Vite page does not provide `acquireVsCodeApi()` by itself.
+From the repository root, `npm install` installs the npm workspaces and `npm run compile` builds all four layers. Narrow commands are `npm run compile:extension`, `npm run compile:server`, `npm run compile:webview`, and `npm run compile:binary`. Cross-compile a specific target with `npm run compile:binary -- darwin-x64` (or another supported platform/architecture). The UI also exposes `npm run lint -w webview-ui`. Use the repository's VS Code launch configuration with F5 to exercise host APIs and real webview messaging; a standalone Vite page does not provide `acquireVsCodeApi()` by itself.
 
 For changes crossing layers, exercise static discovery, compiled listing, a full-suite run, and a selected-test run. Check that IDs still line up, completion clears running state, result rounds can be reopened, and aggregate/single-test coverage behaves as expected. Include a failing suite and cancellation when changing lifecycle handling. The tutorial supplies small integration examples; the playground's normal/flipped suites exercise the distinction between expected vulnerabilities and failed security claims. These are suggested integration scenarios, not tests automatically run by `npm run compile`.
 

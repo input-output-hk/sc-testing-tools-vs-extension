@@ -6,6 +6,7 @@ import TestTreeView from './modules/testTreeView';
 import TestResultView from './modules/testResultView';
 import TestConfigurationView from './modules/testConfigurationView';
 import TestCoverageView from './modules/testCoverageView';
+import { getBinaryPath } from './utils/binary';
 
 export type PbtContext = {
   extension: vscode.ExtensionContext;
@@ -20,7 +21,13 @@ export type PbtContext = {
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+  try {
+    await vscode.workspace.fs.stat(vscode.Uri.file(context.asAbsolutePath(getBinaryPath())));
+  } catch {
+    vscode.window.showErrorMessage(`PBT RPC server binary not found for ${process.platform}-${process.arch}.`);
+    return;
+  }
 
   // Init store
   const store = new Store(context);

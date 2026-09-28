@@ -27,6 +27,9 @@ function getRunScriptPath(mode: string): string {
 }
 
 function getScriptBasePath(): string {
+  if (process.versions.bun) {
+    return path.join(path.dirname(process.execPath), '..', 'scripts');
+  }
   return path.join(__dirname, '..', '..', '..', 'scripts');
 }
 
