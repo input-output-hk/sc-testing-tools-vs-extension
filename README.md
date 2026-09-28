@@ -75,7 +75,7 @@ npm install
 npm run compile
 ```
 
-Building from source requires Node.js and npm. `npm run compile` builds the extension, server, webview UI, and standalone RPC executables for macOS, Linux, and Windows (arm64 and x64). Then press <kbd>F5</kbd> to launch a VS Code window with PBT loaded. To build just one target, run `npm run compile:binary -- darwin-arm64` (or `darwin-x64`, `linux-arm64`, `linux-x64`, `win32-arm64`, `win32-x64`). The default VSIX includes all six executables and `bin/tree-sitter-haskell.wasm`; keep the grammar beside the executable when distributing a binary. Bun is a build-time dependency only.
+Building from source requires Node.js and npm. `npm run compile` builds the extension, server, webview UI, and standalone RPC executables for macOS, Linux, and Windows (arm64 and x64). Then press <kbd>F5</kbd> to launch a VS Code window with PBT loaded. To build just one target, run `npm run compile:binary -- darwin-arm64` (or `darwin-x64`, `linux-arm64`, `linux-x64`, `win32-arm64`, `win32-x64`). The default VSIX includes all six executables, `bin/tree-sitter-haskell.wasm`, and `bin/web-tree-sitter.wasm`; keep both WASM files beside the executable when distributing a binary. Bun is a build-time dependency only.
 
 
 ### 2. Open your project

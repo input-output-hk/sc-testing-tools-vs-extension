@@ -52,7 +52,9 @@ export async function getParser(): Promise<import('web-tree-sitter').Parser> {
   }
 
   grammarWasmPath = resolveGrammarWasm();
-  await webTreeSitter.Parser.init();
+  await webTreeSitter.Parser.init(process.versions.bun ? {
+    locateFile: () => path.join(path.dirname(process.execPath), 'web-tree-sitter.wasm'),
+  } : undefined);
   const haskellLanguage = await webTreeSitter.Language.load(grammarWasmPath);
 
   parserInstance = new webTreeSitter.Parser();

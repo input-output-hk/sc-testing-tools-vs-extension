@@ -33,7 +33,7 @@ flowchart LR
 
 Here, **server** means the bundled adapter process, not the Haskell backend and not an HTTP service. [src/services/rpcClient.ts](../src/services/rpcClient.ts) spawns the platform-specific `bin/pbt-server-<platform>-<arch>` executable and connects `vscode-jsonrpc` to its standard streams. No listening port or system Node.js installation is involved. The webviews do not call the server or execute backend commands directly.
 
-The npm workspace builds these layers separately: `compile:extension`, `compile:server`, `compile:webview`, and `compile:binary`; `npm run compile` runs all four. Bun compiles the server source and its dependencies into six executables for macOS, Linux, and Windows (arm64 and x64). The Haskell grammar WASM ships beside the binaries in `bin/`, and runtime shell scripts ship in `scripts/`. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
+The npm workspace builds these layers separately: `compile:extension`, `compile:server`, `compile:webview`, and `compile:binary`; `npm run compile` runs all four. Bun compiles the server source and its dependencies into six executables for macOS, Linux, and Windows (arm64 and x64). The Haskell grammar and web-tree-sitter runtime WASM files ship beside the binaries in `bin/`, and runtime shell scripts ship in `scripts/`. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
 
 ## Backend Context
 
