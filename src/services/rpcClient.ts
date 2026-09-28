@@ -3,29 +3,38 @@ import * as cp from 'child_process';
 import * as rpc from 'vscode-jsonrpc/node';
 
 import { PbtContext } from '../extension';
+import { getBinaryPath } from '../utils/binary';
   
 export default class RpcClient {
   private context: PbtContext | null = null;
-  private childProcess: cp.ChildProcess;
-  private connection: rpc.MessageConnection;
+  private childProcess!: cp.ChildProcess;
+  private connection!: rpc.MessageConnection;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.childProcess = cp.spawn('node', [context.asAbsolutePath('out/server/index.js')]);
-    
-    this.connection = rpc.createMessageConnection(
-      new rpc.StreamMessageReader(this.childProcess.stdout!),
-      new rpc.StreamMessageWriter(this.childProcess.stdin!)
-    );
-  }
+  constructor(private readonly extension: vscode.ExtensionContext) {}
 
   public async initialize(context: PbtContext): Promise<void> {
     this.context = context;
 
+    this.childProcess = cp.spawn(this.extension.asAbsolutePath(getBinaryPath()));
+    this.childProcess.on('error', (error) => {
+      context.outputChannel.appendLine(`> RPC server failed to start: ${error.message}`);
+      vscode.window.showErrorMessage(`PBT RPC server failed to start: ${error.message}`);
+    });
+    this.childProcess.on('exit', (code, signal) => {
+      context.outputChannel.appendLine(`> RPC server exited (code: ${code}, signal: ${signal})`);
+      if (code !== 0) {
+        vscode.window.showErrorMessage('PBT RPC server exited unexpectedly. See PBT Extension output.');
+      }
+    });
     this.childProcess.stderr?.on('data', (data) => {
       context.outputChannel.append(`> ERROR\n${data}`);
       return data;
     });
 
+    this.connection = rpc.createMessageConnection(
+      new rpc.StreamMessageReader(this.childProcess.stdout!),
+      new rpc.StreamMessageWriter(this.childProcess.stdin!)
+    );
     this.connection.trace(rpc.Trace.Verbose, {
       log: (message: string, data?: string) => {
         context.outputChannel.append(`> ${message}\n${data}`);

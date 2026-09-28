@@ -3,10 +3,11 @@
 src/**
 webview-ui/**
 server/**
-!out/server/**
+out/server/**
 server/node_modules/**
 node_modules/pbt-jsonrpc-api
 node_modules/pbt-extension-webview-ui
+scripts/build-server.mjs
 **/tsconfig.json
 **/*.map
 **/*.ts
