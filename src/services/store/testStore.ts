@@ -62,7 +62,9 @@ export default class TestStore {
       this.eventQueue.push(event);
     });
 
-    this.setupWorkspaceListener();
+    // Commenting this for now
+    // this.setupWorkspaceListener();
+
     this.setupCoverageListener();
   }
 
