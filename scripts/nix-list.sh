@@ -9,5 +9,5 @@ nix run \
   --accept-flake-config \
   --extra-experimental-features nix-command \
   --extra-experimental-features flakes \
-  $PROJECT_PATH#$PACKAGE_NAME:test:$TEST_SUITE_NAME \
+  "$PROJECT_PATH#$PACKAGE_NAME:test:$TEST_SUITE_NAME" \
   -- --list-tests-json
