@@ -67,7 +67,7 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
   ));
 
   return (
-    <div className="relative flex flex-col h-full border border-base-14">
+    <div className="relative flex flex-col h-full border border-[var(--vscode-sideBar-border)]">
       {explorerOpen &&
         <GraphExplorer
           mode={mode}
@@ -86,7 +86,7 @@ const TransactionGraphView: React.FC<Props & React.RefAttributes<Handle>> = forw
         onSelectMode={onSelectMode}
         onOpenExplorer={onToggleExplorer}
       />
-      <div className="flex-1 flex flex-row bg-base-19">
+      <div className="flex-1 flex flex-row bg-[var(--vscode-panel-background)]">
         <div className="flex-1 relative">
           {mode === 'attack-timeline' &&
             <GraphTimeline

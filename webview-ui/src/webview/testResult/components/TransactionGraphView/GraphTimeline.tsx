@@ -1,5 +1,3 @@
-import { VscodeButton } from '@vscode-elements/react-elements';
-
 interface Props {
   stepIndex: number;
   round: ThreatModelTestRound;
@@ -14,16 +12,16 @@ interface SliderProps {
 
 const TimelineSlider: React.FC<SliderProps> = ({ current, total, onSelect }) => (
   <div className="flex-1 relative">
-    <div className="absolute top-1 left-0 w-full h-1 rounded bg-base-13 opacity-50 -z-2" />
+    <div className="absolute top-1 left-0 w-full h-1 rounded bg-[var(--vscode-sideBar-border)]" />
     <div
       style={{ width: `${total > 1 ? (current / (total - 1) * 100) : 100}%` }}
-      className="absolute top-1 left-0 h-1 rounded bg-base-06 opacity-50 -z-1"
+      className="absolute top-1 left-0 h-1 rounded bg-[var(--vscode-sideBarTitle-foreground)] opacity-50"
     />
-    <div className={`flex flex-row items-center ${total > 1 ? 'justify-between' : 'justify-center'}`}>
+    <div className={`relative flex flex-row items-center ${total > 1 ? 'justify-between' : 'justify-center'}`}>
       {[...Array(total)].map((_, index) =>
         <span
           key={index}
-          className={`h-3 w-3 rounded-full cursor-pointer ${index <= current ? 'bg-base-06' : 'bg-base-12 opacity-75'}`}
+          className={`h-3 w-3 rounded-full cursor-pointer ${index <= current ? 'bg-[var(--vscode-sideBarTitle-foreground)]' : 'bg-[var(--vscode-sideBar-border)]'}`}
           onClick={() => onSelect(index)}
         />
       )}
@@ -45,16 +43,15 @@ const GraphTimeline: React.FC<Props> = ({ stepIndex, round, onSelectStep }) => {
 
   return (
     <div className="absolute left-0 top-0 w-full z-1">
-      <div className="p-2 flex flex-row justify-between items-center gap-4 backdrop-blur-xs bg-[#252526CC]">
-        <VscodeButton secondary
+      <div className="p-2 flex flex-row justify-between items-center gap-4 bg-[var(--vscode-sideBar-background)]">
+        <button type="button"
           disabled={isFirstStep}
           onClick={handlePrevStep}
-          style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
-          className="flex flex-row items-center gap-1"
+          className="flex flex-row items-center gap-1 px-2 py-1 cursor-pointer disabled:opacity-50 disabled:cursor-default rounded-[var(--vscode-cornerRadius-small,2px)] hover:enabled:bg-[var(--vscode-toolbar-hoverBackground)] hover:enabled:text-[var(--vscode-surface-foreground)]"
         >
           <i className="codicon codicon-chevron-left" />
           <span>Prev</span>
-        </VscodeButton>
+        </button>
 
         <TimelineSlider
           current={stepIndex}
@@ -62,15 +59,14 @@ const GraphTimeline: React.FC<Props> = ({ stepIndex, round, onSelectStep }) => {
           onSelect={onSelectStep}
         />
 
-        <VscodeButton secondary
+        <button type="button"
           disabled={isLastStep}
           onClick={handleNextStep}
-          style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
-          className="flex flex-row items-center gap-1"
+          className="flex flex-row items-center gap-1 px-2 py-1 cursor-pointer disabled:opacity-50 disabled:cursor-default rounded-[var(--vscode-cornerRadius-small,2px)] hover:enabled:bg-[var(--vscode-toolbar-hoverBackground)] hover:enabled:text-[var(--vscode-surface-foreground)]"
         >
           <span>Next</span>
           <i className="codicon codicon-chevron-right" />
-        </VscodeButton>
+        </button>
       </div>
     </div>
   );

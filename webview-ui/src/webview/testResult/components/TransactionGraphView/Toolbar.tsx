@@ -1,8 +1,6 @@
 import {
   VscodeSingleSelect,
-  VscodeOption,
-  VscodeButton,
-  VscodeButtonGroup
+  VscodeOption
 } from '@vscode-elements/react-elements';
 
 interface Props {
@@ -22,34 +20,32 @@ interface TxButtonProps {
 
 const TxButton: React.FC<TxButtonProps> = ({ round, mode, onSelectMode }) => (
   round.type === 'threat-model' &&
-    <VscodeButtonGroup>
-      <VscodeButton secondary
+    <div className="flex items-center gap-1 text-[var(--vscode-modernTab-activeForeground)]">
+      <button type="button"
         onClick={() => onSelectMode('result-graph')}
-        className={mode === 'result-graph' ? 'bg-base-14' : ''}
-        style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
+        className={`px-2 py-1 cursor-pointer rounded-[var(--vscode-cornerRadius-small,2px)] ${mode === 'result-graph' ? 'bg-[var(--vscode-modernTab-activeBackground)]' : 'hover:bg-[var(--vscode-modernTab-hoverBackground)]'}`}
       >
         Result Graph
-      </VscodeButton>
-      <VscodeButton secondary
+      </button>
+      <button type="button"
         onClick={() => onSelectMode('attack-timeline')}
-        className={mode === 'attack-timeline' ? 'bg-base-14' : ''}
-        style={{ '--vscode-button-border': 'transparent' } as React.CSSProperties}
+        className={`px-2 py-1 cursor-pointer rounded-[var(--vscode-cornerRadius-small,2px)] ${mode === 'attack-timeline' ? 'bg-[var(--vscode-modernTab-activeBackground)]' : 'hover:bg-[var(--vscode-modernTab-hoverBackground)]'}`}
       >
         Attack Timeline
-      </VscodeButton>
-    </VscodeButtonGroup>
+      </button>
+    </div>
 );
 
 const Toolbar: React.FC<Props> = ({ testRoundIndex, testRounds, onSelectRound, mode, onSelectMode, onOpenExplorer }) => (
-  <div className="flex-none p-2 flex flex-row justify-between items-center gap-2 bg-base-18">
+  <div className="flex-none p-2 flex flex-row justify-between items-center gap-2 bg-[var(--vscode-sideBar-background)]">
     <div className="flex-none flex flex-row items-center gap-2">
       <button
         type="button" onClick={onOpenExplorer}
-        className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer"
+        className="ml-1 pt-1 px-1 rounded-[var(--vscode-cornerRadius-small,2px)] hover:bg-[var(--vscode-toolbar-hoverBackground)] cursor-pointer"
         data-tooltip-id="graph-toolbar-action"
         data-tooltip-content="Graph Explorer"
       >
-        <i className="codicon codicon-map text-[#FFFFFFCC] active:text-white" />
+        <i className="codicon codicon-map text-[var(--vscode-icon-foreground)]" />
       </button>
     </div>
 

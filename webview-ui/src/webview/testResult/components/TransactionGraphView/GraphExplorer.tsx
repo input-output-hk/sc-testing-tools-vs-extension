@@ -64,10 +64,10 @@ const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => 
       <span className="flex items-center gap-1.5 pl-1.5">
         <i className={`codicon shrink-0 ${tx.isValid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
         <span className="flex items-center gap-1 overflow-hidden">
-          <span className="text-base-06 text-[11px] font-medium whitespace-nowrap">
+          <span className="text-[var(--vscode-sideBarTitle-foreground)] text-[11px] font-medium whitespace-nowrap">
             {`Transaction #${tx.index + 1}`}
           </span>
-          <span className="text-base-09 text-[11px] font-medium whitespace-nowrap">
+          <span className="text-[var(--vscode-descriptionForeground)] text-[11px] font-medium whitespace-nowrap">
             {`${tx.id.slice(0, 4)}...${tx.id.slice(-4)}`}
           </span>
         </span>
@@ -81,24 +81,24 @@ const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId
 
   return (
     <div className="absolute left-0 top-0 h-full w-90 z-10">
-      <div className="flex flex-col shrink-0 w-full h-full border-r border-base-13 backdrop-blur-xs bg-[#252526CC]">
+      <div className="flex flex-col shrink-0 w-full h-full border-r border-[var(--vscode-sideBar-border)] bg-[var(--vscode-sideBar-background)]">
         <div className="flex items-center gap-2 pl-2">
           <button
             type="button" onClick={onClose}
-            className="ml-1 pt-1 px-1 rounded-full hover:bg-base-17 active:bg-base-16 cursor-pointer"
+            className="ml-1 pt-1 px-1 rounded-[var(--vscode-cornerRadius-small,2px)] hover:bg-[var(--vscode-toolbar-hoverBackground)] cursor-pointer"
             data-tooltip-id="graph-toolbar-action"
             data-tooltip-content="Close"
           >
-            <i className="codicon codicon-arrow-left text-[#FFFFFFCC] active:text-white" />
+            <i className="codicon codicon-arrow-left text-[var(--vscode-icon-foreground)]" />
           </button>
           <div className="flex flex-1 items-center h-10 pr-2 py-2">
-            <span className="text-base-06 text-[14px] font-medium">Graph Explorer</span>
+            <span className="text-[var(--vscode-sideBarTitle-foreground)] text-[14px] font-medium">Graph Explorer</span>
           </div>
         </div>
 
-        <div className="h-px w-full bg-base-13" />
+        <div className="h-px w-full bg-[var(--vscode-sideBar-border)]" />
 
-        <div className="flex items-center justify-between w-full mb-2 px-4 py-2 border-b border-base-13 text-base-07 text-[11px] font-medium">
+        <div className="flex items-center justify-between w-full mb-2 px-4 py-2 border-b border-[var(--vscode-sideBar-border)] text-[var(--vscode-sideBarTitle-foreground)] text-[11px] font-medium">
           <span>Transactions</span>
           <span>{txs.length}</span>
         </div>
