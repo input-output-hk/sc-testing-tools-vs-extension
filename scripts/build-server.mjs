@@ -1,3 +1,7 @@
+import { copyFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 const supportedTargets = {
   'darwin-arm64': 'bun-darwin-arm64',
   'darwin-x64': 'bun-darwin-x64',
@@ -10,6 +14,11 @@ const supportedTargets = {
 const platforms = process.argv[2]
   ? [process.argv[2]]
   : Object.keys(supportedTargets);
+
+copyFileSync(
+  join(dirname(fileURLToPath(import.meta.resolve('tree-sitter-haskell/package.json'))), 'tree-sitter-haskell.wasm'),
+  'bin/tree-sitter-haskell.wasm',
+);
 
 for (const platform of platforms) {
   const target = supportedTargets[platform];

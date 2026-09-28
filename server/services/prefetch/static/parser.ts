@@ -19,6 +19,14 @@ let parserInstance: import('web-tree-sitter').Parser | null = null;
 let grammarWasmPath: string | null = null;
 
 function resolveGrammarWasm(): string {
+  if (process.versions.bun) {
+    const bundledGrammar = path.join(path.dirname(process.execPath), 'tree-sitter-haskell.wasm');
+    if (!fs.existsSync(bundledGrammar)) {
+      throw new Error(`tree-sitter-haskell grammar wasm not found: ${bundledGrammar}`);
+    }
+    return bundledGrammar;
+  }
+
   const packageDirectory = path.dirname(require.resolve('tree-sitter-haskell/package.json'));
   const packagedGrammar = path.join(packageDirectory, 'tree-sitter-haskell.wasm');
 
