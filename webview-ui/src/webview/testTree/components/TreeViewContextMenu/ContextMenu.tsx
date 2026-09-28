@@ -23,6 +23,13 @@ interface MenuItem {
   value: string;
 }
 
+const ICON_GAP = '  ';
+const ICON_RUN_ALL = '';
+const ICON_REFRESH = '';
+const ICON_TASKLIST = '';
+const ICON_COVERAGE = '';
+const ICON_GO_TO_FILE = '';
+
 const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwardRef<HTMLDivElement, Props>(({
   x,
   y,
@@ -63,17 +70,17 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
   };
 
   const items: Array<MenuItem> = [];
-  if (isRunnable) items.push({ label: 'Run Tests', value: 'run' });
-  if (isBuildable && isBuildEnabled) items.push({ label: 'Refresh Test Tree', value: 'build' });
-  if (hasResults) items.push({ label: 'View Results', value: 'results' });
-  if (hasCoverage) items.push({ label: 'View Test Coverage', value: 'coverage' });
-  if (hasLocation) items.push({ label: 'View in source file', value: 'location' });
+  if (isRunnable) items.push({ label: `${ICON_RUN_ALL}${ICON_GAP}Run Tests`, value: 'run' });
+  if (isBuildable && isBuildEnabled) items.push({ label: `${ICON_REFRESH}${ICON_GAP}Refresh Test Tree`, value: 'build' });
+  if (hasResults) items.push({ label: `${ICON_TASKLIST}${ICON_GAP}View Results`, value: 'results' });
+  if (hasCoverage) items.push({ label: `${ICON_COVERAGE}${ICON_GAP}View Test Coverage`, value: 'coverage' });
+  if (hasLocation) items.push({ label: `${ICON_GO_TO_FILE}${ICON_GAP}View in source file`, value: 'location' });
 
   if (items.length === 0) return null;
 
   return (
-    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20">
-      <VscodeContextMenu show data={items} onVscContextMenuSelect={handleSelect} />
+    <div ref={ref} onContextMenu={handleContextMenu} style={{ top: y, left: x }} className="fixed z-20 [--afv-menu-font:var(--vscode-font-family)]">
+      <VscodeContextMenu show data={items} onVscContextMenuSelect={handleSelect} className="[--vscode-font-family:var(--afv-menu-font),codicon]" />
     </div>
   );
 });
