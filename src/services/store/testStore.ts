@@ -257,8 +257,10 @@ export default class TestStore {
     }
 
     for (const [workspaceId, testIds] of testRuns.entries()) {
+      const { mode, rounds } = this.context!.store.settingStore.getSettings();
       this.rpcClient.testRun({
-        mode: this.context!.store.settingStore.getSettings().mode,
+        mode,
+        rounds,
         workspace: {
           id: workspaceId,
           path: this.workspaces.get(workspaceId)!

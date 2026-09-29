@@ -16,6 +16,7 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
         job.params.workspace.path,
         testRun.packageName,
         testRun.suiteName,
+        job.params.rounds,
         testRun.testIds
       )) {
         try {

@@ -33,8 +33,8 @@ function getScriptBasePath(): string {
   return path.join(__dirname, '..', '..', '..', 'scripts');
 }
 
-function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, testIds?: Array<string>): Array<string> {
-  const params = [workspacePath, packageName, suiteName];
+function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds?: Array<string>): Array<string> {
+  const params = [workspacePath, packageName, suiteName, String(rounds)];
   if (testIds !== undefined) params.push(testIds.join(','));
   return params;
 }
@@ -142,8 +142,8 @@ export async function* runBuildScript(mode: string, workspacePath: string, packa
   for await (const output of runScript(scriptPath, params)) yield output;
 }
 
-export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, testIds?: Array<string>): AsyncGenerator<ScriptOutput> {
+export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds?: Array<string>): AsyncGenerator<ScriptOutput> {
   const scriptPath = getRunScriptPath(mode);
-  const params = getRunScriptParams(workspacePath, packageName, suiteName, testIds);
+  const params = getRunScriptParams(workspacePath, packageName, suiteName, rounds, testIds);
   for await (const output of runScript(scriptPath, params)) yield output;
 }

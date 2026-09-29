@@ -592,6 +592,7 @@ type TestSuiteBuildParams = {
 
 type TestRunParams = {
   mode: ExtensionMode;
+  rounds: number;
   workspace: Workspace;
   testIds: Array<RunnableTestId>;
 };

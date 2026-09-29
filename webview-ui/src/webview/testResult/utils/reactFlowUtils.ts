@@ -332,7 +332,7 @@ const mapTxInputToGraphUTxO = (input: TxInput): GraphNodeUTxO => ({
   address: { current: input.address, previous: input.address },
   utxo: { current: input.utxo, previous: input.utxo },
   value: { current: input.value, previous: input.value },
-  redeemer: { current: input.redeemerRaw, previous: input.redeemerRaw },
+  redeemer: { current: input.redeemerKind, previous: input.redeemerKind },
   consumed: false,
 });
 
@@ -360,8 +360,8 @@ const mapModifiedTxInputToGraphUTxO = (
       previous: input.value,
     },
     redeemer: {
-      current: modifiedInput.redeemerRaw,
-      previous: input.redeemerRaw,
+      current: modifiedInput.redeemerKind,
+      previous: input.redeemerKind,
     },
     consumed: false,
   };
@@ -458,7 +458,7 @@ const mapTxWithdrawalToGraphUTxO = (withdrawal: TxWithdrawal): GraphNodeUTxO => 
   label: withdrawal.addressLabel ?? 'withdrawal',
   type: 'withdrawal',
   stakeAddress: { current: withdrawal.stakeAddress, previous: withdrawal.stakeAddress },
-  redeemer: { current: withdrawal.redeemerRaw, previous: withdrawal.redeemerRaw },
+  redeemer: { current: withdrawal.redeemerKind, previous: withdrawal.redeemerKind },
   amount: { current: withdrawal.amount, previous: withdrawal.amount },
   consumed: false,
 });

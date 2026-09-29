@@ -1,4 +1,4 @@
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,10 +15,13 @@ const platforms = process.argv[2]
   ? [process.argv[2]]
   : Object.keys(supportedTargets);
 
+mkdirSync('bin', { recursive: true });
+
 copyFileSync(
   join(dirname(fileURLToPath(import.meta.resolve('tree-sitter-haskell/package.json'))), 'tree-sitter-haskell.wasm'),
   'bin/tree-sitter-haskell.wasm',
 );
+
 copyFileSync(
   fileURLToPath(import.meta.resolve('web-tree-sitter/web-tree-sitter.wasm')),
   'bin/web-tree-sitter.wasm',
