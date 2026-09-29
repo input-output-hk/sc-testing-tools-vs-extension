@@ -23,11 +23,21 @@ interface RowProps<T> {
   onSelect: (value: T) => void;
 }
 
-const EDGE = 4;
-
+/**
+ * Computes the start coordinate (left or top) of the menu along one axis so it stays inside the viewport.
+ *
+ * If the menu would overflow past the far edge, it is flipped to open before the cursor instead of after it.
+ * The result is then clamped to keep a 4px gap from both edges of the viewport.
+ *
+ * @param start - Cursor coordinate on this axis (`clientX` or `clientY`).
+ * @param size - Menu size on this axis (width or height).
+ * @param viewport - Viewport size on this axis (`window.innerWidth` or `window.innerHeight`).
+ * @returns The adjusted start coordinate to render the menu at.
+ */
 const fitToViewport = (start: number, size: number, viewport: number): number => {
+  const margin = 4;
   const flipped = start + size > viewport ? start - size : start;
-  return Math.max(EDGE, Math.min(flipped, viewport - size - EDGE));
+  return Math.max(margin, Math.min(flipped, viewport - size - margin));
 };
 
 const ContextMenuRow = <T,>({ item, onSelect }: RowProps<T>) => {
