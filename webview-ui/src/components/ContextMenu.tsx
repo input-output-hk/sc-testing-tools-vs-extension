@@ -96,15 +96,21 @@ const ContextMenu = <T,>({ position, items, onSelect, onClose }: Props<T>) => {
       onClose();
     };
 
+    const handleWheel = (): void => {
+      onClose();
+    };
+
     document.addEventListener('click', handleDocumentClick, true);
     document.addEventListener('contextmenu', handleDocumentClick, true);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('wheel', handleWheel, { capture: true, passive: true });
     window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
       document.removeEventListener('contextmenu', handleDocumentClick, true);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('wheel', handleWheel, { capture: true });
       window.removeEventListener('blur', handleWindowBlur);
     };
   }, [position, onClose]);
