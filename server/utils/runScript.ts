@@ -64,9 +64,21 @@ function buildScriptExecutionMessage(data: ScriptExecutionErrorData): string {
   return `Script ${path.basename(data.scriptPath)} failed (exit code ${exitCode})`;
 }
 
-async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator<ScriptOutput> {
-  const scriptParams = params ?? [];
-  const child = spawn(locateBash(), [scriptPath, ...scriptParams], { env: process.env });
+async function* runScript(scriptPath: string, params: string[], signal: AbortSignal): AsyncGenerator<ScriptOutput> {
+  if (signal.aborted) return;
+  const scriptParams = params;
+  const child = spawn(locateBash(), [scriptPath, ...scriptParams], { env: process.env, detached: process.platform !== 'win32' });
+  const stopChild = () => {
+    if (child.pid === undefined) return;
+    try {
+      if (process.platform === 'win32') child.kill();
+      else process.kill(-child.pid, 'SIGTERM');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    }
+  };
+  signal.addEventListener('abort', stopChild, { once: true });
+  if (signal.aborted) stopChild();
   const processStatePromise = new Promise<{ exitCode: number | null; spawnError: Error | null }>((resolve) => {
     child.once('error', (spawnError: Error) => resolve({ exitCode: null, spawnError }));
     child.once('close', (exitCode: number | null) => resolve({ exitCode, spawnError: null }));
@@ -83,67 +95,73 @@ async function* runScript(scriptPath: string, params?: string[]): AsyncGenerator
     stderr += chunk;
   });
 
-  for await (const chunk of child.stdout) {
-    const content = chunk.toString();
-    stdout += content;
-    stdoutBuffer += content;
-    let parts = stdoutBuffer.split('\n');
-    while (parts.length > 1) {
-      let rawOutput = parts.shift()!;
-      if (!rawOutput.trim()) continue;
+  try {
+    for await (const chunk of child.stdout) {
+      const content = chunk.toString();
+      stdout += content;
+      stdoutBuffer += content;
+      let parts = stdoutBuffer.split('\n');
+      while (parts.length > 1) {
+        let rawOutput = parts.shift()!;
+        if (!rawOutput.trim()) continue;
+        try {
+          const parsed = JSON.parse(rawOutput);
+          yield ({ child, rawOutput, parsed });
+        } catch {
+          console.error('JSON line parsing failed:\n', rawOutput);
+        }
+      }
+      stdoutBuffer = parts[0];
+    }
+
+    const finalOutput = stdoutBuffer.trim();
+    if (finalOutput.length > 0) {
       try {
-        const parsed = JSON.parse(rawOutput);
-        yield ({ child, rawOutput, parsed });
+        const parsed = JSON.parse(stdoutBuffer);
+        yield ({ child, rawOutput: stdoutBuffer, parsed });
       } catch {
-        console.error('JSON line parsing failed:\n', rawOutput);
+        console.error('JSON line parsing failed:\n', stdoutBuffer);
       }
     }
-    stdoutBuffer = parts[0];
-  }
 
-  const finalOutput = stdoutBuffer.trim();
-  if (finalOutput.length > 0) {
-    try {
-      const parsed = JSON.parse(stdoutBuffer);
-      yield ({ child, rawOutput: stdoutBuffer, parsed });
-    } catch {
-      console.error('JSON line parsing failed:\n', stdoutBuffer);
+    const processState = await processStatePromise;
+
+    if (processState.spawnError !== null) {
+      const data: ScriptExecutionErrorData = {
+        scriptPath,
+        params: scriptParams,
+        exitCode: null,
+        stderr,
+        stdout,
+      };
+      throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
     }
-  }
 
-  const processState = await processStatePromise;
+    if (signal.aborted) return;
 
-  if (processState.spawnError !== null) {
-    const data: ScriptExecutionErrorData = {
-      scriptPath,
-      params: scriptParams,
-      exitCode: null,
-      stderr,
-      stdout,
-    };
-    throw new ScriptExecutionError(data, `Unable to run script ${path.basename(scriptPath)}: ${processState.spawnError.message}`);
-  }
-
-  if (processState.exitCode !== 0) {
-    const data: ScriptExecutionErrorData = {
-      scriptPath,
-      params: scriptParams,
-      exitCode: processState.exitCode,
-      stderr,
-      stdout,
-    };
-    throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
+    if (processState.exitCode !== 0) {
+      const data: ScriptExecutionErrorData = {
+        scriptPath,
+        params: scriptParams,
+        exitCode: processState.exitCode,
+        stderr,
+        stdout,
+      };
+      throw new ScriptExecutionError(data, buildScriptExecutionMessage(data));
+    }
+  } finally {
+    signal.removeEventListener('abort', stopChild);
   }
 }
 
-export async function* runBuildScript(mode: string, workspacePath: string, packageName: string, suiteName: string): AsyncGenerator<ScriptOutput> {
+export async function* runBuildScript(mode: string, workspacePath: string, packageName: string, suiteName: string, signal: AbortSignal): AsyncGenerator<ScriptOutput> {
   const scriptPath = getBuildScriptPath(mode);
   const params = getBuildScriptParams(workspacePath, packageName, suiteName);
-  for await (const output of runScript(scriptPath, params)) yield output;
+  for await (const output of runScript(scriptPath, params, signal)) yield output;
 }
 
-export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds?: Array<string>): AsyncGenerator<ScriptOutput> {
+export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds: Array<string> | undefined, signal: AbortSignal): AsyncGenerator<ScriptOutput> {
   const scriptPath = getRunScriptPath(mode);
   const params = getRunScriptParams(workspacePath, packageName, suiteName, rounds, testIds);
-  for await (const output of runScript(scriptPath, params)) yield output;
+  for await (const output of runScript(scriptPath, params, signal)) yield output;
 }

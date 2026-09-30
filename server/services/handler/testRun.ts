@@ -5,13 +5,14 @@ import { getTestRuns, handleParseError, buildErrorEvent, sendTestRunUpdate, send
 
 import type RpcServer from '../../index';
 
-export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise<void> => {
+export const handleTestRun = async (server: RpcServer, job: TestRunJob, signal: AbortSignal): Promise<void> => {
   const startedOn = Date.now();
   sendTestRunUpdate(server, job, 'running', startedOn);
 
   let hasFailed = false;
   let isSuiteDone = false;
   for (const testRun of getTestRuns(job.params.workspace, job.params.testIds)) {
+    if (signal.aborted) return;
     try {
       for await (const output of runRunScript(
         job.params.mode,
@@ -19,7 +20,8 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
         testRun.packageName,
         testRun.suiteName,
         job.params.rounds,
-        testRun.testIds
+        testRun.testIds,
+        signal
       )) {
         try {
           const testEvent = parseTestEvent(
@@ -43,12 +45,10 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
           }
         }
 
-        if (server.getStopSignal()) {
-          output.child.kill();
-          return;
-        }
+        if (signal.aborted) return;
       }
     } catch (error) {
+      if (signal.aborted) return;
       if (!isSuiteDone) {
         sendTestEvent(server, buildErrorEvent(job, error, testRun));
         hasFailed = true;
@@ -56,5 +56,6 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
     }
   }
 
+  if (signal.aborted) return;
   sendTestRunUpdate(server, job, hasFailed ? 'failed' : 'success', startedOn, Date.now());
 };

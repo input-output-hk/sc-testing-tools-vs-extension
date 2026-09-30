@@ -18,7 +18,7 @@ export default class RpcClient {
     this.childProcess = cp.spawn(this.extension.asAbsolutePath(getBinaryPath()));
     
     this.childProcess.on('error', (error) => {
-      context.outputChannel.appendLine(`> RPC server failed to start: ${error.message}`);
+      context.outputChannel.appendLine(`> ERROR: RPC server failed to start: ${error.message}`);
       vscode.window.showErrorMessage(
         `PBT RPC server failed to start: ${error.message}`,
         'Show output'
@@ -31,7 +31,7 @@ export default class RpcClient {
     });
 
     this.childProcess.on('exit', (code, signal) => {
-      context.outputChannel.appendLine(`> RPC server exited (code: ${code}, signal: ${signal})`);
+      context.outputChannel.appendLine(`> ERROR: RPC server exited (code: ${code}, signal: ${signal})`);
       if (code !== 0) {
         vscode.window.showErrorMessage(
           'PBT RPC server exited unexpectedly',
@@ -102,8 +102,7 @@ export default class RpcClient {
   private showError(event: TestRunErrorEvent): void {
     const { title, message } = this.buildTestError(event);
 
-    this.context!.outputChannel.appendLine(`> ERROR: ${title}`);
-    this.context!.outputChannel.appendLine(message);
+    this.context!.outputChannel.appendLine(`> ERROR: ${title}\n${message}\n`);
 
     this.context!.statusBarItem.text = `$(error) ${title}`;
     this.context!.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');

@@ -10,7 +10,7 @@ import type { QueueObject } from 'async';
 export default class RpcServer {
   private requestQueue: QueueObject<TestJob>;
   private connection: rpc.MessageConnection;
-  private stopSignal: boolean = false;
+  private activeJob: AbortController | undefined;
 
   constructor() {
     this.requestQueue = queue<TestJob>(this.handleJob.bind(this), 1);
@@ -61,9 +61,8 @@ export default class RpcServer {
     this.connection.onNotification(
       new rpc.NotificationType<void>('stop'),
       () => {
-        this.requestQueue.drain().then(() => this.stopSignal = false);
         this.requestQueue.remove(() => true);
-        this.stopSignal = true;
+        this.activeJob?.abort();
       }
     );
   }
@@ -82,15 +81,17 @@ export default class RpcServer {
   }
 
   private async handleJob(job: TestJob): Promise<void> {
-    await handleJob(this, job);
+    const controller = new AbortController();
+    this.activeJob = controller;
+    try {
+      await handleJob(this, job, controller.signal);
+    } finally {
+      if (this.activeJob === controller) this.activeJob = undefined;
+    }
   }
 
   public getConnection(): rpc.MessageConnection {
     return this.connection;
-  }
-
-  public getStopSignal(): boolean {
-    return this.stopSignal;
   }
 
   public getQueueCount(): number {
