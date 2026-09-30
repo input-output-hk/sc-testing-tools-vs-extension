@@ -11,6 +11,7 @@ export default class RpcServer {
   private requestQueue: QueueObject<TestJob>;
   private connection: rpc.MessageConnection;
   private activeJob: AbortController | undefined;
+  private activeJobCompletion: Promise<void> | undefined;
 
   constructor() {
     this.requestQueue = queue<TestJob>(this.handleJob.bind(this), 1);
@@ -58,11 +59,14 @@ export default class RpcServer {
   }
 
   private setupStopHandler(): void {
-    this.connection.onNotification(
-      new rpc.NotificationType<void>('stop'),
-      () => {
-        this.requestQueue.remove(() => true);
+    this.connection.onRequest(
+      new rpc.RequestType0<void, void>('stop'),
+      async () => {
+        this.requestQueue.kill();
+        this.requestQueue = queue<TestJob>(this.handleJob.bind(this), 1);
+        const completion = this.activeJobCompletion;
         this.activeJob?.abort();
+        await completion;
       }
     );
   }
@@ -83,10 +87,15 @@ export default class RpcServer {
   private async handleJob(job: TestJob): Promise<void> {
     const controller = new AbortController();
     this.activeJob = controller;
+    const completion = handleJob(this, job, controller.signal);
+    this.activeJobCompletion = completion;
     try {
-      await handleJob(this, job, controller.signal);
+      await completion;
     } finally {
-      if (this.activeJob === controller) this.activeJob = undefined;
+      if (this.activeJob === controller) {
+        this.activeJob = undefined;
+        this.activeJobCompletion = undefined;
+      }
     }
   }
 

@@ -83,9 +83,9 @@ export default class RpcClient {
     this.clearError();
   }
 
-  public stopTestRun(): void {
-    const notification = new rpc.NotificationType<void>('stop');
-    this.connection.sendNotification(notification);
+  public async stopTestRun(): Promise<void> {
+    const request = new rpc.RequestType0<void, void>('stop');
+    await this.connection.sendRequest(request);
     this.clearError();
   }
 

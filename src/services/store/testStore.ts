@@ -278,9 +278,9 @@ export default class TestStore {
   }
 
   public async stopTestRun(): Promise<void> {
-    this.rpcClient.stopTestRun();
-    this.testJob.next(null);
+    await this.rpcClient.stopTestRun();
     await this.database!.handleTestRunStop();
+    this.testJob.next(null);
   }
 
   public async clearTestTreeResults(): Promise<void> {
