@@ -16,16 +16,35 @@ export default class RpcClient {
     this.context = context;
 
     this.childProcess = cp.spawn(this.extension.asAbsolutePath(getBinaryPath()));
+    
     this.childProcess.on('error', (error) => {
       context.outputChannel.appendLine(`> RPC server failed to start: ${error.message}`);
-      vscode.window.showErrorMessage(`PBT RPC server failed to start: ${error.message}`);
+      vscode.window.showErrorMessage(
+        `PBT RPC server failed to start: ${error.message}`,
+        'Show output'
+      )
+      .then(selection => {
+        if (selection === 'Show output') {
+          this.context!.outputChannel.show(true);
+        }
+      });
     });
+
     this.childProcess.on('exit', (code, signal) => {
       context.outputChannel.appendLine(`> RPC server exited (code: ${code}, signal: ${signal})`);
       if (code !== 0) {
-        vscode.window.showErrorMessage('PBT RPC server exited unexpectedly. See PBT Extension output.');
+        vscode.window.showErrorMessage(
+          'PBT RPC server exited unexpectedly',
+          'Show output'
+        )
+        .then(selection => {
+          if (selection === 'Show output') {
+            this.context!.outputChannel.show(true);
+          }
+        });
       }
     });
+
     this.childProcess.stderr?.on('data', (data) => {
       context.outputChannel.append(`> ERROR\n${data}`);
       return data;
@@ -35,9 +54,12 @@ export default class RpcClient {
       new rpc.StreamMessageReader(this.childProcess.stdout!),
       new rpc.StreamMessageWriter(this.childProcess.stdin!)
     );
+
     this.connection.trace(rpc.Trace.Verbose, {
       log: (message: string, data?: string) => {
-        context.outputChannel.append(`> ${message}\n${data}`);
+        if (vscode.workspace.getConfiguration('pbt-extension').get<boolean>('trace', false)) {
+          context.outputChannel.append(`> ${message}\n${data}`);
+        }
       }
     });
 

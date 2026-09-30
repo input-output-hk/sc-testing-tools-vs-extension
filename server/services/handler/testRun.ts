@@ -1,5 +1,6 @@
 import { runRunScript } from '../../utils/runScript';
 import { parseTestEvent } from '../../utils/parseTestEvent';
+import { validateTestEvent } from '../../utils/validateTestEvent';
 import { getTestRuns, handleParseError, buildErrorEvent, sendTestRunUpdate, sendTestEvent } from './utils';
 
 import type RpcServer from '../../index';
@@ -9,6 +10,7 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
   sendTestRunUpdate(server, job, 'running', startedOn);
 
   let hasFailed = false;
+  let isSuiteDone = false;
   for (const testRun of getTestRuns(job.params.workspace, job.params.testIds)) {
     try {
       for await (const output of runRunScript(
@@ -35,14 +37,22 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
           handleParseError(error);
         }
 
+        if (validateTestEvent(output.parsed)) {
+          if (output.parsed.event === 'suite_done') {
+            isSuiteDone = true;
+          }
+        }
+
         if (server.getStopSignal()) {
           output.child.kill();
           return;
         }
       }
     } catch (error) {
-      sendTestEvent(server, buildErrorEvent(job, error, testRun));
-      hasFailed = true;
+      if (!isSuiteDone) {
+        sendTestEvent(server, buildErrorEvent(job, error, testRun));
+        hasFailed = true;
+      }
     }
   }
 

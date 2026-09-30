@@ -146,6 +146,11 @@
           ],
           "default": "docker",
           "description": "Select the mode for executing commands with PBT."
+        },
+        "pbt-extension.trace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include RPC trace messages and normal server exits in the PBT Extension output."
         }
       }
     },
