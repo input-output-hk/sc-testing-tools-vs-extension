@@ -30,7 +30,6 @@ interface RoundStats {
   inputs: number;
   outputs: number;
   mints: number;
-  roundHasError: boolean;
 }
 
 const getRoundStats = (round: TransitionTestRound): RoundStats => {
@@ -39,8 +38,6 @@ const getRoundStats = (round: TransitionTestRound): RoundStats => {
   let inputs = 0;
   let outputs = 0;
   let mints = 0;
-
-  const roundHasError = round.status === 'failure';
 
   for (const transition of round.transitions) {
     if (transition.tx) {
@@ -55,7 +52,7 @@ const getRoundStats = (round: TransitionTestRound): RoundStats => {
     }
   }
 
-  return { validTxs, invalidTxs, inputs, outputs, mints, roundHasError };
+  return { validTxs, invalidTxs, inputs, outputs, mints };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
@@ -72,7 +69,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 
 const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { validTxs, invalidTxs, inputs, outputs, mints, roundHasError } = getRoundStats(round);
+  const { validTxs, invalidTxs, inputs, outputs, mints } = getRoundStats(round);
   const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -109,9 +106,6 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
               place="bottom-start"
               positionStrategy="fixed"
             />
-            {roundHasError &&
-              <i className="translate-y-0.75 codicon codicon-error text-red-01" />
-            }
           </span>
         </RoundCell>
         <RoundCell value={validTxs} />

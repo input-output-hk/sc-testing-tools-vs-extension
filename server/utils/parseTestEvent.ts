@@ -272,7 +272,7 @@ const parseTestTraceEvent = (
       id: event.trace.index,
       type: 'threat-model',
       testId: [workspaceId, packageName, suiteName, tmId],
-      status: event.trace.status.status,
+      status: 'success',
       traces: [],
     };
 
@@ -291,6 +291,20 @@ const parseTestTraceEvent = (
 
   for (const tmRound of Object.values(tmRounds)) {
     tmRound.traces = traces[tmRound.testId[3]];
+
+    if (tmRound.traces.some(trace =>
+      trace.outcome.status === 'skipped' ||
+      trace.outcome.status === 'skipped_phase1'
+    )) {
+      tmRound.status = 'discarded';
+    }
+    
+    if (tmRound.traces.some(trace =>
+      trace.outcome.status === 'error' ||
+      trace.outcome.status === 'failed'
+    )) {
+      tmRound.status = 'failure';
+    }
   }
 
   return {

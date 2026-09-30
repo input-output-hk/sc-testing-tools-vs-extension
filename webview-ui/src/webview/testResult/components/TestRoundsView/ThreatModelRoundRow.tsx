@@ -31,7 +31,6 @@ interface RoundStats {
   outputs: number;
   mints: number;
   attacks: number;
-  roundHasError: boolean;
 }
 
 const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
@@ -41,8 +40,6 @@ const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
   let outputs = 0;
   let mints = 0;
   let attacks = 0;
-
-  const roundHasError = round.status === 'failure';
 
   for (const trace of round.traces) {
     if (trace.tx) {
@@ -57,7 +54,7 @@ const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
     attacks += trace.modifiedTx ? 1 : 0;
   }
 
-  return { validTxs, invalidTxs, inputs, outputs, mints, attacks, roundHasError };
+  return { validTxs, invalidTxs, inputs, outputs, mints, attacks };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
@@ -74,7 +71,7 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
 
 const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
-  const { validTxs, invalidTxs, inputs, outputs, mints, attacks, roundHasError } = getRoundStats(round);
+  const { validTxs, invalidTxs, inputs, outputs, mints, attacks } = getRoundStats(round);
   const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -111,9 +108,6 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
               place="bottom-start"
               positionStrategy="fixed"
             />
-            {roundHasError &&
-              <i className="translate-y-0.75 codicon codicon-error text-red-01" />
-            }
           </span>
         </RoundCell>
         <RoundCell value={validTxs} />
