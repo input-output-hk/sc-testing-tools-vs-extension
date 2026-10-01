@@ -15,6 +15,7 @@ if [ -t 0 ] && [ -t 1 ]; then
   DOCKER_TTY_ARGS=("-it")
 fi
 
+# Removing quickcheck tests parameter until it's supported
 # --quickcheck-tests "$4"
 
 docker run --rm "${DOCKER_TTY_ARGS[@]}" \

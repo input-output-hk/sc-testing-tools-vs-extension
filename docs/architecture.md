@@ -18,7 +18,7 @@ There are three implementation layers:
 
 | Layer | Runs In | Responsibility | Entry Point |
 | --- | --- | --- | --- |
-| Server | A local Node.js child process | Discover suites, launch backend commands, validate and translate streaming events | [server/index.ts](../server/index.ts) |
+| Server | A local bundled executable | Discover suites, launch backend commands, validate and translate streaming events | [server/index.ts](../server/index.ts) |
 | Extension | The VS Code extension host | Coordinate commands, stores, persistence, editor integration, and webview lifecycles | [src/extension.ts](../src/extension.ts) |
 | Webviews | VS Code's isolated webview contexts | Render the test tree, configuration, coverage, and result panels; send user intents to the extension | [webview-ui](../webview-ui) |
 
@@ -68,7 +68,7 @@ Static discovery scans Cabal packages, resolves ownership through root `cabal.pr
 | `nix` | [nix-list.sh](../scripts/nix-list.sh) | [nix-run.sh](../scripts/nix-run.sh) | `nix run <workspace>#<package>:test:<suite>` on the host. |
 | `docker` | [docker-list.sh](../scripts/docker-list.sh) | [docker-run.sh](../scripts/docker-run.sh) | `nixos/nix` container, workspace mounted at `/project`, persistent `pbt-extension-nix-store` volume mounted at `/nix`; runs the same flake target inside the container. |
 
-List commands pass `--list-tests-json`; run commands pass `--streaming-json` and optionally `--test-id <comma-separated IDs>`. Consequently, a project must expose the expected Nix test target and use a test entry point supporting the streaming reporter. Ordinary human-readable Tasty output is not the protocol. See the backend's [streaming integration and event documentation](https://github.com/input-output-hk/sc-testing-tools/blob/main/src/tasty-streaming/README.md). Docker mode still depends on Nix inside the container; it is not a separate backend implementation.
+List commands pass `--list-tests-json`; run commands pass `--streaming-json` and optionally `--test-id <comma-separated IDs>`. The run request supplies a round count to both wrappers, but neither wrapper currently forwards it to the test executable. Consequently, a project must expose the expected Nix test target and use a test entry point supporting the streaming reporter. Ordinary human-readable Tasty output is not the protocol. See the backend's [streaming integration and event documentation](https://github.com/input-output-hk/sc-testing-tools/blob/main/src/tasty-streaming/README.md). Docker mode still depends on Nix inside the container; it is not a separate backend implementation.
 
 ### RPC Contract And Queue
 
@@ -78,8 +78,8 @@ The [RPC client](../src/services/rpcClient.ts) and [server](../server/index.ts) 
 | --- | --- | --- | --- |
 | Extension to server | `prefetch` | Request | `{ workspaces: Workspace[] }` returns `StaticTestTree`; failures become JSON-RPC `InternalError` responses. |
 | Extension to server | `testSuiteBuild` | Notification | `{ mode, workspace, packageName, suiteName }`; enqueues one build job. |
-| Extension to server | `testRun` | Notification | `{ mode, workspace, testIds: RunnableTestId[] }`; enqueues a run job for one workspace. |
-| Extension to server | `stop` | Notification | No payload; removes queued jobs and sets the cooperative stop flag. |
+| Extension to server | `testRun` | Notification | `{ mode, workspace, rounds, testIds: RunnableTestId[] }`; enqueues a run job for one workspace. |
+| Extension to server | `stop` | Request | No payload; removes queued jobs, aborts the active job, and responds after its handler finishes. |
 | Server to extension | `testEvent` | Notification | `{ eventType, testJobId, payload }`; carries mapped backend events and server-generated job updates/errors. |
 
 Build/run notifications do not return results. Their progress arrives through `testEvent`. `prefetch` is handled directly, outside the execution queue. The server uses `async.queue` with concurrency **1**, so build/run jobs are serialized. [handler/utils.ts](../server/services/handler/utils.ts) groups a run's selected IDs by package and suite; [handler/testRun.ts](../server/services/handler/testRun.ts) executes those suite commands sequentially within the job.
@@ -129,7 +129,7 @@ flowchart TD
 | `test_done` | `test-update` | `success` becomes `valid`/`invalid`; seconds become milliseconds via `duration * 1000`; a threat-model completion sets its test type. |
 | `test_trace` | `test-context` | Context test identity/type, normalized transition and threat-model rounds, and per-test statement coverage. |
 
-A trace produces one positive/negative `TransitionTestRound` and a `ThreatModelTestRound` for each distinct threat-model test ID represented in that trace. Multiple attacks for the same threat-model ID are grouped into its `traces` array. The round ID is the backend trace index, so it is only meaningful together with a test and run identity. Threat-model traces retain original/modified transactions, modifications, target transaction index, category, outcome, and optional validation details. Transaction normalization supplies output indices and adapts backend values to the UI's `Tx` shape.
+A trace produces one positive/negative `TransitionTestRound` and a `ThreatModelTestRound` for each distinct threat-model test ID represented in that trace. Multiple attacks for the same threat-model ID are grouped into its `traces` array. A threat-model round starts as `success`, becomes `discarded` if any attack is `skipped` or `skipped_phase1`, and becomes `failure` if any attack is `failed` or `error` (failure takes precedence). The round ID is the backend trace index, so it is only meaningful together with a test and run identity. Threat-model traces retain original/modified transactions, modifications, target transaction index, category, outcome, and optional validation details. Transaction normalization supplies output indices and adapts backend values to the UI's `Tx` shape.
 
 [server/utils/coverage.ts](../server/utils/coverage.ts) converts backend source ranges to zero-based positions and keys statements as `startLine:startCol:endLine:endCol`. The suite coverage index records statements with empty test-ID arrays; trace coverage associates those statements with the tests that exercised them. Test source locations are also converted to zero-based coordinates for VS Code.
 
@@ -140,11 +140,11 @@ A trace produces one positive/negative `TransitionTestRound` and a `ThreatModelT
 | `test-run-update` | Job starts as `running`, then finishes as `success` or `failed`, with timestamps. `isLast` reflects whether there are queued jobs remaining when the update is emitted. |
 | `test-run-error` | Command startup/exit failure with job, optional failing suite selection, script path, arguments, exit code, stderr, and stdout. Unknown exceptions are wrapped in the same shape. |
 
-Job success describes command execution; individual test success comes from `test_done`. A suite process may emit useful results and still exit nonzero. In a multi-suite job, the handler reports a failed suite and continues with the remaining suites, then marks the job failed.
+Job success describes command execution; individual test success comes from `test_done`. A suite process may emit useful results and still exit nonzero. If a run exits nonzero before `suite_done`, the handler reports the failed suite and continues with the remaining suites, then marks the job failed. If `suite_done` was already seen, the run handler suppresses that exit error.
 
 Malformed JSON lines are logged and skipped. Schema-invalid events raise `TestEventValidationError`, which the handler logs and skips; these do not themselves generate `test-run-error` or force the job to fail. A backend/schema mismatch can therefore leave partial UI data even when command execution completes. Keep the checked-in schema, backend type declarations, mapper, and shared types aligned when changing the protocol. The backend streaming README documents schema generation.
 
-`stop` removes pending queue entries and sets a flag. The active handler checks that flag after each yielded parsed output, kills the child, and returns without sending a normal terminal job update; the flag is reset when the queue drains. Cancellation is therefore output-driven and is not guaranteed to interrupt a silent build immediately. The extension also clears its local running state when cancellation is requested.
+`stop` removes pending queue entries and replaces the queue, aborts the active job's `AbortController`, and awaits its handler before responding. `runScript` sends SIGTERM to the spawned shell process group on Unix (or kills the child on Windows) on abort, even if the build has not produced output. The handler returns without a normal terminal job update. Once the server acknowledges stop, the extension clears its local waiting/running state; completed results remain.
 
 Server stdout is reserved for JSON-RPC framing. Diagnostics belong on stderr; the client forwards stderr and verbose RPC traces to the **PBT Extension** output channel. `test-run-error` additionally drives an error notification and status-bar message through the RPC client.
 
@@ -180,7 +180,7 @@ The server queue serializes **jobs**; the extension queue serializes **received 
 
 For events that touch both stores, RxDB is updated first and `History` second. These writes are not one cross-database transaction, and RxDB subscribers can react before the history write finishes. There is no persisted event log or replay mechanism. Do not treat a webview update as an acknowledgement that all history writes have completed.
 
-The current job drives `pbt.activeTestRun`, which controls the title-bar run/refresh/cancel actions. `isLast` prevents a completed job from making the whole queue appear idle while another job is pending. Requesting stop sets the job subject to `null` and clears local waiting/running flags independently of backend termination.
+The current job drives `pbt.activeTestRun`, which controls the title-bar run/refresh/cancel actions. `isLast` prevents a completed job from making the whole queue appear idle while another job is pending. Requesting stop awaits the server's abort response before setting the job subject to `null` and clearing local waiting/running flags.
 
 ### In-Memory Database
 
@@ -201,7 +201,7 @@ The database stores flat records. [src/utils/testTree.ts](../src/utils/testTree.
 
 ### Refresh And Reset Semantics
 
-`TestStore` debounces text-document changes and workspace-folder changes by **1 second**, serializing refreshes with RxJS `concatMap`. Prefetch still reads files from disk, not the editor's unsaved buffer. [refreshStaticTestTree](../src/services/database/methods/testTree.ts) removes absent packages/suites and recreates suites whose test count changed. Existing suites with the same count are retained, so automatic refresh is not a complete rename or source-location reconciliation.
+`TestStore` has a workspace listener that would debounce text-document and workspace-folder changes by **1 second** and serialize refreshes with RxJS `concatMap`, but its registration is currently commented out. Automatic static discovery after workspace edits is therefore disabled. Initial prefetch reads files from disk, not the editor's unsaved buffer. If the listener is re-enabled, [refreshStaticTestTree](../src/services/database/methods/testTree.ts) removes absent packages/suites and recreates suites whose test count changed; existing suites with the same count are retained, so it does not completely reconcile renames or source locations.
 
 The title-bar command named `pbt-extension.buildAllTestSuites` is presented as **Refresh Test Tree**, but its implementation builds/lists all currently known suites. `test-tree-fetch` obtains the current tree and only triggers initial prefetch when needed. Keep these operations distinct when changing refresh behavior.
 
@@ -263,7 +263,7 @@ Schema changes require `npm run db:generate` and the corresponding generated mig
 
 Execution mode defaults to `docker`. `SettingStore` reads VS Code configuration at initialization and on external configuration changes, publishes mode changes through a `BehaviorSubject`, and writes sidebar changes at `ConfigurationTarget.Global`. It suppresses its own configuration-change echo to keep the just-selected in-memory mode. Workspace configuration can still affect the value read at initialization or on later external changes.
 
-Coverage-bar thresholds come from `testing.coverageBarThresholds`, merged with `{ red: 0, yellow: 60, green: 90 }`. Round count starts at 100 and is held only in memory. **Current limitation:** neither `TestRunParams` nor the shell wrappers receive the stored round count, so changing it in the UI does not currently change backend execution.
+Coverage-bar thresholds come from `testing.coverageBarThresholds`, merged with `{ red: 0, yellow: 60, green: 90 }`. Round count starts at 100 and is held only in memory. `TestRunParams` and the shell wrappers receive it, but the wrappers do not forward it to the test executable. The round-count controls are currently hidden in the React view, so the backend uses the suite's own configuration.
 
 Dependency checks run `docker --version`, `nix --version`, and, when Docker is present, `docker info` with a five-second response deadline. Before build/run actions, `TestTreeView` rechecks Docker installation/reachability in Docker mode; Nix availability remains cached until a full configuration refresh. Mode changes recompute the error from cached state. These guards live in the view controller, so a new direct caller of `TestStore.runTest` must account for dependency checking itself.
 
@@ -313,17 +313,17 @@ Whole suites can be run while still static; individual test/group controls requi
 
 ### Test Run Configuration
 
-This view edits execution mode and the numeric round setting and displays dependency errors. On ready, the controller sends mode, rounds, and cached dependency status. Mode changes are observed through `SettingStore`; dependency changes flow through `DependencyStore` to both the view and status-bar/notification handling.
+This view edits execution mode and displays dependency errors. On ready, the controller still sends mode, rounds, and cached dependency status, but the React view currently ignores the round message and hides the round controls. Mode changes are observed through `SettingStore`; dependency changes flow through `DependencyStore` to both the view and status-bar/notification handling.
 
 | Direction | Message | Payload And Effect |
 | --- | --- | --- |
 | Host to UI | `config-execution-mode` | `{ executionMode }`: set the selected Docker/Nix control. |
-| Host to UI | `config-test-rounds` | `{ rounds }`: populate the numeric field. |
+| Host to UI | `config-test-rounds` | `{ rounds }`: still sent by the controller, but ignored by the current React view. |
 | Host to UI | `status-missing-dependency` | `{ error: { hasError, message, code? } }`: show or clear dependency errors; this message also represents the healthy state. |
 | UI to host | `config-update-execution-mode` | `{ executionMode }`: update in-memory mode, persist the global setting, and recompute dependency status. |
-| UI to host | `config-update-test-rounds` | `{ rounds }`: update the in-memory count only. |
+| UI to host | `config-update-test-rounds` | `{ rounds }`: supported by the controller, but not sent by the current React view. |
 
-The **Default/Custom** radio selection is local React state and only enables/disables the field; it is not sent to the extension or persisted. Together with the missing round-count forwarding described above, this means neither choice currently selects a different backend round policy. The title-bar refresh command reruns dependency checks; it does not reset test data.
+The Default/Custom controls and their numeric field are commented out in the React view. The title-bar refresh command reruns dependency checks; it does not reset test data.
 
 ### Plinth Script Coverage
 

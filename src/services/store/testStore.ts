@@ -62,7 +62,7 @@ export default class TestStore {
       this.eventQueue.push(event);
     });
 
-    // Commenting this for now
+    // Removing auto prefetch for workspace change events for now
     // this.setupWorkspaceListener();
 
     this.setupCoverageListener();

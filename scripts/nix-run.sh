@@ -7,6 +7,7 @@ TEST_SUITE_NAME=$3
 ROUNDS=$4
 TEST_IDS="${5:-}"
 
+# Removing quickcheck tests parameter until it's supported
 # RUN_ARGS=(--streaming-json --quickcheck-tests "$ROUNDS")
 
 RUN_ARGS=(--streaming-json)

@@ -15,7 +15,7 @@
   - [2. Open your project](#2-open-your-project)
   - [3. Open the PBT sidebar](#3-open-the-pbt-sidebar)
   - [4. Choose an execution mode](#4-choose-an-execution-mode)
-  - [5. Set the number of test rounds](#5-set-the-number-of-test-rounds)
+  - [5. Understand test rounds](#5-understand-test-rounds)
   - [6. Run your tests](#6-run-your-tests)
   - [7. Read the results](#7-read-the-results)
   - [8. Read the coverage](#8-read-the-coverage)
@@ -117,8 +117,6 @@ There are two ways to set it, and both write the same value.
 
 **The Test Run Configuration view** in the PBT sidebar is the quickest way while you are working. Choose **NIX** or **Docker** under Execution Mode.
 
-<img src="images/testConfig.png" alt="The Test Run Configuration view showing Rounds Per Test and an Execution Mode choice between NIX and Docker" width="420" />
-
 **The Settings editor** is the other way. Open it from **File**, **Preferences**, **Settings**, or with <kbd>Ctrl</kbd>+<kbd>,</kbd> (<kbd>Cmd</kbd>+<kbd>,</kbd> on macOS). The setting is listed under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**, and searching for `pbt-extension.executionMode` takes you straight to it.
 
 <img src="images/settings.png" alt="The VS Code Settings editor filtered to pbt-extension.executionMode, with the mode set to docker" width="760" />
@@ -133,16 +131,11 @@ PBT checks that your selected mode is actually available at two points. It check
 
 Either way the error appears in the **Test Run Configuration** view. See [Troubleshooting](#docker-not-detected-nix-not-detected-or-problem-connecting-to-docker) for what each message means, and [this note](#the-mode-i-picked-is-not-the-mode-pbt-is-using) if the mode you picked does not seem to take effect.
 
-### 5. Set the number of test rounds
+### 5. Understand test rounds
 
 A property-based test does not run just once. It generates many transaction rounds and checks your property against each one, the same way QuickCheck does. More rounds means a wider search for a counterexample and a longer run.
 
-You control this in the **Test Run Configuration** view, under **Rounds Per Test**:
-
-- **Default** uses the round count defined in your test suite.
-- **Custom** lets you set the count yourself. The field starts at 100.
-
-Lower the count for a quick check while you are iterating, and raise it when you want a more thorough search for edge cases.
+The number of rounds is currently determined by your test suite. The extension's round-count control is unavailable while support for passing the value through its execution scripts is being completed.
 
 ### 6. Run your tests
 
@@ -150,7 +143,7 @@ The two buttons at the top of the Test Tree act on the entire tree.
 
 <img src="images/treeHead.png" alt="The Test Tree header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
 
-**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rescans your project and rebuilds the tree. 
+**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rebuilds and lists the suites already in the tree; it does not rescan the workspace for newly added suites.
 
 The rows inside the tree carry their own buttons, allowing you to interact with only a subsection of the test tree rather than the whole thing. Depending on what row you are looking at you will have different buttons available to you:
 
@@ -169,7 +162,7 @@ Run everything, or run a specific suite, and the test ID mapping will be filled 
 
 Adding a new test or renaming an existing one makes that mapping stale again, which is covered in [step 9](#9-refresh-after-changing-your-tests).
 
-**Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button.
+**Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button. Stop cancels queued jobs and terminates the active run or suite build; completed results remain visible.
 
 <img src="images/runningTests.png" alt="The Test Tree during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
 
@@ -200,7 +193,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
 <img src="images/testRounds.png" alt="The Test rounds table listing rounds 0 to 9, each with a status icon and counts for valid transactions, invalid transactions, inputs, outputs, and mints" width="760" />
 
-  Each row is one round, summarizing the status of that round and what that round produced: how many valid and invalid transactions it generated, and how many inputs and outputs those transactions used. A threat model table carries one more column, the number of attacks performed in the round.
+  Each row is one round, summarizing the status of that round and what that round produced: how many valid and invalid transactions it generated, and how many inputs and outputs those transactions used. A threat model table carries one more column, the number of attacks performed in the round. A threat-model round is discarded when an attack is skipped, unless another attack in the same round failed or errored, in which case the round is marked as failed.
 
   Open a round row to see the transactions inside it with one sub-table per transaction. 
 
@@ -238,9 +231,7 @@ Click it and the view narrows to that one test: the title becomes **Coverage: \<
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
-The tree itself keeps up on its own. PBT watches your workspace, so once you save the change your new or renamed test appears in the Test Tree without you doing anything.
-
-Rebuilding the ID mapping is the part you trigger. Click the refresh button on the parent test suite, and PBT rebuilds the mapping for every test in that suite in one go, which makes them runnable again.
+After saving the change, click the refresh button on the parent test suite. PBT rebuilds the test list and ID mapping for that suite, making new or renamed tests visible and runnable. Automatic refresh on file changes is currently disabled. If you add an entirely new suite, reload the VS Code window to run initial discovery again.
 
 ## Troubleshooting
 
