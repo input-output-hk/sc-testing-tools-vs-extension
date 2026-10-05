@@ -62,7 +62,7 @@ export default class TestStore {
       this.eventQueue.push(event);
     });
 
-    // Commenting this for now
+    // Removing auto prefetch for workspace change events for now
     // this.setupWorkspaceListener();
 
     this.setupCoverageListener();
@@ -278,9 +278,9 @@ export default class TestStore {
   }
 
   public async stopTestRun(): Promise<void> {
-    this.rpcClient.stopTestRun();
-    this.testJob.next(null);
+    await this.rpcClient.stopTestRun();
     await this.database!.handleTestRunStop();
+    this.testJob.next(null);
   }
 
   public async clearTestTreeResults(): Promise<void> {

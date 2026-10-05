@@ -1,15 +1,18 @@
 import { runRunScript } from '../../utils/runScript';
 import { parseTestEvent } from '../../utils/parseTestEvent';
+import { validateTestEvent } from '../../utils/validateTestEvent';
 import { getTestRuns, handleParseError, buildErrorEvent, sendTestRunUpdate, sendTestEvent } from './utils';
 
 import type RpcServer from '../../index';
 
-export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise<void> => {
+export const handleTestRun = async (server: RpcServer, job: TestRunJob, signal: AbortSignal): Promise<void> => {
   const startedOn = Date.now();
   sendTestRunUpdate(server, job, 'running', startedOn);
 
   let hasFailed = false;
+  let isSuiteDone = false;
   for (const testRun of getTestRuns(job.params.workspace, job.params.testIds)) {
+    if (signal.aborted) return;
     try {
       for await (const output of runRunScript(
         job.params.mode,
@@ -17,7 +20,8 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
         testRun.packageName,
         testRun.suiteName,
         job.params.rounds,
-        testRun.testIds
+        testRun.testIds,
+        signal
       )) {
         try {
           const testEvent = parseTestEvent(
@@ -35,16 +39,23 @@ export const handleTestRun = async (server: RpcServer, job: TestRunJob): Promise
           handleParseError(error);
         }
 
-        if (server.getStopSignal()) {
-          output.child.kill();
-          return;
+        if (validateTestEvent(output.parsed)) {
+          if (output.parsed.event === 'suite_done') {
+            isSuiteDone = true;
+          }
         }
+
+        if (signal.aborted) return;
       }
     } catch (error) {
-      sendTestEvent(server, buildErrorEvent(job, error, testRun));
-      hasFailed = true;
+      if (signal.aborted) return;
+      if (!isSuiteDone) {
+        sendTestEvent(server, buildErrorEvent(job, error, testRun));
+        hasFailed = true;
+      }
     }
   }
 
+  if (signal.aborted) return;
   sendTestRunUpdate(server, job, hasFailed ? 'failed' : 'success', startedOn, Date.now());
 };

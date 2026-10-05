@@ -15,6 +15,9 @@ if [ -t 0 ] && [ -t 1 ]; then
   DOCKER_TTY_ARGS=("-it")
 fi
 
+# Removing quickcheck tests parameter until it's supported
+# --quickcheck-tests "$4"
+
 docker run --rm "${DOCKER_TTY_ARGS[@]}" \
   -v "$VOLUME_NAME:/nix" \
   -v "$PROJECT_PATH:/project" \
@@ -27,13 +30,13 @@ docker run --rm "${DOCKER_TTY_ARGS[@]}" \
         --extra-experimental-features nix-command \
         --extra-experimental-features flakes \
         /project#$1:test:$2 \
-        -- --streaming-json --quickcheck-tests "$4" --test-id "$3"
+        -- --streaming-json --test-id "$3"
     else
       nix run \
         --accept-flake-config \
         --extra-experimental-features nix-command \
         --extra-experimental-features flakes \
         /project#$1:test:$2 \
-          -- --streaming-json --quickcheck-tests "$4"
+          -- --streaming-json
     fi
         ' _ "$PACKAGE_NAME" "$TEST_SUITE_NAME" "$TEST_IDS" "$ROUNDS"
