@@ -183,7 +183,7 @@ A skipped threat model is one PBT could not run because a precondition was not m
 
 Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
 
-### 6. Read the results
+### 7. Read the results
 
 Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
 
@@ -213,7 +213,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
   A threat model adds an **Attack Timeline** alongside the **Result Graph**. The timeline is an interactive stepper, so you can walk through the attack one step at a time and watch how the transaction was modified at each one. Changed fields are highlighted on the node, with the previous value struck through next to the new one.
 
-### 7. Read the coverage
+### 8. Read the coverage
 
 Coverage from the run appears in the **Plinth Script Coverage** view. Coverage is reported by the testing interface, so it shows up here only if the interface your tests were written against defines it, and it covers the tests that belong to that interface. Where no coverage was reported, the view says **No coverage detected**.
 
@@ -229,7 +229,7 @@ Click a file in the tree to open it in the editor with the coverage marked direc
 
 Click it and the view narrows to that one test: the title becomes **Coverage: \<test name\>**, and the tree shows only the files that this single test covered, with its own percentages. Use the close button next to the title to clear that scope and go back to the coverage for the entire test run.
 
-### 8. Refresh after changing your tests
+### 9. Refresh after changing your tests
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
