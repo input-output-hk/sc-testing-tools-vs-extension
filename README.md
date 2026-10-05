@@ -15,11 +15,10 @@
   - [2. Open your project](#2-open-your-project)
   - [3. Open the PBT sidebar](#3-open-the-pbt-sidebar)
   - [4. Choose an execution mode](#4-choose-an-execution-mode)
-  - [5. Set the number of test rounds](#5-set-the-number-of-test-rounds)
-  - [6. Run your tests](#6-run-your-tests)
-  - [7. Read the results](#7-read-the-results)
-  - [8. Read the coverage](#8-read-the-coverage)
-  - [9. Refresh after changing your tests](#9-refresh-after-changing-your-tests)
+  - [5. Run your tests](#5-run-your-tests)
+  - [6. Read the results](#6-read-the-results)
+  - [7. Read the coverage](#7-read-the-coverage)
+  - [8. Refresh after changing your tests](#8-refresh-after-changing-your-tests)
 - [Troubleshooting](#troubleshooting)
 - [Get Support](#get-support)
 - [Contributions](#contributions)
@@ -47,6 +46,8 @@ PBT ships its own RPC server executable. You do not need to install Node.js to u
 **Nix**: install Nix. 
 
 Whichever one you install is the one you tell PBT to use later, in [step 4](#4-choose-an-execution-mode).
+
+**Windows users: use WSL2.** On Windows, run PBT inside [WSL2](https://learn.microsoft.com/windows/wsl/install) rather than directly on Windows. Open your project in VS Code connected to your WSL distribution, and install Docker or Nix so it is available inside WSL. Nix does not run natively on Windows, and running everything inside WSL2 avoids dependency problems between the Windows and Linux sides.
 
 **A working sc-testing-tools setup.** This extension is the front end. It does not run your tests itself. It launches your test suites and then reads the stream of events they report back, which is what fills in the test tree, the round results, the transaction graphs, and the coverage numbers. All of that comes from [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT is built on top of.
 
@@ -133,18 +134,7 @@ PBT checks that your selected mode is actually available at two points. It check
 
 Either way the error appears in the **Test Run Configuration** view. See [Troubleshooting](#docker-not-detected-nix-not-detected-or-problem-connecting-to-docker) for what each message means, and [this note](#the-mode-i-picked-is-not-the-mode-pbt-is-using) if the mode you picked does not seem to take effect.
 
-### 5. Set the number of test rounds
-
-A property-based test does not run just once. It generates many transaction rounds and checks your property against each one, the same way QuickCheck does. More rounds means a wider search for a counterexample and a longer run.
-
-You control this in the **Test Run Configuration** view, under **Rounds Per Test**:
-
-- **Default** uses the round count defined in your test suite.
-- **Custom** lets you set the count yourself. The field starts at 100.
-
-Lower the count for a quick check while you are iterating, and raise it when you want a more thorough search for edge cases.
-
-### 6. Run your tests
+### 5. Run your tests
 
 The two buttons at the top of the Test Tree act on the entire tree.
 
@@ -188,7 +178,7 @@ A skipped threat model is one PBT could not run because a precondition was not m
 
 Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
 
-### 7. Read the results
+### 6. Read the results
 
 Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
 
@@ -218,7 +208,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
   A threat model adds an **Attack Timeline** alongside the **Result Graph**. The timeline is an interactive stepper, so you can walk through the attack one step at a time and watch how the transaction was modified at each one. Changed fields are highlighted on the node, with the previous value struck through next to the new one.
 
-### 8. Read the coverage
+### 7. Read the coverage
 
 Coverage from the run appears in the **Plinth Script Coverage** view. Coverage is reported by the testing interface, so it shows up here only if the interface your tests were written against defines it, and it covers the tests that belong to that interface. Where no coverage was reported, the view says **No coverage detected**.
 
@@ -234,7 +224,7 @@ Click a file in the tree to open it in the editor with the coverage marked direc
 
 Click it and the view narrows to that one test: the title becomes **Coverage: \<test name\>**, and the tree shows only the files that this single test covered, with its own percentages. Use the close button next to the title to clear that scope and go back to the coverage for the entire test run.
 
-### 9. Refresh after changing your tests
+### 8. Refresh after changing your tests
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
