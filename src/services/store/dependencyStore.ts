@@ -128,7 +128,7 @@ export default class DependencyStore {
 
   private computeDependencyError(): DependencyError {
     if (!this.hasNix && !this.hasDocker) {
-      return { hasError: true, message: 'No dependencies were detected. Please ensure that at least one dependency is properly installed so PBT can run.', code: 'no-dependencies' };
+      return { hasError: true, message: 'Please ensure that either Nix or Docker is properly installed so PBT can run.', code: 'no-dependencies' };
     } else if (this.context?.store.settingStore.getSettings().mode === "nix" && !this.hasNix) {
       return { hasError: true, message: "Nix not detected.", code: 'nix-not-detected' };
     } else if (this.context?.store.settingStore.getSettings().mode === 'docker' && !this.hasDocker) {

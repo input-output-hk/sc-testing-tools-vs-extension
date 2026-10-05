@@ -48,6 +48,8 @@ PBT ships its own RPC server executable. You do not need to install Node.js to u
 
 Whichever one you install is the one you tell PBT to use later, in [step 4](#4-choose-an-execution-mode).
 
+**Windows users: use WSL2.** On Windows, run PBT inside [WSL2](https://learn.microsoft.com/windows/wsl/install) rather than directly on Windows. Open your project in VS Code connected to your WSL distribution, and install Docker or Nix so it is available inside WSL. Nix does not run natively on Windows, and running everything inside WSL2 avoids dependency problems between the Windows and Linux sides.
+
 **A working sc-testing-tools setup.** This extension is the front end. It does not run your tests itself. It launches your test suites and then reads the stream of events they report back, which is what fills in the test tree, the round results, the transaction graphs, and the coverage numbers. All of that comes from [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT is built on top of.
 
 If sc-testing-tools is not installed and working on your machine, PBT has nothing to run and nothing to display. To install the backend, follow the install instructions in the [sc-testing-tools README](https://github.com/input-output-hk/sc-testing-tools).
