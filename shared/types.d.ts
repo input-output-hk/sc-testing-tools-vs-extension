@@ -203,7 +203,7 @@ type ThreatModelTrace = {
   outcome: ThreatModelOutcome;
   targetTxIndex: number;
   validation?: ThreatModelValidation;
-  category: "claimed" | "expected" | "accepted";
+  category: "claimed" | "expected" | "accepted" | "surveyed" | "not_applicable";
 };
 
 type ThreatModelOutcome =
@@ -555,7 +555,7 @@ type ExtensionToWebviewMessage =
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
   | { type: "config-coverage-bar-thresholds", payload: { thresholds: CoverageBarThresholds } }
   | { type: "config-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "config-test-rounds", payload: { rounds: number } }
+  | { type: "config-test-rounds", payload: { rounds: number | null } }
   | { type: "status-missing-dependency", payload: { error: DependencyError } }
   | { type: "status-empty-workspaces" };
 
@@ -573,7 +573,7 @@ type WebviewToExtensionMessage =
   | { type: "coverage-tree-update", payload: CoverageTreeUpdate }
   | { type: "coverage-open-file", payload: { filePath: string } }
   | { type: "config-update-execution-mode", payload: { executionMode: ExtensionMode } }
-  | { type: "config-update-test-rounds", payload: { rounds: number } };
+  | { type: "config-update-test-rounds", payload: { rounds: number | null } };
 
 // RPC message
 
@@ -592,7 +592,7 @@ type TestSuiteBuildParams = {
 
 type TestRunParams = {
   mode: ExtensionMode;
-  rounds: number;
+  rounds: number | null;
   workspace: Workspace;
   testIds: Array<RunnableTestId>;
 };

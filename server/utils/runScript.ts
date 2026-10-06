@@ -33,14 +33,15 @@ function getScriptBasePath(): string {
   return path.join(__dirname, '..', '..', '..', 'scripts');
 }
 
-function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds?: Array<string>): Array<string> {
-  const params = [workspacePath, packageName, suiteName, String(rounds)];
-  if (testIds !== undefined) params.push(testIds.join(','));
+function getRunScriptParams(workspacePath: string, packageName: string, suiteName: string, rounds: number | null, testIds?: Array<string>): Array<string> {
+  const params = getBuildScriptParams(workspacePath, packageName, suiteName);
+  if (rounds !== null) params.push('--round', String(rounds));
+  if (testIds !== undefined && testIds.length > 0) params.push('--test-id', testIds.join(','));
   return params;
 }
 
 function getBuildScriptParams(workspacePath: string, packageName: string, suiteName: string): Array<string> {
-  return [workspacePath, packageName, suiteName];
+  return ['--project-path', workspacePath, '--package', packageName, '--suite', suiteName];
 }
 
 function locateBash(): string {
@@ -160,7 +161,7 @@ export async function* runBuildScript(mode: string, workspacePath: string, packa
   for await (const output of runScript(scriptPath, params, signal)) yield output;
 }
 
-export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, rounds: number, testIds: Array<string> | undefined, signal: AbortSignal): AsyncGenerator<ScriptOutput> {
+export async function* runRunScript(mode: string, workspacePath: string, packageName: string, suiteName: string, rounds: number | null, testIds: Array<string> | undefined, signal: AbortSignal): AsyncGenerator<ScriptOutput> {
   const scriptPath = getRunScriptPath(mode);
   const params = getRunScriptParams(workspacePath, packageName, suiteName, rounds, testIds);
   for await (const output of runScript(scriptPath, params, signal)) yield output;

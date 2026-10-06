@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_PATH=$1
-PACKAGE_NAME=$2
-TEST_SUITE_NAME=$3
-ROUNDS=$4
-TEST_IDS="${5:-}"
-
-# Removing quickcheck tests parameter until it's supported
-# RUN_ARGS=(--streaming-json --quickcheck-tests "$ROUNDS")
+source "$(dirname "${BASH_SOURCE[0]}")/parse-args.sh"
+parse_script_args run "$@"
 
 RUN_ARGS=(--streaming-json)
 if [ -n "$TEST_IDS" ]; then
   RUN_ARGS+=(--test-id "$TEST_IDS")
+fi
+
+if [ -n "$ROUNDS" ]; then
+  export TASTY_QUICKCHECK_TESTS="$ROUNDS"
+else
+  unset TASTY_QUICKCHECK_TESTS
 fi
 
 nix run \

@@ -112,7 +112,7 @@ export default class TestConfigurationView {
   }
 
   // update the test rounds in the setting store when the user changes it in the webview
-  private updateTestRounds(rounds: number): void {
+  private updateTestRounds(rounds: number | null): void {
     this.context.store.settingStore.setRounds(rounds);
   }
 

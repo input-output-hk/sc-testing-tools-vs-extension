@@ -137,7 +137,9 @@ Either way the error appears in the **Test Run Configuration** view. See [Troubl
 
 A property-based test does not run just once. It generates many transaction rounds and checks your property against each one, the same way QuickCheck does. More rounds means a wider search for a counterexample and a longer run.
 
-The number of rounds is currently determined by your test suite. The extension's round-count control is unavailable while support for passing the value through its execution scripts is being completed.
+In **Test Run Configuration**, choose **Default** to use the number of rounds configured by your test suite. This is the initial selection: PBT sends no round override and leaves `TASTY_QUICKCHECK_TESTS` unset. Choose **Custom** to enter a number of rounds per test; PBT passes that number as `TASTY_QUICKCHECK_TESTS` when running tests in either Nix or Docker mode. The custom field starts at `100`. Switching back to Default removes the override for subsequent runs.
+
+The rounds selection is kept only for the current extension session; it is not saved to VS Code settings. After the extension restarts, rounds return to Default.
 
 ### 6. Run your tests
 
