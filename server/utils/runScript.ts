@@ -1,5 +1,4 @@
 import { spawn, type ChildProcess } from 'child_process';
-import * as fs from 'fs';
 import * as path from 'path';
 
 export interface ScriptOutput {
@@ -44,18 +43,6 @@ function getBuildScriptParams(workspacePath: string, packageName: string, suiteN
   return ['--project-path', workspacePath, '--package', packageName, '--suite', suiteName];
 }
 
-function locateBash(): string {
-  if (process.platform !== 'win32') return 'bash';
-  const candidates = [
-    'C:\\Program Files\\Git\\bin\\bash.exe',
-    'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  throw new Error('Git Bash not found on Windows');
-}
-
 function buildScriptExecutionMessage(data: ScriptExecutionErrorData): string {
   const exitCode = data.exitCode === null ? 'unknown' : String(data.exitCode);
   const commandOutput = data.stderr.trim() || data.stdout.trim();
@@ -68,12 +55,11 @@ function buildScriptExecutionMessage(data: ScriptExecutionErrorData): string {
 async function* runScript(scriptPath: string, params: string[], signal: AbortSignal): AsyncGenerator<ScriptOutput> {
   if (signal.aborted) return;
   const scriptParams = params;
-  const child = spawn(locateBash(), [scriptPath, ...scriptParams], { env: process.env, detached: process.platform !== 'win32' });
+  const child = spawn('bash', [scriptPath, ...scriptParams], { env: process.env, detached: true });
   const stopChild = () => {
     if (child.pid === undefined) return;
     try {
-      if (process.platform === 'win32') child.kill();
-      else process.kill(-child.pid, 'SIGTERM');
+      process.kill(-child.pid, 'SIGTERM');
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
     }

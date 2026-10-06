@@ -22,6 +22,11 @@ export type PbtContext = {
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
+  if (process.platform === 'win32') {
+    vscode.window.showErrorMessage('PBT does not support native Windows. Install WSL2 and open your project in a VS Code window connected to your WSL distribution.');
+    return;
+  }
+
   try {
     await vscode.workspace.fs.stat(vscode.Uri.file(context.asAbsolutePath(getBinaryPath())));
   } catch {

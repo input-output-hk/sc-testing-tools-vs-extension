@@ -7,8 +7,6 @@ const supportedTargets = {
   'darwin-x64': 'bun-darwin-x64',
   'linux-arm64': 'bun-linux-arm64',
   'linux-x64': 'bun-linux-x64',
-  'win32-arm64': 'bun-windows-arm64',
-  'win32-x64': 'bun-windows-x64',
 };
 
 const platforms = process.argv[2]
@@ -33,7 +31,7 @@ for (const platform of platforms) {
     throw new Error(`Unsupported PBT server platform: ${platform}`);
   }
 
-  const output = `bin/pbt-server-${platform}${platform.startsWith('win32-') ? '.exe' : ''}`;
+  const output = `bin/pbt-server-${platform}`;
   const result = await Bun.build({
     entrypoints: ['server/index.ts'],
     compile: { target, outfile: output, autoloadDotenv: false, autoloadBunfig: false },

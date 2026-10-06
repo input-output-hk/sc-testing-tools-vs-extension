@@ -33,7 +33,7 @@ flowchart LR
 
 Here, **server** means the bundled adapter process, not the Haskell backend and not an HTTP service. [src/services/rpcClient.ts](../src/services/rpcClient.ts) spawns the platform-specific `bin/pbt-server-<platform>-<arch>` executable and connects `vscode-jsonrpc` to its standard streams. No listening port or system Node.js installation is involved. The webviews do not call the server or execute backend commands directly.
 
-The npm workspace builds these layers separately: `compile:extension`, `compile:server`, `compile:webview`, and `compile:binary`; `npm run compile` runs all four. Bun compiles the server source and its dependencies into six executables for macOS, Linux, and Windows (arm64 and x64). The Haskell grammar and web-tree-sitter runtime WASM files ship beside the binaries in `bin/`, and runtime shell scripts ship in `scripts/`. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
+The npm workspace builds these layers separately: `compile:extension`, `compile:server`, `compile:webview`, and `compile:binary`; `npm run compile` runs all four. Bun compiles the server source and its dependencies into four executables for macOS and Linux (arm64 and x64); on Windows, the extension must run in a WSL2-connected VS Code window. The Haskell grammar and web-tree-sitter runtime WASM files ship beside the binaries in `bin/`, and runtime shell scripts ship in `scripts/`. [package.json](../package.json) also declares commands, sidebar views, startup activation, and the execution-mode setting. [shared/types.d.ts](../shared/types.d.ts) defines the common TypeScript data contracts.
 
 ## Backend Context
 
@@ -144,7 +144,7 @@ Job success describes command execution; individual test success comes from `tes
 
 Malformed JSON lines are logged and skipped. Schema-invalid events raise `TestEventValidationError`, which the handler logs and skips; these do not themselves generate `test-run-error` or force the job to fail. A backend/schema mismatch can therefore leave partial UI data even when command execution completes. Keep the checked-in schema, backend type declarations, mapper, and shared types aligned when changing the protocol. The backend streaming README documents schema generation.
 
-`stop` removes pending queue entries and replaces the queue, aborts the active job's `AbortController`, and awaits its handler before responding. `runScript` sends SIGTERM to the spawned shell process group on Unix (or kills the child on Windows) on abort, even if the build has not produced output. The handler returns without a normal terminal job update. Once the server acknowledges stop, the extension clears its local waiting/running state; completed results remain.
+`stop` removes pending queue entries and replaces the queue, aborts the active job's `AbortController`, and awaits its handler before responding. `runScript` sends SIGTERM to the spawned shell process group on abort, even if the build has not produced output. The handler returns without a normal terminal job update. Once the server acknowledges stop, the extension clears its local waiting/running state; completed results remain.
 
 Server stdout is reserved for JSON-RPC framing. Diagnostics belong on stderr; the client forwards stderr and verbose RPC traces to the **PBT Extension** output channel. `test-run-error` additionally drives an error notification and status-bar message through the RPC client.
 
