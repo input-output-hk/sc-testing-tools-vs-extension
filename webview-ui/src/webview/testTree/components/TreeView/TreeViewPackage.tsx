@@ -49,7 +49,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
   const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
-  const isRunnable = !status.isRunning && !status.isWaiting;
+  const isRunnable = !status.isRunning && !status.isBuilding && !status.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {

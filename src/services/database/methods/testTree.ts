@@ -78,6 +78,7 @@ const storeStaticTestSuite = async (database: Database, testSuite: StaticTestSui
       packageName: testSuite.id[1],
       suiteName: testSuite.name,
       status: testSuite.status,
+      isBuilding: testSuite.isBuilding,
       isWaiting: testSuite.isWaiting,
       isRunning: testSuite.isRunning,
       isStatic: testSuite.isStatic,
@@ -118,6 +119,7 @@ const storeStaticTestList = async (database: Database, testSuiteId: TestSuiteId,
       name: test.name,
       group: test.group,
       status: test.status,
+      isBuilding: test.isBuilding,
       isWaiting: test.isWaiting,
       isRunning: test.isRunning,
       isStatic: test.isStatic,
@@ -159,6 +161,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         id: suiteId,
         name: suiteDocument.suiteName,
         status: suiteDocument.status,
+        isBuilding: suiteDocument.isBuilding,
         isWaiting: suiteDocument.isWaiting,
         isRunning: suiteDocument.isRunning,
         isStatic: suiteDocument.isStatic,
@@ -186,6 +189,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         name: testDocument.name,
         group: testDocument.group,
         status: testDocument.status,
+        isBuilding: testDocument.isBuilding,
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
@@ -217,8 +221,8 @@ export const fetchTestTree = async (database: Database, openState: Record<string
 };
 
 export const handleTestRunStop = async (database: Database): Promise<void> => {
-  database.suites.find().update({ $set: { isWaiting: false, isRunning: false } });
-  database.tests.find().update({ $set: { isWaiting: false, isRunning: false } });
+  database.suites.find().update({ $set: { isWaiting: false, isBuilding: false, isRunning: false } });
+  database.tests.find().update({ $set: { isWaiting: false, isBuilding: false, isRunning: false } });
 };
 
 export const clearTestTreeResults = async (database: Database): Promise<void> => {

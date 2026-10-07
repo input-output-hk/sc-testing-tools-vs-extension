@@ -5,6 +5,7 @@ type RunStatus = "undetermined" | "valid" | "invalid";
 type RunStatusContext = {
   status: RunStatus;
   isWaiting: boolean;
+  isBuilding: boolean;
   isRunning: boolean;
 };
 
@@ -35,6 +36,7 @@ type Test = {
   name: string;
   group: Array<string>;
   status: RunStatus;
+  isBuilding: boolean;
   isWaiting: boolean;
   isRunning: boolean;
   isStatic: boolean;
@@ -94,6 +96,7 @@ type GenericTestSuite<T> = {
   id: TestSuiteId;
   name: string;
   status: RunStatus;
+  isBuilding: boolean;
   isWaiting: boolean;
   isRunning: boolean;
   isStatic: boolean;
@@ -507,6 +510,7 @@ type TestTreeSuiteUpdate = {
   suiteId: TestSuiteId;
   name?: string;
   status?: RunStatus;
+  isBuilding?: boolean;
   isWaiting?: boolean;
   isRunning?: boolean;
   isStatic?: boolean;
@@ -638,7 +642,7 @@ type TestSuiteUpdateEvent = TestEvent & {
     workspaceId: string;
     packageName: string;
     suiteName: string;
-    runStatus: "idle" | "running" | "done";
+    runStatus: "idle" | "building" | "running" | "done";
     tests?: Array<Test>;
     coverageIndex?: Array<TestEventCoverage>;
   };

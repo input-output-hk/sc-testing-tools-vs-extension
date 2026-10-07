@@ -59,6 +59,7 @@ const parseTestSuiteStartedEvent = (
         name: testItem.name,
         group: testItem.path,
         status: 'undetermined',
+        isBuilding: false,
         isWaiting: !isBuild,
         isRunning: false,
         isStatic: false,

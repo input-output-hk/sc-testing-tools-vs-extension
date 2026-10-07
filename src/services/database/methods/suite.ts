@@ -4,7 +4,7 @@ import { updateSuiteTests } from './test';
 import { upsertCoverage } from './coverage';
 import { createTestTree } from '../../../utils/testTree';
 
-import type { Database, SuiteDocument, SuiteDocumentData, TestDocument } from '../collections';
+import type { Database, SuiteDocument, SuiteDocumentData, TestDocument, TestDocumentData } from '../collections';
 
 export const getAllTestSuitesIds = async (database: Database): Promise<Array<TestSuiteId>> => {
   const suiteDocuments: Array<SuiteDocument> = await database.suites.find().exec();
@@ -12,16 +12,27 @@ export const getAllTestSuitesIds = async (database: Database): Promise<Array<Tes
 }
 
 export const handleTestSuiteBuild = async (database: Database, testSuiteId: TestSuiteId): Promise<void> => {
+  const [workspaceId, packageName, suiteName] = testSuiteId;
+
   await database.suites
     .findOne({ selector: { id: testSuiteId.join(':') } })
+    .update({ $set: { isWaiting: true } });
+
+  await database.tests
+    .find({ selector: { workspaceId, packageName, suiteName } })
     .update({ $set: { isWaiting: true } });
 }
 
 export const handleTestSuiteBuildErrorEvent = async (database: Database, testJob: TestBuildJob): Promise<void> => {
   const { workspace: { id: workspaceId }, packageName, suiteName } = testJob.params;
+
   await database.suites
     .findOne({ selector: { id: `${workspaceId}:${packageName}:${suiteName}` } })
-    .update({ $set: { status: 'invalid', isWaiting: false, isRunning: false } });
+    .update({ $set: { status: 'invalid', isBuilding: false, isWaiting: false, isRunning: false } });
+
+  await database.tests
+    .find({ selector: { workspaceId, packageName, suiteName } })
+    .update({ $set: { isBuilding: false, isWaiting: false, isRunning: false } });
 }
 
 const computeSuiteStatus = async (database: Database, suite: SuiteDocument): Promise<RunStatus> => {
@@ -54,6 +65,20 @@ const computeSuiteTime = async (database: Database, suite: SuiteDocument): Promi
   return tests.map(t => t.time ?? 0).reduce((sum, time) => sum + time, 0);
 }
 
+export const handleTestSuiteBuildJobEvent = async (database: Database, testJob: TestBuildJob): Promise<void> => {
+  if (testJob.status === 'running') {
+    const { workspace: { id: workspaceId }, packageName, suiteName } = testJob.params;
+
+    await database.suites
+      .findOne({ selector: { id: `${workspaceId}:${packageName}:${suiteName}` } })
+      .update({ $set: { isWaiting: false, isBuilding: true } });
+
+    await database.tests
+      .find({ selector: { workspaceId, packageName, suiteName } })
+      .update({ $set: { isWaiting: false, isBuilding: true } });
+  }
+}
+
 export const handleTestSuiteUpdateEvent = async (database: Database, event: TestSuiteUpdateEvent): Promise<void> => {
   const { workspaceId, packageName, suiteName, runStatus, tests, coverageIndex } = event.payload;
   const packageId: TestPackageId = [workspaceId, packageName];
@@ -78,20 +103,36 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
       treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion,
       isStatic: tests !== undefined ? false : suiteDocument.isStatic,
     };
-    if (runStatus === 'running') {
+    if (runStatus === 'building') {
+      update.time = undefined;
+      update.isRunning = false;
+      update.isWaiting = false;
+      update.isBuilding = true;
+    } else if (runStatus === 'running') {
       update.time = undefined;
       update.isRunning = true;
       update.isWaiting = false;
+      update.isBuilding = false;
     } else if (runStatus === 'done' || runStatus === 'idle') {
       const status = await computeSuiteStatus(database, suiteDocument);
       update.status = status;
       update.isRunning = false;
       update.isWaiting = false;
+      update.isBuilding = false;
       if (runStatus === 'done') {
         update.time = await computeSuiteTime(database, suiteDocument);
       }
     }
+
     await suiteDocument.update({ $set: update });
+
+    await database.tests
+      .find({ selector: { workspaceId, packageName, suiteName } })
+      .update({ $set: {
+        isWaiting: false,
+        isBuilding: update.isBuilding,
+        isRunning: update.isRunning
+      }});
   }
 }
 
@@ -113,6 +154,10 @@ export const onTestSuiteUpdate = (
 
     if (document.status !== changeEvent.previousDocumentData?.status) {
       update.status = document.status;
+    }
+
+    if (document.isBuilding !== changeEvent.previousDocumentData?.isBuilding) {
+      update.isBuilding = document.isBuilding;
     }
 
     if (document.isWaiting !== changeEvent.previousDocumentData?.isWaiting) {
@@ -142,6 +187,7 @@ export const onTestSuiteUpdate = (
         name: testDocument.name,
         group: testDocument.group,
         status: testDocument.status,
+        isBuilding: testDocument.isBuilding,
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
@@ -164,6 +210,7 @@ export const onTestSuiteUpdate = (
 
       update.name = document.suiteName;
       update.status = document.status;
+      update.isBuilding = document.isBuilding;
       update.isWaiting = document.isWaiting;
       update.isRunning = document.isRunning;
       update.isStatic = document.isStatic;

@@ -41,6 +41,7 @@ const testSchemaLiteral = {
       items: stringSchema
     },
     status: runStatusSchema,
+    isBuilding: booleanSchema,
     isWaiting: booleanSchema,
     isRunning: booleanSchema,
     isStatic: booleanSchema,
@@ -70,6 +71,7 @@ const testSchemaLiteral = {
     'name',
     'group',
     'status',
+    'isBuilding',
     'isWaiting',
     'isRunning',
     'isStatic',

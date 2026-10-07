@@ -62,9 +62,7 @@ export default class TestStore {
       this.eventQueue.push(event);
     });
 
-    // Removing auto prefetch for workspace change events for now
-    // this.setupWorkspaceListener();
-
+    this.setupWorkspaceListener();
     this.setupCoverageListener();
   }
 
@@ -107,6 +105,7 @@ export default class TestStore {
 
   private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
     this.updateTestJob(event);
+    await this.database.handleTestRunUpdateEvent(event);
     await this.history.handleTestRunUpdateEvent(event);
   }
 
@@ -127,13 +126,28 @@ export default class TestStore {
       }
     });
 
-    vscode.workspace.onDidChangeTextDocument(event => {
-      if (event.contentChanges.length > 0) {
-        this.testTreeRefreshQueue.next();
+    const haskellFiles = vscode.workspace.createFileSystemWatcher('**/*.hs');
+    this.context.extension.subscriptions.push(haskellFiles);
+    haskellFiles.onDidChange(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+    haskellFiles.onDidCreate(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+    haskellFiles.onDidDelete(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+
+    vscode.workspace.onDidChangeWorkspaceFolders(event => {
+      if (event.added.length === 0 && event.removed.length === 0) return;
+
+      const folders = vscode.workspace.workspaceFolders || [];
+      const workspaces = Array.from(this.workspaces.values());
+      if (
+        folders.length === workspaces.length &&
+        folders.every(folder => workspaces.includes(folder.uri.fsPath))) {
+        return;
       }
-    }, null, this.context.extension.subscriptions);
-    
-    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+
+      this.workspaces = new Map(folders.map(folder => [
+        this.makeWorkspaceId(folder.uri.fsPath),
+        folder.uri.fsPath
+      ]));
+
       this.testTreeRefreshQueue.next();
     }, null, this.context.extension.subscriptions);
   }

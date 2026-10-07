@@ -73,6 +73,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
         status={{
           status: node.test.status,
           isWaiting: node.test.isWaiting,
+          isBuilding: node.test.isBuilding,
           isRunning: node.test.isRunning
         }}
         isThreatModel={isThreatModel}

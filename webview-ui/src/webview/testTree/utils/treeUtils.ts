@@ -31,11 +31,14 @@ export const getPackageStatus = (testPackage: TestPackage): RunStatusContext => 
   const context: RunStatusContext = {
     status: 'undetermined',
     isWaiting: false,
+    isBuilding: false,
     isRunning: false
   };
 
   if (suites.some(suite => suite.isRunning)) {
     context.isRunning = true;
+  } else if (suites.some(suite => suite.isBuilding)) {
+    context.isBuilding = true;
   } else if (suites.some(suite => suite.isWaiting)) {
     context.isWaiting = true;
   } else if (suites.some(suite => suite.status === 'invalid')) {
@@ -74,11 +77,14 @@ export const getGroupStatus = (group: TestTreeGroupNode): RunStatusContext => {
   const context: RunStatusContext = {
     status: 'undetermined',
     isWaiting: false,
+    isBuilding: false,
     isRunning: false
   };
 
   if (tests.some(test => test.isRunning)) {
     context.isRunning = true;
+  } else if (tests.some(test => test.isBuilding)) {
+    context.isBuilding = true;
   } else if (tests.some(test => test.isWaiting)) {
     context.isWaiting = true;
   } else if (tests.some(test => test.status === 'invalid')) {
@@ -97,7 +103,7 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
 };
 
 export const isTestRunnable = (test: Test): boolean =>
-  !test.isStatic && !test.isRunning && !test.isWaiting;
+  !test.isStatic && !test.isRunning && !test.isBuilding && !test.isWaiting;
 
 const compareTestsById = (a: Test, b: Test): number => {
   const [,,, testIdA] = a.id;
