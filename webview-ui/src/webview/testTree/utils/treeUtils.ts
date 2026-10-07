@@ -136,3 +136,16 @@ export const sortTreeNodes = (sortBy: SortBy) => (a: TestTreeNode, b: TestTreeNo
     return getTestComparator(sortBy)(testA, testB);
   }
 };
+
+export const mapJobStatusToClassName = (status: TestJobStatus): string => {
+  switch (status) {
+    case 'waiting':
+      return 'codicon-history text-yellow-02';
+    case 'running':
+      return 'codicon-loading';
+    case 'success':
+      return 'codicon-pass text-green-01';
+    case 'failed':
+      return 'codicon-error text-red-01';
+  }
+};

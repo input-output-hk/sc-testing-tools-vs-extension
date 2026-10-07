@@ -9,6 +9,7 @@ export default class TestResultView {
   private testResult: TestResult | null = null;
   private pendingExpandRoundId: number | null = null;
   private runId: string | null = null;
+  private previousRunStartedOn: number | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -21,10 +22,11 @@ export default class TestResultView {
 
   public open(testId: TestId): void {
     this.runId = null;
+    this.previousRunStartedOn = null;
     this.show(testId);
   }
 
-  public openRun(testId: TestId, runId: string, roundId: number): void {
+  public openRun(testId: TestId, runId: string, roundId: number | null): void {
     this.runId = runId;
     this.pendingExpandRoundId = roundId;
     this.show(testId);
@@ -93,7 +95,9 @@ export default class TestResultView {
     const testStore = this.context.store.testStore;
     const liveTest = (await testStore.getTestResult(testId)).test;
     const rounds = await testStore.getTestRoundsHistory(runId, testId);
-    const result = this.findRunTestResult(await testStore.getTestRunsHistory(), runId, testId);
+    const runs = await testStore.getTestRunsHistory();
+    const result = this.findRunTestResult(runs, runId, testId);
+    this.previousRunStartedOn = this.findPreviousRunStartedOn(runs, runId);
 
     if (result === undefined) return { test: liveTest, rounds };
 
@@ -118,6 +122,14 @@ export default class TestResultView {
       }
     }
     return undefined;
+  }
+
+  private findPreviousRunStartedOn(runs: Array<TestRunHistory>, runId: string): number | null {
+    if (runs.length === 0 || runs[0].runId === runId) return null;
+    for (const run of runs) {
+      if (run.runId === runId) return run.startedOn;
+    }
+    return null;
   }
 
   private onTestResultLoaded(testResult: TestResult): void {
@@ -160,6 +172,7 @@ export default class TestResultView {
   private sendTestResultToWebview(): void {
     if (this.panel !== null) {
       this.panel!.webview.postMessage({ type: 'test-result', payload: this.testResult } as ExtensionToWebviewMessage);
+      this.panel!.webview.postMessage({ type: 'test-result-run', payload: { startedOn: this.previousRunStartedOn } } as ExtensionToWebviewMessage);
 
       if (this.pendingExpandRoundId !== null) {
         this.panel!.webview.postMessage({ type: 'test-result-expand-round', payload: { roundId: this.pendingExpandRoundId } } as ExtensionToWebviewMessage);
