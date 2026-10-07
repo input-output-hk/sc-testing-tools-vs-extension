@@ -2,23 +2,11 @@ import { useEffect, useState } from 'react';
 
 import StatusIcon from '../../../components/StatusIcon';
 import { formatRunTime } from '../../../utils/format';
+import { mapJobStatusToClassName } from '../utils/treeUtils';
 
 interface Props {
   testJob: TestJob | null;
 }
-
-const mapStatusToClassName = (status: TestJobStatus): string => {
-  switch (status) {
-    case 'waiting':
-      return 'codicon-history text-yellow-02';
-    case 'running':
-      return 'codicon-loading';
-    case 'success':
-      return 'codicon-pass text-green-01';
-    case 'failed':
-      return 'codicon-error text-red-01';
-  }
-};
 
 const TestJob: React.FC<Props> = ({ testJob }) => {
   const [currentTime, setCurrentTime] = useState(0);
@@ -63,7 +51,7 @@ const TestJob: React.FC<Props> = ({ testJob }) => {
     <div className="flex flex-row items-center gap-1 px-2 py-1">
       {testJob !== null &&
         <StatusIcon
-          className={mapStatusToClassName(testJob.status)}
+          className={mapJobStatusToClassName(testJob.status)}
           animated={testJob.status === 'running'}
         />
       }

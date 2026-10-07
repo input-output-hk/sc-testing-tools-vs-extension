@@ -4,10 +4,12 @@ import FilterMenu from './FilterMenu';
 
 interface Props {
   filter: TestTreeFilter;
+  placeholder?: string;
   onChangeFilter: (filter: TestTreeFilter) => void;
+  onClear?: () => void;
 }
 
-const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
+const TreeViewFilter: React.FC<Props> = ({ filter, placeholder = 'Filter (e.g. test)', onChangeFilter, onClear }) => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
 
@@ -51,15 +53,23 @@ const TreeViewFilter: React.FC<Props> = ({ filter, onChangeFilter }) => {
     <div className="relative flex items-center w-full px-2 py-2">
       <input
         type="text"
-        className="w-full pl-2 pr-6 py-1 text-sm rounded border border-transparent dark:bg-[#3c3c3c] dark:text-base-06 outline-none focus:border-blue-06 dark:placeholder:text-base-06"
-        placeholder="Filter (e.g. test)"
+        className={`w-full pl-2 ${onClear !== undefined ? 'pr-12' : 'pr-6'} py-1 text-sm rounded-[var(--vscode-cornerRadius-small)] border border-[var(--vscode-commandCenter-border)] bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)] outline-none focus:border-[var(--vscode-focusBorder)]`}
+        placeholder={placeholder}
         value={filter.text ?? ''}
         onChange={handleFilterTextInput}
       />
       <span
         ref={wrapperRef}
-        className="absolute right-3 inline-flex items-center"
+        className="absolute right-3 inline-flex items-center gap-1"
       >
+        {onClear !== undefined && (
+          <i
+            className="codicon codicon-clear-all cursor-pointer opacity-70 hover:opacity-100"
+            onClick={onClear}
+            data-tooltip-id="tree-node-action"
+            data-tooltip-content="Clear"
+          />
+        )}
         <i
           className={
             `codicon cursor-pointer hover:opacity-100 ` +

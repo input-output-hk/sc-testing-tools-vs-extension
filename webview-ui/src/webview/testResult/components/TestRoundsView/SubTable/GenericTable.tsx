@@ -24,7 +24,7 @@ interface Props {
 
 const GenericTable: React.FC<Props> = ({ rows, columns, onClick, tooltip }) => (
   <VscodeTable responsive resizable className="border border-base-13">
-    <VscodeTableHeader slot="header" className="bg-transparent">
+    <VscodeTableHeader slot="header">
       {columns.map((column, index) =>
         <VscodeTableHeaderCell
           key={index}

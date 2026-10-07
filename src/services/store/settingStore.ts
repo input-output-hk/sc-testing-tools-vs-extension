@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { BehaviorSubject, type Subscription } from 'rxjs';
 
 import type { PbtContext } from '../../extension';
 
@@ -7,13 +8,14 @@ export interface TestSettings {
   rounds: number;
 }
 
-export default class SettingStore {
-  private settings: TestSettings = {
-    mode: 'docker',
-    rounds: 100,
-  };
+// Matches the default of VS Code's built-in `testing.coverageBarThresholds`.
+const DEFAULT_COVERAGE_BAR_THRESHOLDS: CoverageBarThresholds = { red: 0, yellow: 60, green: 90 };
 
-  private modeChangeCallbacks: ((mode: ExtensionMode) => void)[] = [];
+export default class SettingStore {
+  private mode = new BehaviorSubject<ExtensionMode>('docker');
+  private coverageBarThresholds = new BehaviorSubject<CoverageBarThresholds>(DEFAULT_COVERAGE_BAR_THRESHOLDS);
+  private rounds: number = 100;
+
   // Set right before we write our own mode change to config, so the resulting
   // onDidChangeConfiguration event (our own echo) doesn't get mistaken for an
   // external change and bounce the in-memory mode back to whatever the config
@@ -22,9 +24,14 @@ export default class SettingStore {
   private suppressNextConfigChange = false;
 
   public initialize(context: PbtContext): void {
-    this.settings.mode = this.readModeFromConfig();
+    this.mode.next(this.readModeFromConfig());
+    this.coverageBarThresholds.next(this.readCoverageBarThresholdsFromConfig());
 
     const disposable = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('testing.coverageBarThresholds')) {
+        this.coverageBarThresholds.next(this.readCoverageBarThresholdsFromConfig());
+      }
+
       if (!event.affectsConfiguration('pbt-extension.executionMode')) return;
 
       if (this.suppressNextConfigChange) {
@@ -33,10 +40,9 @@ export default class SettingStore {
       }
 
       const mode = this.readModeFromConfig();
-      if (mode === this.settings.mode) return;
+      if (mode === this.mode.getValue()) return;
 
-      this.settings.mode = mode;
-      this.notifyModeChange(mode);
+      this.mode.next(mode);
     });
     context.extension.subscriptions.push(disposable);
   }
@@ -44,34 +50,48 @@ export default class SettingStore {
   private readModeFromConfig(): ExtensionMode {
     const mode = vscode.workspace
       .getConfiguration('pbt-extension')
-      .get<string>('executionMode', this.settings.mode);
+      .get<string>('executionMode', this.mode.getValue());
 
     return mode.toLowerCase() as ExtensionMode;
-  }  
+  }
 
-  private notifyModeChange(mode: ExtensionMode): void {
-    for (const callback of this.modeChangeCallbacks) {
-      callback(mode);
-    }
+  // VS Code does not merge per-property defaults into object settings, so a
+  // user who overrides only one colour would otherwise leave the rest missing.
+  private readCoverageBarThresholdsFromConfig(): CoverageBarThresholds {
+    const thresholds = vscode.workspace
+      .getConfiguration('testing')
+      .get<Partial<CoverageBarThresholds>>('coverageBarThresholds', {});
+
+    return { ...DEFAULT_COVERAGE_BAR_THRESHOLDS, ...thresholds };
   }
 
   public setMode(mode: ExtensionMode): void {
-    this.settings.mode = mode;
     this.suppressNextConfigChange = true;
+    this.mode.next(mode);
     vscode.workspace
       .getConfiguration('pbt-extension')
       .update('executionMode', mode, vscode.ConfigurationTarget.Global);
   }
 
-  public onModeChange(callback: (mode: ExtensionMode) => void): void {
-    this.modeChangeCallbacks.push(callback);
+  // Returns the subscription so a caller whose lifetime is shorter than the
+  // store's (a webview view, which VS Code disposes and re-resolves) can drop it.
+  public onModeChange(callback: (mode: ExtensionMode) => void): Subscription {
+    return this.mode.subscribe(callback);
+  }
+
+  public getCoverageBarThresholds(): CoverageBarThresholds {
+    return this.coverageBarThresholds.getValue();
+  }
+
+  public onCoverageBarThresholdsChange(callback: (thresholds: CoverageBarThresholds) => void): Subscription {
+    return this.coverageBarThresholds.subscribe(callback);
   }
 
   public getSettings(): TestSettings {
-    return this.settings;
-  }  
+    return { mode: this.mode.getValue(), rounds: this.rounds };
+  }
 
   public setRounds(rounds: number): void {
-    this.settings.rounds = rounds;
-  } 
+    this.rounds = rounds;
+  }
 }

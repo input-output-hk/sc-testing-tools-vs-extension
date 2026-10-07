@@ -22,7 +22,7 @@ interface TreeViewProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
-  onShowCoverage: (testId: TestId, testName: string) => void;
+  onShowCoverage: (test: Test) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
 

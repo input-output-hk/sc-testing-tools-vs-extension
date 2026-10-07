@@ -2,12 +2,14 @@ import { useEffect, useState, useRef } from 'react';
 
 import RunningIndicator from '../../components/RunningIndicator';
 import TestHeader from '../../components/TestHeader';
+import PreviousRunBanner from './components/PreviousRunBanner';
 import Tabs from './components/Tabs';
 import TestRoundsView from './components/TestRoundsView';
 import TransactionGraphView from './components/TransactionGraphView';
 
 import type { WebviewApi } from 'vscode-webview';
 import type { TransactionGraphViewRef } from './components/TransactionGraphView';
+import type { TestRoundsViewRef } from './components/TestRoundsView';
 
 const TEST_ROUNDS_TAB = 'rounds';
 const TX_GRAPH_TAB = 'graph';
@@ -18,9 +20,11 @@ interface Props {
 
 const TestResultView: React.FC<Props> = ({ vscode }) => {
   const graphRef = useRef<TransactionGraphViewRef>(null);
+  const testRoundsRef = useRef<TestRoundsViewRef>(null);
   const [test, setTest] = useState<Test|null>(null);
   const [testRounds, setTestRounds] = useState<Array<TestRound>>([]);
   const [selectedTab, setSelectedTab] = useState<string>(TEST_ROUNDS_TAB);
+  const [previousRunStartedOn, setPreviousRunStartedOn] = useState<number | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -30,6 +34,15 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-result') {
         setTest(message.payload.test);
         setTestRounds(message.payload.rounds);
+      }
+      if (message.type === 'test-result-run') {
+        setPreviousRunStartedOn(message.payload.startedOn);
+      }
+      if (message.type === 'test-result-expand-round') {
+        setSelectedTab(TEST_ROUNDS_TAB);
+        requestAnimationFrame(() =>
+          testRoundsRef.current?.expandRound(message.payload.roundId)
+        );
       }
     };
 
@@ -47,8 +60,9 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
   if (!test) return <></>;
 
   return (
-    <div className="flex flex-col h-full bg-base-20">
+    <div className="flex flex-col h-full bg-transparent">
       <div className="flex-none pt-4 px-4">
+        {previousRunStartedOn !== null && <PreviousRunBanner startedOn={previousRunStartedOn} />}
         <TestHeader test={test} />
       </div>
 
@@ -78,6 +92,7 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
                   testRounds={testRounds}
                   onOpenGraph={handleOpenGraph}
                   isActive={selectedTab === TEST_ROUNDS_TAB}
+                  ref={testRoundsRef}
                 />
               ),
             },

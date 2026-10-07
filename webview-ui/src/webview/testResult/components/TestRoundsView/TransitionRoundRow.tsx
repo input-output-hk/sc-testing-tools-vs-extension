@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 
 import {
   VscodeTableRow,
   VscodeTableCell
 } from '@vscode-elements/react-elements';
 
+import type { VscodeTableRow as VscodeTableRowElement } from '@vscode-elements/elements/dist/vscode-table-row/vscode-table-row.js';
+
 import Tooltip from '../../../../components/Tooltip';
 import RoundStatusIcon from './RoundStatusIcon';
 import TransitionRoundSubTable from './TransitionRoundSubTable';
+
+export interface RoundRowHandle {
+  expand: () => void;
+}
 
 interface Props {
   index: number;
@@ -70,9 +76,19 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   </VscodeTableCell>
 );
 
-const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
+const TransitionRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> = forwardRef<RoundRowHandle, Props>(
+  ({ index, round, onOpenGraph }, ref) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const { validTxs, invalidTxs, inputs, outputs, mints, roundHasError } = getRoundStats(round);
+  const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
+  const rowRef = useRef<VscodeTableRowElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    expand: (): void => {
+      setCollapsed(false);
+      requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center' }));
+    }
+  }));
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -83,7 +99,7 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
 
   return (
     <>
-      <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+      <VscodeTableRow ref={rowRef} className={rowBackgroundClass}>
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
@@ -124,14 +140,14 @@ const TransitionRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
         <RoundCell value={mints} />
       </VscodeTableRow>
       {!collapsed &&
-        <VscodeTableRow className={index % 2 === 0 ? 'bg-base-19' : 'bg-base-20'}>
+        <VscodeTableRow className={rowBackgroundClass}>
           <td colSpan={6} className="px-3 pb-3">
-            <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} />
+            <TransitionRoundSubTable round={round} onOpenGraph={onOpenGraph} backgroundClass={rowBackgroundClass} />
           </td>
         </VscodeTableRow>
       }
     </>
   );
-};
+});
 
 export default TransitionRoundRow;
