@@ -131,6 +131,8 @@ flowchart TD
 
 A trace produces one positive/negative `TransitionTestRound` and a `ThreatModelTestRound` for each distinct threat-model test ID represented in that trace. Multiple attacks for the same threat-model ID are grouped into its `traces` array. A threat-model round starts as `success`, becomes `discarded` if any attack is `skipped` or `skipped_phase1`, and becomes `failure` if any attack is `failed` or `error` (failure takes precedence). The round ID is the backend trace index, so it is only meaningful together with a test and run identity. Threat-model traces retain original/modified transactions, modifications, target transaction index, category, outcome, and optional validation details. Transaction normalization supplies output indices and adapts backend values to the UI's `Tx` shape.
 
+The backend schema accepts threat-model categories `claimed`, `expected`, `accepted`, `surveyed`, and `not_applicable` in summaries and traces. Summaries may also include a `fault` of `contract`, `declaration`, or `setup` (or `null`); the current event mapper does not forward summary faults to the extension model.
+
 [server/utils/coverage.ts](../server/utils/coverage.ts) converts backend source ranges to zero-based positions and keys statements as `startLine:startCol:endLine:endCol`. The suite coverage index records statements with empty test-ID arrays; trace coverage associates those statements with the tests that exercised them. Test source locations are also converted to zero-based coordinates for VS Code.
 
 ### Lifecycle, Errors, And Cancellation
@@ -144,7 +146,7 @@ Job success describes command execution; individual test success comes from `tes
 
 Malformed JSON lines are logged and skipped. Schema-invalid events raise `TestEventValidationError`, which the handler logs and skips; these do not themselves generate `test-run-error` or force the job to fail. A backend/schema mismatch can therefore leave partial UI data even when command execution completes. Keep the checked-in schema, backend type declarations, mapper, and shared types aligned when changing the protocol. The backend streaming README documents schema generation.
 
-`stop` removes pending queue entries and replaces the queue, aborts the active job's `AbortController`, and awaits its handler before responding. `runScript` sends SIGTERM to the spawned shell process group on abort, even if the build has not produced output. The handler returns without a normal terminal job update. Once the server acknowledges stop, the extension clears its local waiting/running state; completed results remain.
+`stop` removes pending queue entries and replaces the queue, aborts the active job's `AbortController`, and awaits its handler before responding. `runScript` sends SIGTERM to the spawned shell process group on abort, even if the build has not produced output. The handler returns without a normal terminal job update. Once the server acknowledges stop, the extension clears its local waiting/building/running state; completed results remain.
 
 Server stdout is reserved for JSON-RPC framing. Diagnostics belong on stderr; the client forwards stderr and verbose RPC traces to the **PBT Extension** output channel. `test-run-error` additionally drives an error notification and status-bar message through the RPC client.
 
@@ -175,8 +177,8 @@ The server queue serializes **jobs**; the extension queue serializes **received 
 | `test-suite-update` | Reconcile tests, coverage index, suite state, and `treeVersion`. | Seed/upsert result rows when a non-idle event includes a test list. Build/list events do not create run history. |
 | `test-update` | Update status/progress/time; set `lastRunId = testJobId`; clear waiting/running flags as appropriate. | Read the current test from RxDB and upsert its result row. |
 | `test-context` | Set positive/negative type and merge coverage. | Upsert context test metadata when a type is supplied, then persist every transition/threat-model round. |
-| `test-run-update` | Publish the job through a `BehaviorSubject`. | Upsert `runs` for run jobs only, not build jobs. |
-| `test-run-error` | Clear affected waiting/running state and mark failures. | No direct history write here; run lifecycle events supply job failure status. |
+| `test-run-update` | Publish the job through a `BehaviorSubject`; mark suites and tests as building when a build starts. | Upsert `runs` for run jobs only, not build jobs. |
+| `test-run-error` | Clear affected waiting/building/running state and mark failures. | No direct history write here; run lifecycle events supply job failure status. |
 
 For events that touch both stores, RxDB is updated first and `History` second. These writes are not one cross-database transaction, and RxDB subscribers can react before the history write finishes. There is no persisted event log or replay mechanism. Do not treat a webview update as an acknowledgement that all history writes have completed.
 
@@ -189,23 +191,23 @@ The current job drives `pbt.activeTestRun`, which controls the title-bar run/ref
 | Collection | Primary Identity | Contents |
 | --- | --- | --- |
 | `packages` | Colon-joined `TestPackageId` | Workspace path, package name, package source path. |
-| `suites` | Colon-joined `TestSuiteId` | Status, waiting/running/static flags, elapsed test time, `treeVersion`. |
-| `tests` | Colon-joined `TestId` | Name, group path, source location, type, status, progress, time, `lastRunId`. |
+| `suites` | Colon-joined `TestSuiteId` | Status, waiting/building/running/static flags, elapsed test time, `treeVersion`. |
+| `tests` | Colon-joined `TestId` | Name, group path, source location, type, status, waiting/building/running flags, coverage availability, progress, time, `lastRunId`. |
 | `coverage` | SHA-256 of the resolved file path | File/context metadata, full statement index, and covered ranges with contributing test IDs. |
 
 The database stores flat records. [src/utils/testTree.ts](../src/utils/testTree.ts) turns each test's `group` path into nested group nodes when a tree is fetched. Tree expansion state is supplied from `TestStore`'s plain in-memory maps, not from SQLite.
 
 [Suite methods](../src/services/database/methods/suite.ts) compare backend listings with existing tests, replace static or changed test lists, and increment `treeVersion`. That version signals subscribers to rebuild the nested suite subtree, rather than sending only status fields. Suite completion computes status from child tests (`invalid` wins; all valid means valid; otherwise undetermined) and time as the sum of child test times, not wall-clock job duration.
 
-[Test methods](../src/services/database/methods/test.ts) publish test updates through `tests.update$`; suite updates use `suites.update$`; coverage listens to inserts/updates on `coverage.$`. The controllers translate these observations into webview snapshots or patches. `hasCoverage` is derived when a test transitions out of running, rather than being a persisted test field.
+[Test methods](../src/services/database/methods/test.ts) publish test updates through `tests.update$`; suite updates use `suites.update$`; coverage listens to inserts/updates on `coverage.$`. The controllers translate these observations into webview snapshots or patches. `hasCoverage` is a persisted live test field: starting a test clears it, and suite completion sets it for tests found in the suite's covered statement associations. It is not stored in SQLite history.
 
 ### Refresh And Reset Semantics
 
-`TestStore` has a workspace listener that would debounce text-document and workspace-folder changes by **1 second** and serialize refreshes with RxJS `concatMap`, but its registration is currently commented out. Automatic static discovery after workspace edits is therefore disabled. Initial prefetch reads files from disk, not the editor's unsaved buffer. If the listener is re-enabled, [refreshStaticTestTree](../src/services/database/methods/testTree.ts) removes absent packages/suites and recreates suites whose test count changed; existing suites with the same count are retained, so it does not completely reconcile renames or source locations.
+`TestStore` watches on-disk `.hs` file changes/creation/deletion and workspace-folder changes. It debounces refresh requests by **1 second** and serializes them with RxJS `concatMap`, then re-prefetches and sends a complete tree snapshot to the Test Tree view. Unsaved edits and `.cabal` changes alone do not trigger a refresh. [refreshStaticTestTree](../src/services/database/methods/testTree.ts) removes absent packages/suites and recreates suites whose test count changed; existing suites with the same count are retained, so it does not completely reconcile renames or source locations. Backend listing via a suite refresh or run remains authoritative for test IDs.
 
 The title-bar command named `pbt-extension.buildAllTestSuites` is presented as **Refresh Test Tree**, but its implementation builds/lists all currently known suites. `test-tree-fetch` obtains the current tree and only triggers initial prefetch when needed. Keep these operations distinct when changing refresh behavior.
 
-**Clear all Results** resets suite/test status to `undetermined` and clears displayed times, deletes all SQLite run, result, and round history, then clears the current job. It does not clear coverage, test types, or `lastRunId`. **Cancel Test Run** clears waiting/running flags; it does not delete completed results or create a persisted cancellation status. Since the server's stop path has no terminal lifecycle event, a cancelled history run can remain recorded as running.
+**Clear all Results** resets suite/test status to `undetermined`, clears displayed times, test types, progress, and `hasCoverage`, deletes all SQLite run, result, and round history, then clears the current job. It does not delete in-memory coverage documents or `lastRunId`; the old pointer cannot retrieve rounds after history is cleared. **Cancel Test Run** clears waiting/building/running flags; it does not delete completed results or create a persisted cancellation status. Since the server's stop path has no terminal lifecycle event, a cancelled history run can remain recorded as running.
 
 ### SQLite History
 
@@ -257,13 +259,15 @@ Schema changes require `npm run db:generate` and the corresponding generated mig
 
 [Coverage database methods](../src/services/database/methods/coverage.ts) resolve backend-relative file paths against the package path. Coverage statistics count unique indexed ranges and unique covered ranges, optionally filtered to a test. On a test's transition to running, its previous coverage associations are removed before new traces merge in. Other tests' associations remain, so the all-tests view represents accumulated current in-memory coverage, not an immutable historical run snapshot.
 
+Suite completion derives each test's `hasCoverage` flag from the test IDs attached to covered statements. A coverage index without a covered statement does not make the test's coverage button appear. Starting a rerun clears the flag until coverage is detected again.
+
 [src/utils/coverage.ts](../src/utils/coverage.ts) builds the package/suite/folder/file tree and creates covered/uncovered editor decorations. `TestStore` queries coverage when the active editor changes and removes decorations when that document is edited. The sidebar's single-test scope does not change this editor query: decorations use the file's aggregate coverage. Coverage documents are keyed by file path, not by run or `(suite, file)`, which matters when extending support for files shared across suites.
 
 ### Settings And Dependency Checks
 
 Execution mode defaults to `docker`. `SettingStore` reads VS Code configuration at initialization and on external configuration changes, publishes mode changes through a `BehaviorSubject`, and writes sidebar changes at `ConfigurationTarget.Global`. It suppresses its own configuration-change echo to keep the just-selected in-memory mode. Workspace configuration can still affect the value read at initialization or on later external changes.
 
-Coverage-bar thresholds come from `testing.coverageBarThresholds`, merged with `{ red: 0, yellow: 60, green: 90 }`. Round count starts at 100 and is held only in memory. `TestRunParams` and the shell wrappers receive it, but the wrappers do not forward it to the test executable. The round-count controls are currently hidden in the React view, so the backend uses the suite's own configuration.
+Coverage-bar thresholds come from `testing.coverageBarThresholds`, merged with `{ red: 0, yellow: 60, green: 90 }`. The round override is held only in memory: it defaults to `null` (the suite's own configuration), while Custom starts at 100. The visible Default/Custom controls send the selected value through `TestRunParams`; the Nix and Docker run wrappers set `TASTY_QUICKCHECK_TESTS` only for a custom count.
 
 Dependency checks run `docker --version`, `nix --version`, and, when Docker is present, `docker info` with a five-second response deadline. Before build/run actions, `TestTreeView` rechecks Docker installation/reachability in Docker mode; Nix availability remains cached until a full configuration refresh. Mode changes recompute the error from cached state. These guards live in the view controller, so a new direct caller of `TestStore.runTest` must account for dependency checking itself.
 
@@ -313,17 +317,17 @@ Whole suites can be run while still static; individual test/group controls requi
 
 ### Test Run Configuration
 
-This view edits execution mode and displays dependency errors. On ready, the controller still sends mode, rounds, and cached dependency status, but the React view currently ignores the round message and hides the round controls. Mode changes are observed through `SettingStore`; dependency changes flow through `DependencyStore` to both the view and status-bar/notification handling.
+This view edits execution mode and the in-session round override, and displays dependency errors. On ready, the controller sends mode, rounds, and cached dependency status. Mode changes are observed through `SettingStore`; dependency changes flow through `DependencyStore` to both the view and status-bar/notification handling.
 
 | Direction | Message | Payload And Effect |
 | --- | --- | --- |
 | Host to UI | `config-execution-mode` | `{ executionMode }`: set the selected Docker/Nix control. |
-| Host to UI | `config-test-rounds` | `{ rounds }`: still sent by the controller, but ignored by the current React view. |
+| Host to UI | `config-test-rounds` | `{ rounds }`: select Default (`null`) or Custom (a numeric round count). |
 | Host to UI | `status-missing-dependency` | `{ error: { hasError, message, code? } }`: show or clear dependency errors; this message also represents the healthy state. |
 | UI to host | `config-update-execution-mode` | `{ executionMode }`: update in-memory mode, persist the global setting, and recompute dependency status. |
-| UI to host | `config-update-test-rounds` | `{ rounds }`: supported by the controller, but not sent by the current React view. |
+| UI to host | `config-update-test-rounds` | `{ rounds }`: update the in-session round override. |
 
-The Default/Custom controls and their numeric field are commented out in the React view. The title-bar refresh command reruns dependency checks; it does not reset test data.
+The title-bar refresh command reruns dependency checks; it does not reset test data.
 
 ### Plinth Script Coverage
 

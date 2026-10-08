@@ -84,7 +84,7 @@ Building from source requires Node.js and npm. `npm run compile` builds the exte
 
 PBT works on a Plinth project folder, so the first step is having that folder open in VS Code. Either open a workspace that already contains the folder, or open the folder in the workspace you are already in.
 
-From there, PBT scans on its own. There is no command to run and nothing to configure.
+From there, PBT scans on its own. There is no command to run and nothing to configure. It also rescans after saved Haskell source files change or workspace folders are added or removed.
 
 The scan looks for `.cabal` files anywhere in your workspace, reads the test-suites declared in each one, and builds the test tree from what it finds:
 
@@ -147,7 +147,7 @@ The two buttons at the top of the Test Tree act on the entire tree.
 
 <img src="images/treeHead.png" alt="The Test Tree header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
 
-**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rebuilds and lists the suites already in the tree; it does not rescan the workspace for newly added suites.
+**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, builds and lists the suites already in the tree to get their backend test IDs; it does not rescan the workspace. Source and workspace-folder changes trigger a separate automatic scan.
 
 The rows inside the tree carry their own buttons, allowing you to interact with only a subsection of the test tree rather than the whole thing. Depending on what row you are looking at you will have different buttons available to you:
 
@@ -160,13 +160,15 @@ The rows inside the tree carry their own buttons, allowing you to interact with 
 
 Right-clicking on a row will show a menu with options that perform similar actions as the buttons in the rows.
 
-**On a first run you can only run everything or specific whole suites.** Test discovery from the extension happens by reading your files directly to work out the shape of the tree, but it does not yet know the IDs the backend uses for each individual test. Without that mapping PBT cannot ask the backend for one specific test, so groups and single tests are not runnable immediately after the test tree loads.
+**Initially you can only run everything or specific whole suites.** Test discovery from the extension happens by reading your files directly to work out the shape of the tree, but it does not yet know the IDs the backend uses for each individual test. Without that mapping PBT cannot ask the backend for one specific test, so groups and single tests are not runnable immediately after the test tree loads.
 
-Run everything, or run a specific suite, and the test ID mapping will be filled in as results are returned. From then on you can run a single group or a single test.
+Run everything, run a specific suite, or refresh that suite to build its test list. Once the backend test IDs are known, you can run a single group or a single test.
 
 Adding a new test or renaming an existing one makes that mapping stale again, which is covered in [step 9](#9-refresh-after-changing-your-tests).
 
 **Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button. Stop cancels queued jobs and terminates the active run or suite build; completed results remain visible.
+
+Refreshing a suite also shows its build progress in the tree: queued suites show a clock and suites being built show a spinner. Run buttons are unavailable for a suite while it is waiting or building.
 
 <img src="images/runningTests.png" alt="The Test Tree during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
 
@@ -186,6 +188,8 @@ A skipped threat model is one PBT could not run because a precondition was not m
 Because a package or suite rolls up the tests beneath it, its icon reflects the state of its children. A suite shows the spinner while any test inside it is still running, and a red cross if any test inside it was invalid.
 
 ### 7. Read the results
+
+The Test Tree's **Clear all Results** command resets the displayed test results and deletes saved run, result, and round history. It does not clear the in-memory coverage data; a new test run updates coverage for the tests it reruns.
 
 Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
 
@@ -235,7 +239,7 @@ Click it and the view narrows to that one test: the title becomes **Coverage: \<
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
-After saving the change, click the refresh button on the parent test suite. PBT rebuilds the test list and ID mapping for that suite, making new or renamed tests visible and runnable. Automatic refresh on file changes is currently disabled. If you add an entirely new suite, reload the VS Code window to run initial discovery again.
+After saving a `.hs` file, PBT rescans the workspace automatically (after a short delay) and updates the static tree. It also rescans when workspace folders change. To obtain backend IDs for new or renamed tests, click the refresh button on their parent suite or run the whole suite. The automatic scan does not build suites, and the header refresh button only builds suites already in the tree. Changes that keep the same number of tests in a suite may not replace its existing static listing, so use the suite refresh when a rename does not appear. Changes to `.cabal` files alone do not trigger the automatic scan; reload the VS Code window to discover those changes.
 
 ## Troubleshooting
 
