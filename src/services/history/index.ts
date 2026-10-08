@@ -21,6 +21,14 @@ export default class History {
     migrate(this.db, { migrationsFolder: MIGRATIONS_PATH });
   }
 
+  public async clear(): Promise<void> {
+    this.db.transaction(transaction => {
+      transaction.delete(rounds).run();
+      transaction.delete(results).run();
+      transaction.delete(runs).run();
+    });
+  }
+
   private async upsertTestRun(testJob: TestJob): Promise<void> {
     await this.db.insert(runs)
       .values({

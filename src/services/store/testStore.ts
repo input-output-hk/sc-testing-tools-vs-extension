@@ -299,6 +299,7 @@ export default class TestStore {
 
   public async clearTestTreeResults(): Promise<void> {
     await this.database!.clearTestTreeResults();
+    await this.history.clear();
     this.testJob.next(null);
   }
 

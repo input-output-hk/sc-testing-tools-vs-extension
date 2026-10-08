@@ -228,5 +228,11 @@ export const handleTestRunStop = async (database: Database): Promise<void> => {
 
 export const clearTestTreeResults = async (database: Database): Promise<void> => {
   await database.suites.find().update({ $set: { status: 'undetermined', time: undefined } });
-  await database.tests.find().update({ $set: { status: 'undetermined', time: undefined } });
+  await database.tests.find().update({ $set: {
+    status: 'undetermined',
+    type: undefined,
+    time: undefined,
+    percentage: undefined,
+    hasCoverage: false
+  }});
 };

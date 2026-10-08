@@ -132,8 +132,7 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
     .find({ selector: { workspaceId, packageName, suiteName } })
     .update({ $set: {
       isWaiting: false,
-      isBuilding: update.isBuilding,
-      isRunning: update.isRunning
+      isBuilding: update.isBuilding
     }});
 
   if (runStatus === 'done') {

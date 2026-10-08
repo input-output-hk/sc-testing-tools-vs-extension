@@ -205,7 +205,7 @@ The database stores flat records. [src/utils/testTree.ts](../src/utils/testTree.
 
 The title-bar command named `pbt-extension.buildAllTestSuites` is presented as **Refresh Test Tree**, but its implementation builds/lists all currently known suites. `test-tree-fetch` obtains the current tree and only triggers initial prefetch when needed. Keep these operations distinct when changing refresh behavior.
 
-**Clear all Results** resets suite/test status to `undetermined` and clears displayed times, then clears the current job. It does not delete SQLite history, coverage, test types, or `lastRunId`. **Cancel Test Run** clears waiting/running flags; it does not delete completed results or create a persisted cancellation status. Since the server's stop path has no terminal lifecycle event, a cancelled history run can remain recorded as running.
+**Clear all Results** resets suite/test status to `undetermined` and clears displayed times, deletes all SQLite run, result, and round history, then clears the current job. It does not clear coverage, test types, or `lastRunId`. **Cancel Test Run** clears waiting/running flags; it does not delete completed results or create a persisted cancellation status. Since the server's stop path has no terminal lifecycle event, a cancelled history run can remain recorded as running.
 
 ### SQLite History
 
