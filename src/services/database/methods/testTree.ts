@@ -193,6 +193,7 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
+        hasCoverage: testDocument.hasCoverage,
         location: testDocument.location ? {
           uri: testDocument.location.uri,
           range: {

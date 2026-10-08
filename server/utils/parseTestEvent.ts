@@ -63,6 +63,7 @@ const parseTestSuiteStartedEvent = (
         isWaiting: !isBuild,
         isRunning: false,
         isStatic: false,
+        hasCoverage: false,
         location: testItem.srcLoc ? {
           uri: testItem.srcLoc.file,
           range: {

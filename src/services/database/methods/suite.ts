@@ -1,10 +1,10 @@
 import { Range } from 'vscode';
 
 import { updateSuiteTests } from './test';
-import { upsertCoverage } from './coverage';
+import { upsertCoverage, getSuiteCoveredTestIds } from './coverage';
 import { createTestTree } from '../../../utils/testTree';
 
-import type { Database, SuiteDocument, SuiteDocumentData, TestDocument, TestDocumentData } from '../collections';
+import type { Database, SuiteDocument, SuiteDocumentData, TestDocument } from '../collections';
 
 export const getAllTestSuitesIds = async (database: Database): Promise<Array<TestSuiteId>> => {
   const suiteDocuments: Array<SuiteDocument> = await database.suites.find().exec();
@@ -98,41 +98,49 @@ export const handleTestSuiteUpdateEvent = async (database: Database, event: Test
     await upsertCoverage(database, packageId, coverageIndex);
   }
 
-  if (suiteDocument !== null) {
-    const update: Partial<SuiteDocumentData> = {
-      treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion,
-      isStatic: tests !== undefined ? false : suiteDocument.isStatic,
-    };
-    if (runStatus === 'building') {
-      update.time = undefined;
-      update.isRunning = false;
-      update.isWaiting = false;
-      update.isBuilding = true;
-    } else if (runStatus === 'running') {
-      update.time = undefined;
-      update.isRunning = true;
-      update.isWaiting = false;
-      update.isBuilding = false;
-    } else if (runStatus === 'done' || runStatus === 'idle') {
-      const status = await computeSuiteStatus(database, suiteDocument);
-      update.status = status;
-      update.isRunning = false;
-      update.isWaiting = false;
-      update.isBuilding = false;
-      if (runStatus === 'done') {
-        update.time = await computeSuiteTime(database, suiteDocument);
-      }
+  if (!suiteDocument) return;
+
+  const update: Partial<SuiteDocumentData> = {
+    treeVersion: tests !== undefined ? suiteDocument.treeVersion + 1 : suiteDocument.treeVersion,
+    isStatic: tests !== undefined ? false : suiteDocument.isStatic,
+  };
+
+  if (runStatus === 'building') {
+    update.time = undefined;
+    update.isRunning = false;
+    update.isWaiting = false;
+    update.isBuilding = true;
+  } else if (runStatus === 'running') {
+    update.time = undefined;
+    update.isRunning = true;
+    update.isWaiting = false;
+    update.isBuilding = false;
+  } else if (runStatus === 'done' || runStatus === 'idle') {
+    const status = await computeSuiteStatus(database, suiteDocument);
+    update.status = status;
+    update.isRunning = false;
+    update.isWaiting = false;
+    update.isBuilding = false;
+    if (runStatus === 'done') {
+      update.time = await computeSuiteTime(database, suiteDocument);
     }
+  }
 
-    await suiteDocument.update({ $set: update });
+  await suiteDocument.update({ $set: update });
 
+  await database.tests
+    .find({ selector: { workspaceId, packageName, suiteName } })
+    .update({ $set: {
+      isWaiting: false,
+      isBuilding: update.isBuilding,
+      isRunning: update.isRunning
+    }});
+
+  if (runStatus === 'done') {
+    const coveredTestIds = await getSuiteCoveredTestIds(database, suiteId);
     await database.tests
-      .find({ selector: { workspaceId, packageName, suiteName } })
-      .update({ $set: {
-        isWaiting: false,
-        isBuilding: update.isBuilding,
-        isRunning: update.isRunning
-      }});
+      .findByIds(coveredTestIds)
+      .update({ $set: { hasCoverage: true } });
   }
 }
 
@@ -191,6 +199,7 @@ export const onTestSuiteUpdate = (
         isWaiting: testDocument.isWaiting,
         isRunning: testDocument.isRunning,
         isStatic: testDocument.isStatic,
+        hasCoverage: testDocument.hasCoverage,
         location: testDocument.location ? {
           uri: testDocument.location.uri,
           range: new Range(

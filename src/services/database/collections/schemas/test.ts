@@ -45,6 +45,7 @@ const testSchemaLiteral = {
     isWaiting: booleanSchema,
     isRunning: booleanSchema,
     isStatic: booleanSchema,
+    hasCoverage: booleanSchema,
     type: testTypeSchema,
     lastRunId: stringSchema,
     location: {
@@ -75,6 +76,7 @@ const testSchemaLiteral = {
     'isWaiting',
     'isRunning',
     'isStatic',
+    'hasCoverage',
   ],
   indexes: [
     ['workspaceId', 'packageName', 'suiteName'],

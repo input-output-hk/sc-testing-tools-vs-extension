@@ -40,12 +40,12 @@ type Test = {
   isWaiting: boolean;
   isRunning: boolean;
   isStatic: boolean;
+  hasCoverage: boolean;
   location?: TestLocation;
   time?: number;
   percentage?: number;
   type?: TestType;
   lastRunId?: string;
-  hasCoverage?: boolean;
 };
 
 type TestRangePosition = {

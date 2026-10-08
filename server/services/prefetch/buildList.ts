@@ -183,6 +183,7 @@ function collectTests(options: {
     isWaiting: false,
     isRunning: false,
     isStatic: true,
+    hasCoverage: false,
     location: buildStaticLocation(node, workspace.path, packagePath, fallbackEntryFile),
   };
 }
