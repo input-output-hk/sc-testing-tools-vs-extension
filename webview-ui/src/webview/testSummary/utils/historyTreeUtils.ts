@@ -26,13 +26,13 @@ export type HistoryRunNode = {
 };
 
 const getLocation = (id: TestId, group: Array<string>): string =>
-  [...group].reverse().concat(id[2], id[1]).join(' < ');
+  [id[1], id[2], ...group].join(' > ');
 
 const compareNodes = (a: HistoryNode, b: HistoryNode): number =>
   a.description.localeCompare(b.description);
 
-const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, isCurrent: boolean): HistoryRunNode => {
-  const isRunActive = isCurrent && run.status === 'running';
+const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunId: string | null): HistoryRunNode => {
+  const isRunActive = run.runId === activeRunId;
   const nodes: Array<HistoryNode> = [];
   const threatModels: GenericMap<HistoryThreatModelsNode> = {};
 
@@ -75,8 +75,8 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, isCurrent:
 
 export const buildHistoryTree = (history: TestSummaryHistory): Array<HistoryRunNode> => {
   const runs: Array<HistoryRunNode> = [];
-  for (let index = 0; index < history.runs.length; index++) {
-    runs.push(buildRunNode(history.runs[index], history.names, index === 0));
+  for (const run of history.runs) {
+    runs.push(buildRunNode(run, history.names, history.activeRunId));
   }
   return runs;
 };

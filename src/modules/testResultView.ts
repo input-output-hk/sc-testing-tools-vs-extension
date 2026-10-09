@@ -87,17 +87,22 @@ export default class TestResultView {
   private sendTestResult(testId: TestId): void {
     const request = this.runId === null
       ? this.context.store.testStore.getTestResult(testId)
-      : this.getTestRunResult(testId, this.runId);
+      : this.loadTestRunResult(testId, this.runId);
     request.then(this.onTestResultLoaded.bind(this));
   }
 
-  private async getTestRunResult(testId: TestId, runId: string): Promise<TestResult> {
+  private async loadTestRunResult(testId: TestId, runId: string): Promise<TestResult> {
+    const runs = await this.context.store.testStore.getTestRunsHistory();
+    this.previousRunStartedOn = this.findPreviousRunStartedOn(runs, runId);
+    return await this.getTestRunResult(testId, runId);
+  }
+
+  public async getTestRunResult(testId: TestId, runId: string): Promise<TestResult> {
     const testStore = this.context.store.testStore;
     const liveTest = (await testStore.getTestResult(testId)).test;
     const rounds = await testStore.getTestRoundsHistory(runId, testId);
     const runs = await testStore.getTestRunsHistory();
     const result = this.findRunTestResult(runs, runId, testId);
-    this.previousRunStartedOn = this.findPreviousRunStartedOn(runs, runId);
 
     if (result === undefined) return { test: liveTest, rounds };
 

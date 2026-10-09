@@ -58,6 +58,11 @@ interface LabelProps {
   onClick?: () => void;
 }
 
+const getOlderRunClassName = (status: TestJobStatus): string =>
+  status === 'running' || status === 'waiting'
+    ? 'codicon-question text-[var(--vscode-descriptionForeground)]'
+    : mapJobStatusToClassName(status);
+
 const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, openState, forceOpen, onToggleOpen, onSelectTest }) => (
   <VscodeTree>
     {currentRun !== null && (
@@ -71,7 +76,7 @@ const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, openState, forceO
           <HistoryFolder
             key={run.runId}
             nodeKey={run.runId}
-            icon={<StatusIcon className={`shrink-0 ${mapJobStatusToClassName(run.status)}`} animated={run.status === 'running'} />}
+            icon={<StatusIcon className={`shrink-0 ${getOlderRunClassName(run.status)}`} />}
             label={`Test Run at ${new Date(run.startedOn).toLocaleString()}`}
             openState={openState}
             forceOpen={forceOpen}

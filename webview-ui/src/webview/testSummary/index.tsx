@@ -27,6 +27,7 @@ const TableCell: React.FC<{ amount: number, label: string, color: string }> = ({
 
 const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [testSummary, setTestSummary] = useState<TestResult | null>(null);
+  const [summaryRunId, setSummaryRunId] = useState<string | null>(null);
   const [history, setHistory] = useState<TestSummaryHistory | null>(null);
   const [filter, setFilter] = useState<TestTreeFilter>(EMPTY_FILTER);
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
@@ -37,7 +38,8 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
     const messageHandler = (event: MessageEvent) => {
       const message = event.data as ExtensionToWebviewMessage;
       if (message.type === 'test-summary-details') {
-        setTestSummary(message.payload);
+        setTestSummary(message.payload.testResult);
+        setSummaryRunId(message.payload.runId);
       } else if (message.type === 'test-summary-history') {
         setHistory(message.payload);
       }
@@ -51,10 +53,11 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   }, [vscode]);
 
   const onSelectRound = (roundId: number) => {
-    if (testSummary?.test.lastRunId === undefined) return;
+    const runId = summaryRunId ?? testSummary?.test.lastRunId;
+    if (testSummary === null || runId === undefined) return;
     vscode.postMessage({
       type: 'test-summary-open-round',
-      payload: { testId: testSummary.test.id, runId: testSummary.test.lastRunId, roundId }
+      payload: { testId: testSummary.test.id, runId, roundId }
     } as WebviewToExtensionMessage);
   };
 

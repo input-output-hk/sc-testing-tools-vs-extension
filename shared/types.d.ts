@@ -448,6 +448,7 @@ type TestResultHistory = {
 type TestSummaryHistory = {
   runs: Array<TestRunHistory>;
   names: GenericMap<string>;
+  activeRunId: string | null;
 };
 
 // Coverage
@@ -557,7 +558,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
-  | { type: "test-summary-details", payload: TestResult }
+  | { type: "test-summary-details", payload: { testResult: TestResult, runId: string | null } }
   | { type: "test-summary-history", payload: TestSummaryHistory }
   | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "test-result-run", payload: { startedOn: number | null } }

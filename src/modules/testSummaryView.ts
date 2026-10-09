@@ -7,6 +7,8 @@ export default class TestSummaryView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
   private testId: TestId | null = null;
+  private runId: string | null = null;
+  private activeRunId: string | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -24,6 +26,7 @@ export default class TestSummaryView {
 
   public showTestSummary(testId: TestId): void {
     this.testId = testId;
+    this.runId = null;
     this.sendTestSummary();
   }
 
@@ -41,6 +44,9 @@ export default class TestSummaryView {
             this.context.testResultView.openRun(message.payload.testId, message.payload.runId, message.payload.roundId);
             break;
           case 'test-summary-open-test':
+            this.testId = message.payload.testId;
+            this.runId = message.payload.runId;
+            this.sendTestSummary();
             this.context.testResultView.openRun(message.payload.testId, message.payload.runId, null);
             break;
         }
@@ -53,12 +59,17 @@ export default class TestSummaryView {
   private onTestTreeUpdate(payload: TestTreeUpdate): void {
     if (payload.type !== 'test') return;
     this.sendTestSummaryHistory();
-    if (this.testId !== null && payload.test.id.join(':') === this.testId.join(':')) {
+    if (
+      this.testId !== null &&
+      payload.test.id.join(':') === this.testId.join(':') &&
+      (this.runId === null || this.runId === payload.test.lastRunId)
+    ) {
       this.sendTestSummary();
     }
   }
 
-  private onTestJobUpdate(): void {
+  private onTestJobUpdate(job: TestJob | null): void {
+    this.activeRunId = job !== null && job.type === 'run' && job.status === 'running' ? job.id : null;
     this.sendTestSummaryHistory();
   }
 
@@ -69,7 +80,7 @@ export default class TestSummaryView {
     const runs = await testStore.getTestRunsHistory();
     const names: GenericMap<string> = {};
     this.collectTestNames(await testStore.getTestTree(), names);
-    this.webview?.postMessage({ type: 'test-summary-history', payload: { runs, names } } as ExtensionToWebviewMessage);
+    this.webview?.postMessage({ type: 'test-summary-history', payload: { runs, names, activeRunId: this.activeRunId } } as ExtensionToWebviewMessage);
   }
 
   private collectTestNames(testTree: TestTree, names: GenericMap<string>): void {
@@ -94,9 +105,13 @@ export default class TestSummaryView {
   private sendTestSummary(): void {
     if (this.webview === null || this.testId === null) return;
 
-    this.context.store.testStore.getTestResult(this.testId).then(testResult => {
+    const runId = this.runId;
+    const request = runId === null
+      ? this.context.store.testStore.getTestResult(this.testId)
+      : this.context.testResultView.getTestRunResult(this.testId, runId);
+    request.then(testResult => {
       if (testResult.test.status === 'undetermined') return;
-      this.webview?.postMessage({ type: 'test-summary-details', payload: testResult } as ExtensionToWebviewMessage);
+      this.webview?.postMessage({ type: 'test-summary-details', payload: { testResult, runId } } as ExtensionToWebviewMessage);
     });
   }
 }
