@@ -20,6 +20,9 @@ export default class TestSummaryView {
     const testSummaryWebviewView = vscode.window.registerWebviewViewProvider('pbt-test-summary', provider);
     context.extension.subscriptions.push(testSummaryWebviewView);
 
+    const clearHistoryCommand = vscode.commands.registerCommand('pbt-extension.clearTestRunsHistory', this.clearTestRunsHistory.bind(this));
+    context.extension.subscriptions.push(clearHistoryCommand);
+
     this.context.store.testStore.onTestTreeUpdate(this.onTestTreeUpdate.bind(this));
     this.context.store.testStore.onTestJobUpdate(this.onTestJobUpdate.bind(this));
   }
@@ -28,6 +31,9 @@ export default class TestSummaryView {
     this.testId = testId;
     this.runId = null;
     this.sendTestSummary();
+  }
+
+  private clearTestRunsHistory(): void {
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {
@@ -71,6 +77,9 @@ export default class TestSummaryView {
   private onTestJobUpdate(job: TestJob | null): void {
     this.activeRunId = job !== null && job.type === 'run' && job.status === 'running' ? job.id : null;
     this.sendTestSummaryHistory();
+    if (job !== null && job.type === 'run' && (job.status === 'success' || job.status === 'failed')) {
+      vscode.commands.executeCommand('pbt-test-summary.focus');
+    }
   }
 
   private async sendTestSummaryHistory(): Promise<void> {

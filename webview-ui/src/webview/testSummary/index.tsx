@@ -120,8 +120,16 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
                   </table>
                 </div>
 
-                <RoundsAccordion title="Failed Rounds" rounds={failedRounds} defaultOpen onSelectRound={onSelectRound} />
-                <RoundsAccordion title="Valid Rounds" rounds={validRounds} onSelectRound={onSelectRound} />
+                {failedRounds.length > 0 && (
+                  <RoundsAccordion title="Failed Rounds" rounds={failedRounds} defaultOpen onSelectRound={onSelectRound} />
+                )}
+                <RoundsAccordion
+                  key={`${testSummary.test.id.join(':')}:${summaryRunId}:${failedRounds.length === 0}`}
+                  title="Valid Rounds"
+                  rounds={validRounds}
+                  defaultOpen={failedRounds.length === 0}
+                  onSelectRound={onSelectRound}
+                />
               </>
               : <div className="mt-4 text-base-06">This test has no rounds.</div>
             }
