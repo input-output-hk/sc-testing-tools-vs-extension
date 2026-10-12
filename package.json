@@ -64,6 +64,11 @@
         "icon": "$(collapse-all)"
       },
       {
+        "command": "pbt-extension.clearTestRunsHistory",
+        "title": "PBT: Clear Test Runs History",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "pbt-extension.collapseAllTests",
         "title": "Collapse all Tests"
       },
@@ -111,6 +116,11 @@
           "command": "pbt-extension.closeTestCoverage",
           "when": "view == pbt-test-coverage",
           "group": "navigation@2"
+        },
+        {
+          "command": "pbt-extension.clearTestRunsHistory",
+          "when": "view == pbt-test-summary",
+          "group": "navigation@1"
         },
         {
           "command": "pbt-extension.collapseAllTests",
