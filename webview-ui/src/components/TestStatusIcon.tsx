@@ -7,6 +7,7 @@ interface Props {
 
 const mapTestStatusToClassName = (status: RunStatusContext, isThreatModel?: boolean): string => {
   if (status.isRunning) return 'codicon-loading';
+  if (status.isBuilding) return 'codicon-tools text-[var(--vscode-testing-iconQueued)]';
   if (status.isWaiting) return 'codicon-history text-[var(--vscode-testing-iconQueued)]';
   switch (status.status) {
     case 'undetermined':

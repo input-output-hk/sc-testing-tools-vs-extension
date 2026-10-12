@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import type { WebviewApi } from 'vscode-webview';
 
-import { VscodeRadioGroup, VscodeTextfield, VscodeRadio, VscodeLabel } from '@vscode-elements/react-elements';
+import { VscodeRadioGroup, VscodeRadio, VscodeLabel, VscodeTextfield } from '@vscode-elements/react-elements';
 
 import Tooltip from '../../components/Tooltip';
 
@@ -13,7 +13,7 @@ interface Props {
 const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
   const [executionMode, setExecutionMode] = useState<ExtensionMode | null>('docker');
   const [error, setError] = useState<DependencyError>({ hasError: false, message: '', code: undefined });
-  const [testRoundsMode, setTestRoundsMode] = useState<'default' | 'custom'>('custom');
+  const [testRoundsMode, setTestRoundsMode] = useState<'default' | 'custom'>('default');
   const [rounds, setRounds] = useState<string>('100');
 
   useEffect(() => {
@@ -28,7 +28,8 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
         setError({ hasError: message.payload.error.hasError, message: message.payload.error.message, code: message.payload.error.code });
       }
       if (message.type === 'config-test-rounds') {
-        setRounds(String(message.payload.rounds));
+        setTestRoundsMode(message.payload.rounds === null ? 'default' : 'custom');
+        if (message.payload.rounds !== null) setRounds(String(message.payload.rounds));
       }
     };
 
@@ -52,6 +53,16 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
     vscode.postMessage({ type: 'config-update-test-rounds', payload: { rounds } } as WebviewToExtensionMessage);
   };
 
+  const onDefaultRoundsChange = () => {
+    setTestRoundsMode('default');
+    vscode.postMessage({ type: 'config-update-test-rounds', payload: { rounds: null } } as WebviewToExtensionMessage);
+  };
+
+  const onCustomRoundsChange = () => {
+    setTestRoundsMode('custom');
+    vscode.postMessage({ type: 'config-update-test-rounds', payload: { rounds: Number(rounds) } } as WebviewToExtensionMessage);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
@@ -61,13 +72,13 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
                 Rounds Per Test
               </VscodeLabel>
               <i id="test-rounds" className='codicon codicon-info opacity-60' />
-              <Tooltip content="Number of transaction rounds generated, same as QuickCheck tests. Selecting default pulls the number of round from the source code." id="test-rounds" />
+              <Tooltip content="Number of transaction rounds generated, same as QuickCheck tests. Default uses the test suite's configured rounds." id="test-rounds" />
             </span>
             <VscodeRadioGroup>
               <VscodeRadio
                 name="test-rounds"
                 checked={testRoundsMode === 'default'}
-                onChange={() => setTestRoundsMode('default')}
+                onChange={onDefaultRoundsChange}
                 className="mr-4"
               >
                 Default
@@ -75,7 +86,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               <VscodeRadio
                 name="test-rounds"
                 checked={testRoundsMode === 'custom'}
-                onChange={() => setTestRoundsMode('custom')}
+                onChange={onCustomRoundsChange}
               >
                 Custom
               </VscodeRadio>
@@ -85,7 +96,7 @@ const TestConfigurationView: React.FC<Props> = ({ vscode }) => {
               className="w-full bg-[var(--vscode-input-background)]  text-[var(--vscode-input-foreground)] rounded-[var(--vscode-cornerRadius-small)] border-1 border-[var(--vscode-commandCenter-border)] focus:border-[var(--vscode-focusBorder)]"
               type="number"
               min={0}
-              value={rounds}
+              value={testRoundsMode === 'default' ? '' : rounds}
               onInput={onRoundsChange}
               disabled={testRoundsMode === 'default'}
             />

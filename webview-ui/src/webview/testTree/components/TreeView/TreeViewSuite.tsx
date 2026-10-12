@@ -45,7 +45,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
 }) => {
   const [workspaceId, packageName] = packageId;
   const suiteId: TestSuiteId = [workspaceId, packageName, suite.name];
-  const isRunnable = !suite.isRunning && !suite.isWaiting;
+  const isRunnable = !suite.isRunning && !suite.isBuilding && !suite.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -90,6 +90,7 @@ const TreeViewSuite: React.FC<TreeViewSuiteProps> = ({
         status={{
           status: suite.status,
           isWaiting: suite.isWaiting,
+          isBuilding: suite.isBuilding,
           isRunning: suite.isRunning
         }}
       />

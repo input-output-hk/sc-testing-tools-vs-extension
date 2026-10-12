@@ -1,6 +1,6 @@
 import { Range } from 'vscode';
 
-import { clearCoverageForTest, upsertCoverage, hasCoverage } from './coverage';
+import { clearCoverageForTest, upsertCoverage } from './coverage';
 
 import type { Database, SuiteDocument, TestDocument, TestDocumentData } from '../collections';
 
@@ -45,9 +45,11 @@ export const updateSuiteTests = async (database: Database, testSuiteId: TestSuit
         name: test.name,
         group: test.group,
         status: test.status,
+        isBuilding: test.isBuilding,
         isWaiting: test.isWaiting,
         isRunning: test.isRunning,
         isStatic: test.isStatic,
+        hasCoverage: test.hasCoverage,
         location: test.location,
         time: test.time,
         percentage: test.percentage,
@@ -76,7 +78,10 @@ export const handleTestUpdateEvent = async (database: Database, event: TestUpdat
     if (time !== undefined) updateData.time = time;
     if (isRunning !== undefined) updateData.isRunning = isRunning;
     if (percentage !== undefined) updateData.percentage = percentage;
-    if (isRunning === true) updateData.isWaiting = false;
+    if (isRunning === true) {
+      updateData.isWaiting = false;
+      updateData.hasCoverage = false;
+    }
     
     if (status !== undefined) {
       updateData.status = status;
@@ -211,9 +216,11 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     name: testDocument.name,
     group: testDocument.group,
     status: testDocument.status,
+    isBuilding: testDocument.isBuilding,
     isWaiting: testDocument.isWaiting,
     isRunning: testDocument.isRunning,
     isStatic: testDocument.isStatic,
+    hasCoverage: testDocument.hasCoverage,
     location: testDocument.location ? {
       uri: testDocument.location.uri,
       range: {
@@ -253,9 +260,11 @@ export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpd
         name: document.name,
         group: document.group,
         status: document.status,
+        isBuilding: document.isBuilding,
         isWaiting: document.isWaiting,
         isRunning: document.isRunning,
         isStatic: document.isStatic,
+        hasCoverage: document.hasCoverage,
         location: document.location ? {
           uri: document.location.uri,
           range: new Range(
@@ -269,7 +278,6 @@ export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpd
         percentage: document.percentage,
         type: document.type,
         lastRunId: document.lastRunId,
-        hasCoverage: isRunEnded ? await hasCoverage(database, testId) : undefined,
       }
     });
   });

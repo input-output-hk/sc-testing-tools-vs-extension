@@ -49,7 +49,7 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
       test,
       name: names[test.id.join(':')] ?? test.id[3],
       description: location,
-      status: { status: test.status, isWaiting: false, isRunning },
+      status: { status: test.status, isWaiting: false, isRunning, isBuilding: false },
     };
 
     if (test.type !== 'threat-model') {
@@ -60,7 +60,7 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
     const folderKey = `${run.runId}:${test.id[0]}:${location}`;
     let folder = threatModels[folderKey];
     if (folder === undefined) {
-      folder = { type: 'threat-models', key: folderKey, description: location, status: { status: 'valid', isWaiting: false, isRunning: false }, tests: [] };
+      folder = { type: 'threat-models', key: folderKey, description: location, status: { status: 'valid', isWaiting: false, isRunning: false, isBuilding: false }, tests: [] };
       threatModels[folderKey] = folder;
       nodes.push(folder);
     }

@@ -14,6 +14,7 @@ const TestHeader: React.FC<Props> = ({ test }) => (
         status={{
           status: test.status,
           isWaiting: test.isWaiting,
+          isBuilding: test.isBuilding,
           isRunning: test.isRunning
         }}
       />

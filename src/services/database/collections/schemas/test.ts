@@ -41,9 +41,11 @@ const testSchemaLiteral = {
       items: stringSchema
     },
     status: runStatusSchema,
+    isBuilding: booleanSchema,
     isWaiting: booleanSchema,
     isRunning: booleanSchema,
     isStatic: booleanSchema,
+    hasCoverage: booleanSchema,
     type: testTypeSchema,
     lastRunId: stringSchema,
     location: {
@@ -70,9 +72,11 @@ const testSchemaLiteral = {
     'name',
     'group',
     'status',
+    'isBuilding',
     'isWaiting',
     'isRunning',
     'isStatic',
+    'hasCoverage',
   ],
   indexes: [
     ['workspaceId', 'packageName', 'suiteName'],

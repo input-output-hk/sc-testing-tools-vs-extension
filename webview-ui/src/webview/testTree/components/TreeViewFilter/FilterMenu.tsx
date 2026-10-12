@@ -19,16 +19,17 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
   const handleToggleTypePositive = () => onChangeFilter(selectType(filter, "positive"));
   const handleToggleTypeNegative = () => onChangeFilter(selectType(filter, "negative"));
   const handleToggleTypeThreatModel = () => onChangeFilter(selectType(filter, "threat-model"));
+  const handleToggleTypeUnitTest = () => onChangeFilter(selectType(filter, "unit-test"));
 
   return (
-    <div className="absolute right-0 top-full mt-1 z-10 w-56 bg-base-19 shadow-lg py-2">
+    <div className="absolute right-0 top-full mt-1 z-10 min-w-56 w-max bg-base-19 shadow-lg py-2">
       <button
         type="button"
         className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
         onClick={handleToggleStatusUndetermined}
       >
         <i className={`codicon codicon-check ${filter.status === "undetermined" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show undetermined tests</span>
+        <span>Show Undetermined Tests</span>
       </button>
       <button
         type="button"
@@ -36,7 +37,7 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
         onClick={handleToggleStatusValid}
       >
         <i className={`codicon codicon-check ${filter.status === "valid" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show valid tests</span>
+        <span>Show Valid Tests</span>
       </button>
       <button
         type="button"
@@ -44,7 +45,7 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
         onClick={handleToggleStatusFailed}
       >
         <i className={`codicon codicon-check ${filter.status === "invalid" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show failed tests</span>
+        <span>Show Invalid Tests</span>
       </button>
       <div className="my-1 border-t border-base-13" />
       <button
@@ -53,7 +54,7 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
         onClick={handleToggleTypePositive}
       >
         <i className={`codicon codicon-check ${filter.type === "positive" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show positive tests</span>
+        <span>Show Positive Tests</span>
       </button>
       <button
         type="button"
@@ -61,7 +62,7 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
         onClick={handleToggleTypeNegative}
       >
         <i className={`codicon codicon-check ${filter.type === "negative" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show negative tests</span>
+        <span>Show Negative Tests</span>
       </button>
       <button
         type="button"
@@ -69,7 +70,15 @@ const FilterMenu: React.FC<Props> = ({ isOpen, filter, onChangeFilter }) => {
         onClick={handleToggleTypeThreatModel}
       >
         <i className={`codicon codicon-check ${filter.type === "threat-model" ? "opacity-100" : "opacity-0"}`} />
-        <span>Show threat models</span>
+        <span>Show Threat Models</span>
+      </button>
+      <button
+        type="button"
+        className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-white/10"
+        onClick={handleToggleTypeUnitTest}
+      >
+        <i className={`codicon codicon-check ${filter.type === "unit-test" ? "opacity-100" : "opacity-0"}`} />
+        <span>Show Non-Testing Interface Tests</span>
       </button>
     </div>
   );

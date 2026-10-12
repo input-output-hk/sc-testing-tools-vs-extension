@@ -9,6 +9,7 @@ import {
   suiteMatchesFilter,
   getPackageTime,
   getPackageStatus,
+  sortSuites,
 } from '../../utils/treeUtils';
 import { formatRunTime } from '../../../../utils/format';
 
@@ -48,7 +49,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const packageId: TestPackageId = [testPackage.workspace.id, testPackage.name];
   const time = getPackageTime(testPackage);
   const status = getPackageStatus(testPackage);
-  const isRunnable = !status.isRunning && !status.isWaiting;
+  const isRunnable = !status.isRunning && !status.isBuilding && !status.isWaiting;
 
   const treeItemRef = useTreeItemState({
     onToggleCollapsed: (isCollapsed) => {
@@ -59,8 +60,9 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   const filteredSuites = useMemo(
     () =>
       Object.values(testPackage.suites)
-        .filter(suite => suiteMatchesFilter(suite, filter)),
-    [testPackage.suites, filter],
+        .filter(suite => suiteMatchesFilter(suite, filter))
+        .sort(sortSuites(sortBy)),
+    [testPackage.suites, filter, sortBy],
   );
 
   const handleBuildPackage = (event: React.MouseEvent): void => {

@@ -216,19 +216,27 @@ export const getCoverageForTest = async (database: Database, id: TestId): Promis
   return coverage;
 }
 
-export const hasCoverage = async (database: Database, id: TestId): Promise<boolean> => {
-  const [workspaceId, packageName, suiteName, testId] = id;
+export const getSuiteCoveredTestIds = async (database: Database, testSuiteId: TestSuiteId): Promise<Array<string>> => {
+  const [workspaceId, packageName, suiteName] = testSuiteId;
 
-  const count = await database.coverage.count({
+  const documents: Array<CoverageDocument> = await database.coverage.find({
     selector: {
       'context.workspaceId': workspaceId,
       'context.packageName': packageName,
-      'context.suiteName': suiteName,
-      'statements': { $elemMatch: { testIds: { $elemMatch: { $eq: testId } } } }
+      'context.suiteName': suiteName
     }
   }).exec();
 
-  return count > 0;
+  const testIds: Set<string> = new Set();
+  for (const document of documents) {
+    for (const statement of document.statements) {
+      for (const testId of statement.testIds) {
+        testIds.add(`${workspaceId}:${packageName}:${suiteName}:${testId}`);
+      }
+    }
+  }
+
+  return Array.from(testIds);
 };
 
 export const onCoverageUpdate = (database: Database, callback: (fileCoverage: FileCoverage) => void): void => {

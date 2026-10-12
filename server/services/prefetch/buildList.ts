@@ -88,6 +88,7 @@ function buildSuite(
     ],
     name: suiteDefinition.name,
     status: 'undetermined',
+    isBuilding: false,
     isWaiting: false,
     isRunning: false,
     isStatic: true,
@@ -178,9 +179,11 @@ function collectTests(options: {
     name: normalizeNodeLabel(node.label, node.kind),
     group: parentGroups,
     status: 'undetermined',
+    isBuilding: false,
     isWaiting: false,
     isRunning: false,
     isStatic: true,
+    hasCoverage: false,
     location: buildStaticLocation(node, workspace.path, packagePath, fallbackEntryFile),
   };
 }

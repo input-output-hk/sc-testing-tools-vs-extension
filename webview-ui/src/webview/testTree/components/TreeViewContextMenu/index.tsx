@@ -17,6 +17,8 @@ interface Props {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onShowTestLocation: (testId: TestId) => void;
+  onOpenTestResult: (testId: TestId) => void;
+  onShowCoverage: (test: Test) => void;
 }
 
 const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
@@ -65,9 +67,12 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     isBuildable,
     isBuildEnabled,
     hasLocation,
+    hasResults,
+    hasCoverage,
     runnableIds,
     buildableIds,
     locationId,
+    test,
   } = getItemContext(contextMenu.item);
 
   const handleRun = (): void => {
@@ -85,6 +90,16 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     if (locationId) props.onShowTestLocation(locationId);
   };
 
+  const handleViewResults = (): void => {
+    setContextMenu(null);
+    if (test) props.onOpenTestResult(test.id);
+  };
+
+  const handleViewCoverage = (): void => {
+    setContextMenu(null);
+    if (test) props.onShowCoverage(test);
+  };
+
   return (
     <ContextMenu
       ref={menuRef}
@@ -94,9 +109,13 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
       isBuildable={isBuildable}
       isBuildEnabled={isBuildEnabled}
       hasLocation={hasLocation}
+      hasResults={hasResults}
+      hasCoverage={hasCoverage}
       onRun={handleRun}
       onBuild={handleBuild}
       onShowLocation={handleViewLocation}
+      onViewResults={handleViewResults}
+      onViewCoverage={handleViewCoverage}
     />
   );
 });

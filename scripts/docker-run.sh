@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_PATH=$1
-PACKAGE_NAME=$2
-TEST_SUITE_NAME=$3
-TEST_IDS="${4:-}"
+source "$(dirname "${BASH_SOURCE[0]}")/parse-args.sh"
+parse_script_args run "$@"
 VOLUME_NAME="pbt-extension-nix-store"
 
 docker volume create "$VOLUME_NAME" >/dev/null
@@ -17,22 +15,31 @@ fi
 docker run --rm "${DOCKER_TTY_ARGS[@]}" \
   -v "$VOLUME_NAME:/nix" \
   -v "$PROJECT_PATH:/project" \
+  -e PBT_PACKAGE_NAME="$PACKAGE_NAME" \
+  -e PBT_SUITE_NAME="$TEST_SUITE_NAME" \
+  -e PBT_TEST_IDS="$TEST_IDS" \
+  -e PBT_ROUNDS="$ROUNDS" \
   nixos/nix \
   sh -lc '
     git config --system --add safe.directory "*"
-    if [ -n "$3" ]; then
+    if [ -n "$PBT_ROUNDS" ]; then
+      export TASTY_QUICKCHECK_TESTS="$PBT_ROUNDS"
+    else
+      unset TASTY_QUICKCHECK_TESTS
+    fi
+    if [ -n "$PBT_TEST_IDS" ]; then
       nix run \
         --accept-flake-config \
         --extra-experimental-features nix-command \
         --extra-experimental-features flakes \
-        /project#$1:test:$2 \
-        -- --streaming-json --test-id "$3"
+        "/project#$PBT_PACKAGE_NAME:test:$PBT_SUITE_NAME" \
+        -- --streaming-json --test-id "$PBT_TEST_IDS"
     else
       nix run \
         --accept-flake-config \
         --extra-experimental-features nix-command \
         --extra-experimental-features flakes \
-        /project#$1:test:$2 \
-        -- --streaming-json
+        "/project#$PBT_PACKAGE_NAME:test:$PBT_SUITE_NAME" \
+          -- --streaming-json
     fi
-  ' _ "$PACKAGE_NAME" "$TEST_SUITE_NAME" "$TEST_IDS"
+        '

@@ -109,3 +109,12 @@ input[type=number]::-webkit-inner-spin-button:hover {
 .react-tooltip-content-wrapper {
   padding: 0 !important;
 }
+
+.transaction-graph .react-flow__edge-path {
+  stroke: var(--vscode-sideBarTitle-foreground);
+  stroke-opacity: 0.25;
+}
+
+.transaction-graph .react-flow__edge:hover .react-flow__edge-path {
+  stroke-opacity: 1;
+}

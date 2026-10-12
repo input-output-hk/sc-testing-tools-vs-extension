@@ -94,14 +94,13 @@ const GraphNodeCollapsedRow: React.FC<GraphNodeRowProps> = ({ label, value, copy
   const hasPrevious = value.previous !== undefined && value.previous.length > 0;
 
   return (
-    <div className="text-[11px] pb-2 mb-2 border-b border-b-base-13">
+    <div className="text-[11px] pb-2 mb-2 border-b border-b-[var(--vscode-sideBar-border)]">
       <p className="flex flex-row items-center gap-1">
-        {isModified && <i className="codicon codicon-edit text-yellow-04" style={{ fontSize: '11px' }} />}
-        <span className="text-base-06">{label}</span>
+        <span className="text-[var(--vscode-sideBarTitle-foreground)]">{label}</span>
         {!currentIsEmpty && copyButton && <CopyButton text={value.current!} />}
       </p>
-      {isModified && hasPrevious && <p className="text-base-06 opacity-70 line-through truncate">{value.previous}</p>}
-      <p className={`${!isModified ? 'text-blue-05' : 'text-yellow-04'} truncate`}>{value.current}</p>
+      {isModified && hasPrevious && <p className="opacity-70 line-through truncate">{value.previous}</p>}
+      <p className="truncate">{value.current}</p>
     </div>
   );
 };
@@ -115,7 +114,7 @@ const GraphNodeExpandedRow: React.FC<GraphNodeRowProps> = ({ label, value }) => 
   const hasPrevious = value.previous !== undefined && value.previous.length > 0;
 
   return (
-    <p className="w-full min-w-0 font-mono text-base-06 text-xs whitespace-pre-wrap break-all mt-2">
+    <p className="w-full min-w-0 font-mono text-xs whitespace-pre-wrap break-all mt-2">
       {`${label}:`}<br/>
       {isModified && hasPrevious &&
         <>
@@ -123,7 +122,7 @@ const GraphNodeExpandedRow: React.FC<GraphNodeRowProps> = ({ label, value }) => 
           <br />
           {previousIsEmpty ?
             <i>Empty</i> :
-            <span className="text-yellow-04">
+            <span>
               {value.previous}
             </span>
           }
@@ -134,7 +133,7 @@ const GraphNodeExpandedRow: React.FC<GraphNodeRowProps> = ({ label, value }) => 
       }
       {currentIsEmpty ?
         <i>Empty</i> :
-        <span className="text-blue-05">
+        <span>
           {value.current}
         </span>
       }
@@ -146,7 +145,7 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onExpandNode }) => (
   <div className="flex flex-row justify-end">
     <button
       onClick={onExpandNode}
-      className="flex-none flex flex-row items-center gap-0.5 py-1 pl-1 pr-1.5 rounded-sm text-base-06 border border-base-15 bg-base-20 cursor-pointer"
+      className="flex-none flex flex-row items-center gap-0.5 py-1 pl-1 pr-1.5 rounded-sm border border-[var(--vscode-sideBar-border)] bg-[var(--vscode-modernTab-activeBackground)] cursor-pointer"
     >
       <i className="codicon codicon-chevron-right" style={{ fontSize: '12px' }} />
       <span className="text-[12px] font-semibold">View details</span>
@@ -156,7 +155,7 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onExpandNode }) => (
 
 const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, content, colorClass, expanded, onCollapseNode }) => (
   <div className={`flex flex-row items-center py-1 px-2 gap-1 ${colorClass}`}>
-    <span className="flex-1 text-base-01 text-[12px] capitalize">
+    <span className="flex-1 text-white text-[12px] capitalize">
       {label}
     </span>
     {expanded &&
@@ -166,19 +165,19 @@ const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, conten
           className="inline-flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100"
           onClick={() => navigator.clipboard.writeText(content)}
         >
-          <i className="codicon codicon-copy text-base-01" style={{ fontSize: '14px' }} />
+          <i className="text-white codicon codicon-copy" style={{ fontSize: '14px' }} />
         </button>
         <button
           type="button"
           className="inline-flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100"
           onClick={onCollapseNode}
         >
-          <i className="codicon codicon-close text-base-01" style={{ fontSize: '14px' }} />
+          <i className="text-white codicon codicon-close" style={{ fontSize: '14px' }} />
         </button>
       </>
     }
-    {status !== undefined && status !== 'success' &&
-      <i className="codicon codicon-warning text-base-01" />
+    {status !== undefined &&
+      <i className={`text-white codicon ${status === 'success' ? 'codicon-pass' : 'codicon-error'}`} />
     }
   </div>
 );
@@ -187,7 +186,7 @@ const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
   const [expanded, setExpanded] = useState<boolean>(false);
   return (
     <div className="relative">
-      <div className="w-60 overflow-clip border border-base-13">
+      <div className="w-60 overflow-clip border border-[var(--vscode-sideBar-border)] bg-[var(--vscode-sideBar-background)] text-[var(--vscode-sideBarTitle-foreground)]">
         <GraphNodeHeader
           label={data.label}
           content={getTxNodeContent(data)}
@@ -196,7 +195,7 @@ const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
           expanded={expanded}
           onCollapseNode={() => setExpanded(false)}
         />
-        <div className={`bg-base-18 ${expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}`}>
+        <div className={expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}>
           <GraphNodeRow
             copyButton
             label="Transaction ID"
@@ -294,7 +293,7 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxO> = (data) => {
   const [expanded, setExpanded] = useState<boolean>(false);
   return (
     <>
-      <div className="w-60 overflow-clip border border-base-13">
+      <div className="w-60 overflow-clip border border-[var(--vscode-sideBar-border)] bg-[var(--vscode-sideBar-background)] text-[var(--vscode-sideBarTitle-foreground)]">
         <GraphNodeHeader
           label={data.label}
           content={getUTxONodeContent(data)}
@@ -302,7 +301,7 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxO> = (data) => {
           expanded={expanded}
           onCollapseNode={() => setExpanded(false)}
         />
-        <div className={`bg-base-18 ${expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}`}>
+        <div className={expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}>
           <GraphNodeRow
             copyButton
             label="Address"

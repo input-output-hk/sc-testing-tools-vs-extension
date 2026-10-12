@@ -111,32 +111,6 @@ const Graph: React.FC<Props> = (props) => {
     }
   }, [props.isActive, props.nodeId, layouted, stepNodes, reactFlowInstance]);
 
-  const onActiveEdge = (edgeId: string): void => {
-    setEdges(oldEdges => oldEdges.map(edge =>
-      edge.id === edgeId ? {
-        ...edge,
-        zIndex: 1,
-        style: {
-          ...edge.style,
-          stroke: '#BBB'
-        }
-      } : edge
-    ));
-  };
-
-  const onInactiveEdge = (edgeId: string): void => {
-    setEdges(oldEdges => oldEdges.map(edge =>
-      edge.id === edgeId ? {
-        ...edge,
-        zIndex: undefined,
-        style: {
-          ...edge.style,
-          stroke: undefined
-        }
-      } : edge
-    ));
-  };
-
   const onNodeDrag: OnNodeDrag<Node> = (_, draggedNode) => {
     setNodes(currentNodes => resolveNodeCollisions(
       currentNodes.map(node => node.id === draggedNode.id ? {
@@ -158,25 +132,32 @@ const Graph: React.FC<Props> = (props) => {
 
   return (
     <ReactFlow
-      colorMode="dark"
+      className="transaction-graph"
+      style={{
+        '--xy-controls-button-background-color': 'var(--vscode-button-secondaryBackground)',
+        '--xy-controls-button-background-color-hover': 'var(--vscode-button-secondaryHoverBackground)',
+        '--xy-controls-button-color': 'var(--vscode-button-secondaryForeground)',
+        '--xy-controls-button-color-hover': 'var(--vscode-button-secondaryForeground)',
+      } as React.CSSProperties}
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onNodeDrag={onNodeDrag}
-      onEdgeMouseEnter={(_, edge) => onActiveEdge(edge.id)}
-      onEdgeMouseLeave={(_, edge) => onInactiveEdge(edge.id)}
       nodeTypes={{ tx: GraphNode, wallet: GraphNode, script: GraphNode, withdrawal: GraphNode }}
     >
       <MiniMap
         pannable={true}
-        bgColor="rgba(60, 60, 60, 0.9)"
-        maskColor="rgba(40, 40, 40, 0.6)"
+        bgColor="var(--vscode-settings-numberInputBackground)"
+        maskColor="color-mix(in srgb, var(--vscode-sideBarTitle-foreground) 12%, transparent)"
         nodeColor={mapNodeToColor}
         nodeComponent={MiniMapNode}
       />
       <Controls showInteractive={false} />
-      <Background bgColor="#1E1E1E" color="#333333" />
+      <Background
+        bgColor="color-mix(in srgb, var(--vscode-panel-background) 92%, black)"
+        color="var(--vscode-sideBar-border, var(--vscode-sideBarSectionHeader-border))"
+      />
     </ReactFlow>
   );
 };

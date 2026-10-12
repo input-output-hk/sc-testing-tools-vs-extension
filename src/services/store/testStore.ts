@@ -105,6 +105,7 @@ export default class TestStore {
 
   private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
     this.updateTestJob(event);
+    await this.database.handleTestRunUpdateEvent(event);
     await this.history.handleTestRunUpdateEvent(event);
   }
 
@@ -125,13 +126,28 @@ export default class TestStore {
       }
     });
 
-    vscode.workspace.onDidChangeTextDocument(event => {
-      if (event.contentChanges.length > 0) {
-        this.testTreeRefreshQueue.next();
+    const haskellFiles = vscode.workspace.createFileSystemWatcher('**/*.hs');
+    this.context.extension.subscriptions.push(haskellFiles);
+    haskellFiles.onDidChange(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+    haskellFiles.onDidCreate(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+    haskellFiles.onDidDelete(() => this.testTreeRefreshQueue.next(), null, this.context.extension.subscriptions);
+
+    vscode.workspace.onDidChangeWorkspaceFolders(event => {
+      if (event.added.length === 0 && event.removed.length === 0) return;
+
+      const folders = vscode.workspace.workspaceFolders || [];
+      const workspaces = Array.from(this.workspaces.values());
+      if (
+        folders.length === workspaces.length &&
+        folders.every(folder => workspaces.includes(folder.uri.fsPath))) {
+        return;
       }
-    }, null, this.context.extension.subscriptions);
-    
-    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+
+      this.workspaces = new Map(folders.map(folder => [
+        this.makeWorkspaceId(folder.uri.fsPath),
+        folder.uri.fsPath
+      ]));
+
       this.testTreeRefreshQueue.next();
     }, null, this.context.extension.subscriptions);
   }
@@ -255,8 +271,10 @@ export default class TestStore {
     }
 
     for (const [workspaceId, testIds] of testRuns.entries()) {
+      const { mode, rounds } = this.context!.store.settingStore.getSettings();
       this.rpcClient.testRun({
-        mode: this.context!.store.settingStore.getSettings().mode,
+        mode,
+        rounds,
         workspace: {
           id: workspaceId,
           path: this.workspaces.get(workspaceId)!
@@ -274,13 +292,15 @@ export default class TestStore {
   }
 
   public async stopTestRun(): Promise<void> {
-    this.rpcClient.stopTestRun();
-    this.testJob.next(null);
+    await this.rpcClient.stopTestRun();
     await this.database!.handleTestRunStop();
+    this.testJob.next(null);
   }
 
   public async clearTestTreeResults(): Promise<void> {
     await this.database!.clearTestTreeResults();
+    await this.history.clear();
+    this.testJob.next(null);
   }
 
   public async getTestLocation(testId: TestId): Promise<{ path: string, range: vscode.Range } | undefined> {

@@ -60,7 +60,7 @@ export const InputTable: React.FC<TableProps> = ({ index, tx, tooltipId, onClick
         label: input.addressLabel ?? `UTxO #${inputIdx}`,
         address: input.address,
         amount: txValueToString(input.value),
-        redeemer: input.redeemerRaw ?? ''
+        redeemer: input.redeemerKind ?? ''
       })) ?? []}
       tooltip={{ content: 'View Graph', idPrefix: `${tooltipId}-cell` }}
       onClick={(index) => onClickNode(`utxo-${tx.inputs[index].utxo}`)}
@@ -139,7 +139,7 @@ export const WithdrawalTable: React.FC<TableProps> = ({ index, tx, tooltipId, on
         label: withdrawal.addressLabel ?? 'Withdrawal',
         stakeAddress: withdrawal.stakeAddress,
         amount: `${withdrawal.amount} lovelace`,
-        redeemer: withdrawal.redeemerRaw ?? ''
+        redeemer: withdrawal.redeemerKind ?? ''
       })) ?? []}
     />
   </div>

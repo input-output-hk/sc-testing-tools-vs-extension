@@ -4,7 +4,7 @@ import { handleParseError, buildErrorEvent, sendTestRunUpdate, sendTestEvent } f
 
 import type RpcServer from '../../index';
 
-export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob): Promise<void> => {
+export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob, signal: AbortSignal): Promise<void> => {
   const startedOn = Date.now();
   sendTestRunUpdate(server, job, 'running', startedOn);
 
@@ -13,7 +13,8 @@ export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob)
       job.params.mode,
       job.params.workspace.path,
       job.params.packageName,
-      job.params.suiteName
+      job.params.suiteName,
+      signal
     )) {
       try {
         const testEvent = parseTestSuiteBuildEvent(
@@ -30,16 +31,15 @@ export const handleTestSuiteBuild = async (server: RpcServer, job: TestBuildJob)
         handleParseError(error);
       }
 
-      if (server.getStopSignal()) {
-        output.child.kill();
-        return;
-      }
+      if (signal.aborted) return;
     }
   } catch (error) {
+    if (signal.aborted) return;
     sendTestEvent(server, buildErrorEvent(job, error));
     sendTestRunUpdate(server, job, 'failed', startedOn, Date.now());
     return;
   }
 
+  if (signal.aborted) return;
   sendTestRunUpdate(server, job, 'success', startedOn, Date.now());
 };

@@ -303,9 +303,10 @@ export interface MonitoringTableEntry {
   [k: string]: unknown;
 }
 export interface ThreatModelSummary {
-  category: "claimed" | "expected" | "accepted";
+  category: "claimed" | "expected" | "accepted" | "surveyed" | "not_applicable";
   errors: number;
   failed: number;
+  fault?: ("contract" | "declaration" | "setup") | null;
   name: string;
   passed: number;
   skipped: number;
@@ -322,7 +323,7 @@ export interface IterationTrace {
   [k: string]: unknown;
 }
 export interface ThreatModelTrace {
-  category: "claimed" | "expected" | "accepted";
+  category: "claimed" | "expected" | "accepted" | "surveyed" | "not_applicable";
   covered: SrcLocRanges[];
   modifications: TxMod[];
   modifiedTx: TxSummary | null;

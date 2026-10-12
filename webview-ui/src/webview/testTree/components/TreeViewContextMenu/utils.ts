@@ -9,9 +9,12 @@ interface ItemContext {
   isBuildable: boolean;
   isBuildEnabled: boolean;
   hasLocation: boolean;
+  hasResults: boolean;
+  hasCoverage: boolean;
   runnableIds: Array<RunnableTestId>;
   buildableIds?: Array<TestSuiteId>;
   locationId?: TestId;
+  test?: Test;
 }
 
 export const getItemContext = (item: TestTreeItem): ItemContext => {
@@ -27,7 +30,7 @@ export const getItemContext = (item: TestTreeItem): ItemContext => {
 
 const getPackageContext = (packageNode: TestPackage): ItemContext => {
   const status = getPackageStatus(packageNode);
-  const isRunnable = !status.isRunning && !status.isWaiting;
+  const isRunnable = !status.isRunning && !status.isBuilding && !status.isWaiting;
   const suiteIds: Array<TestSuiteId> = Object.values(packageNode.suites)
     .map(suite => [packageNode.workspace.id, packageNode.name, suite.name]);
   return {
@@ -35,18 +38,22 @@ const getPackageContext = (packageNode: TestPackage): ItemContext => {
     isBuildable: true,
     isBuildEnabled: isRunnable,
     hasLocation: false,
+    hasResults: false,
+    hasCoverage: false,
     runnableIds: suiteIds,
     buildableIds: suiteIds,
   };
 };
 
 const getSuiteContext = (suiteId: TestSuiteId, suiteNode: TestSuite): ItemContext => {
-  const isRunnable = !suiteNode.isRunning && !suiteNode.isWaiting;
+  const isRunnable = !suiteNode.isRunning && !suiteNode.isBuilding && !suiteNode.isWaiting;
   return {
     isRunnable,
     isBuildable: true,
     isBuildEnabled: isRunnable,
     hasLocation: false,
+    hasResults: false,
+    hasCoverage: false,
     runnableIds: [suiteId],
     buildableIds: [suiteId],
   };
@@ -60,6 +67,8 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: false,
+      hasResults: false,
+      hasCoverage: false,
       runnableIds,
     };
   } else {
@@ -69,8 +78,11 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: test.location !== undefined,
+      hasResults: test.type !== undefined && test.type !== 'unit-test',
+      hasCoverage: test.hasCoverage === true,
       runnableIds: [test.id],
       locationId: test.location !== undefined ? test.id : undefined,
+      test,
     };
   }
 };

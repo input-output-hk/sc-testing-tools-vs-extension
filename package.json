@@ -6,7 +6,7 @@
   "displayName": "PBT",
   "description": "Run property-based and threat-model tests for Plinth smart contracts, and explore results, transaction graphs, and script coverage.",
   "icon": "images/pbt-logo.png",
-  "version": "0.0.4",
+  "version": "0.0.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension.git"
@@ -45,7 +45,7 @@
       },
       {
         "command": "pbt-extension.stopTestRun",
-        "title": "PBT: Stop All Tests",
+        "title": "PBT: Cancel Test Run",
         "icon": "$(stop-circle)"
       },
       {
@@ -156,6 +156,11 @@
           ],
           "default": "docker",
           "description": "Select the mode for executing commands with PBT."
+        },
+        "pbt-extension.trace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include RPC trace messages and normal server exits in the PBT Extension output."
         }
       }
     },
@@ -179,7 +184,7 @@
       "pbt-test-tree": [
         {
           "id": "pbt-test-tree",
-          "name": "Test Panel",
+          "name": "Test Tree",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
         },
@@ -220,6 +225,19 @@
             "media": {
               "image": "images/viewdocs.svg",
               "altText": "An editor window with an arrow pointing to a documentation page"
+            }
+          },
+          {
+            "id": "windowswsl",
+            "title": "Using Windows? Set Up WSL2",
+            "description": "PBT does not run natively on Windows. To use PBT, install WSL2 and run VS Code connected to your WSL distribution.\n[Install WSL2](https://learn.microsoft.com/windows/wsl/install)",
+            "when": "isWindows",
+            "completionEvents": [
+              "onLink:https://learn.microsoft.com/windows/wsl/install"
+            ],
+            "media": {
+              "image": "images/windowswsl.svg",
+              "altText": "A Windows machine running VS Code connected to a WSL2 Linux environment"
             }
           },
           {
@@ -277,15 +295,17 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "db:generate": "drizzle-kit generate --dialect sqlite --schema ./src/services/history/schema.ts --out ./drizzle",
-    "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview",
+    "compile": "npm run compile:extension && npm run compile:server && npm run compile:webview && npm run compile:binary",
     "compile:extension": "tsc -p ./",
     "compile:server": "npm run build -w server",
-    "compile:webview": "npm run build -w webview-ui"
+    "compile:webview": "npm run build -w webview-ui",
+    "compile:binary": "bun scripts/build-server.mjs"
   },
   "devDependencies": {
     "@types/async": "^3.2.25",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
+    "bun": "^1.4.2",
     "drizzle-kit": "^1.0.0-rc.4",
     "typescript": "^5.9.3"
   },

@@ -5,7 +5,7 @@ import type { PbtContext } from '../../extension';
 
 export interface TestSettings {
   mode: ExtensionMode;
-  rounds: number;
+  rounds: number | null;
 }
 
 // Matches the default of VS Code's built-in `testing.coverageBarThresholds`.
@@ -14,7 +14,7 @@ const DEFAULT_COVERAGE_BAR_THRESHOLDS: CoverageBarThresholds = { red: 0, yellow:
 export default class SettingStore {
   private mode = new BehaviorSubject<ExtensionMode>('docker');
   private coverageBarThresholds = new BehaviorSubject<CoverageBarThresholds>(DEFAULT_COVERAGE_BAR_THRESHOLDS);
-  private rounds: number = 100;
+  private rounds: number | null = null;
 
   // Set right before we write our own mode change to config, so the resulting
   // onDidChangeConfiguration event (our own echo) doesn't get mistaken for an
@@ -91,7 +91,7 @@ export default class SettingStore {
     return { mode: this.mode.getValue(), rounds: this.rounds };
   }
 
-  public setRounds(rounds: number): void {
+  public setRounds(rounds: number | null): void {
     this.rounds = rounds;
   }
 }

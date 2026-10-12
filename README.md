@@ -15,7 +15,7 @@
   - [2. Open your project](#2-open-your-project)
   - [3. Open the PBT sidebar](#3-open-the-pbt-sidebar)
   - [4. Choose an execution mode](#4-choose-an-execution-mode)
-  - [5. Set the number of test rounds](#5-set-the-number-of-test-rounds)
+  - [5. Understand test rounds](#5-understand-test-rounds)
   - [6. Run your tests](#6-run-your-tests)
   - [7. Read the results](#7-read-the-results)
   - [8. Read the coverage](#8-read-the-coverage)
@@ -38,6 +38,8 @@ Property-based testing finds the edge case you would never have thought to write
 
 ## Requirements
 
+PBT ships its own RPC server executable. You do not need to install Node.js to use the extension.
+
 **Docker or Nix.** PBT runs your test suites using either Docker or Nix. you **MUST HAVE** one of them installed and working in order for the extension to run.
 
 **Docker**: install Docker Desktop or Docker Engine and make sure it is actually running. 
@@ -45,6 +47,8 @@ Property-based testing finds the edge case you would never have thought to write
 **Nix**: install Nix. 
 
 Whichever one you install is the one you tell PBT to use later, in [step 4](#4-choose-an-execution-mode).
+
+**Windows users: use WSL2.** On Windows, run PBT inside [WSL2](https://learn.microsoft.com/windows/wsl/install) rather than directly on Windows. Open your project in VS Code connected to your WSL distribution, and install Docker or Nix so it is available inside WSL. Nix does not run natively on Windows, and running everything inside WSL2 avoids dependency problems between the Windows and Linux sides.
 
 **A working sc-testing-tools setup.** This extension is the front end. It does not run your tests itself. It launches your test suites and then reads the stream of events they report back, which is what fills in the test tree, the round results, the transaction graphs, and the coverage numbers. All of that comes from [sc-testing-tools](https://github.com/input-output-hk/sc-testing-tools), the testing backend PBT is built on top of.
 
@@ -73,14 +77,14 @@ npm install
 npm run compile
 ```
 
-`npm run compile` builds the extension, the server, and the webview UI. Then press <kbd>F5</kbd> to launch a VS Code window with PBT loaded.
+Building from source requires Node.js and npm. `npm run compile` builds the extension, server, webview UI, and standalone RPC executables for macOS and Linux (arm64 and x64). Then press <kbd>F5</kbd> to launch a VS Code window with PBT loaded. To build just one target, run `npm run compile:binary -- darwin-arm64` (or `darwin-x64`, `linux-arm64`, `linux-x64`). The default VSIX includes all four executables, `bin/tree-sitter-haskell.wasm`, and `bin/web-tree-sitter.wasm`; keep both WASM files beside the executable when distributing a binary. Bun is a build-time dependency only.
 
 
 ### 2. Open your project
 
 PBT works on a Plinth project folder, so the first step is having that folder open in VS Code. Either open a workspace that already contains the folder, or open the folder in the workspace you are already in.
 
-From there, PBT scans on its own. There is no command to run and nothing to configure.
+From there, PBT scans on its own. There is no command to run and nothing to configure. It also rescans after saved Haskell source files change or workspace folders are added or removed.
 
 The scan looks for `.cabal` files anywhere in your workspace, reads the test-suites declared in each one, and builds the test tree from what it finds:
 
@@ -115,8 +119,6 @@ There are two ways to set it, and both write the same value.
 
 **The Test Run Configuration view** in the PBT sidebar is the quickest way while you are working. Choose **NIX** or **Docker** under Execution Mode.
 
-<img src="images/testConfig.png" alt="The Test Run Configuration view showing Rounds Per Test and an Execution Mode choice between NIX and Docker" width="420" />
-
 **The Settings editor** is the other way. Open it from **File**, **Preferences**, **Settings**, or with <kbd>Ctrl</kbd>+<kbd>,</kbd> (<kbd>Cmd</kbd>+<kbd>,</kbd> on macOS). The setting is listed under Extensions, PBT Configuration as **Pbt-extension: Execution Mode**, and searching for `pbt-extension.executionMode` takes you straight to it.
 
 <img src="images/settings.png" alt="The VS Code Settings editor filtered to pbt-extension.executionMode, with the mode set to docker" width="760" />
@@ -131,16 +133,13 @@ PBT checks that your selected mode is actually available at two points. It check
 
 Either way the error appears in the **Test Run Configuration** view. See [Troubleshooting](#docker-not-detected-nix-not-detected-or-problem-connecting-to-docker) for what each message means, and [this note](#the-mode-i-picked-is-not-the-mode-pbt-is-using) if the mode you picked does not seem to take effect.
 
-### 5. Set the number of test rounds
+### 5. Understand test rounds
 
 A property-based test does not run just once. It generates many transaction rounds and checks your property against each one, the same way QuickCheck does. More rounds means a wider search for a counterexample and a longer run.
 
-You control this in the **Test Run Configuration** view, under **Rounds Per Test**:
+In **Test Run Configuration**, choose **Default** to use the number of rounds configured by your test suite. This is the initial selection: PBT sends no round override and leaves `TASTY_QUICKCHECK_TESTS` unset. Choose **Custom** to enter a number of rounds per test; PBT passes that number as `TASTY_QUICKCHECK_TESTS` when running tests in either Nix or Docker mode. The custom field starts at `100`. Switching back to Default removes the override for subsequent runs.
 
-- **Default** uses the round count defined in your test suite.
-- **Custom** lets you set the count yourself. The field starts at 100.
-
-Lower the count for a quick check while you are iterating, and raise it when you want a more thorough search for edge cases.
+The rounds selection is kept only for the current extension session; it is not saved to VS Code settings. After the extension restarts, rounds return to Default.
 
 ### 6. Run your tests
 
@@ -148,7 +147,7 @@ The two buttons at the top of the Test Tree act on the entire tree.
 
 <img src="images/treeHead.png" alt="The Test Tree header with a Refresh Test Tree button and a Run All Tests button in its top right corner, above the filter box" width="420" />
 
-**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, rescans your project and rebuilds the tree. 
+**Run All Tests**, the play icon, runs every test in every suite PBT discovered. **Refresh Test Tree**, the circular arrow, builds and lists the suites already in the tree to get their backend test IDs; it does not rescan the workspace. Source and workspace-folder changes trigger a separate automatic scan.
 
 The rows inside the tree carry their own buttons, allowing you to interact with only a subsection of the test tree rather than the whole thing. Depending on what row you are looking at you will have different buttons available to you:
 
@@ -161,13 +160,15 @@ The rows inside the tree carry their own buttons, allowing you to interact with 
 
 Right-clicking on a row will show a menu with options that perform similar actions as the buttons in the rows.
 
-**On a first run you can only run everything or specific whole suites.** Test discovery from the extension happens by reading your files directly to work out the shape of the tree, but it does not yet know the IDs the backend uses for each individual test. Without that mapping PBT cannot ask the backend for one specific test, so groups and single tests are not runnable immediately after the test tree loads.
+**Initially you can only run everything or specific whole suites.** Test discovery from the extension happens by reading your files directly to work out the shape of the tree, but it does not yet know the IDs the backend uses for each individual test. Without that mapping PBT cannot ask the backend for one specific test, so groups and single tests are not runnable immediately after the test tree loads.
 
-Run everything, or run a specific suite, and the test ID mapping will be filled in as results are returned. From then on you can run a single group or a single test.
+Run everything, run a specific suite, or refresh that suite to build its test list. Once the backend test IDs are known, you can run a single group or a single test.
 
 Adding a new test or renaming an existing one makes that mapping stale again, which is covered in [step 9](#9-refresh-after-changing-your-tests).
 
-**Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button.
+**Watching a run.** Once you start a run, every row in the tree picks up a status icon, and rows that have finished show how long they took. A line above the tree reports that the run is in progress along with the elapsed time so far, and the header buttons are replaced by the stop button. Stop cancels queued jobs and terminates the active run or suite build; completed results remain visible.
+
+Refreshing a suite also shows its build progress in the tree: queued suites show a clock and suites being built show a spinner. Run buttons are unavailable for a suite while it is waiting or building.
 
 <img src="images/runningTests.png" alt="The Test Tree during a run, showing a Running tests line with elapsed time and tree rows marked with failed, passed, running, and waiting status icons" width="330" />
 
@@ -188,6 +189,8 @@ Because a package or suite rolls up the tests beneath it, its icon reflects the 
 
 ### 7. Read the results
 
+The Test Tree's **Clear all Results** command resets the displayed test results and deletes saved run, result, and round history. It does not clear the in-memory coverage data; a new test run updates coverage for the tests it reruns.
+
 Once a test has run, any test that has more result details to show will display up a **View Results** button, directly to the left of its **Run Test** button:
 
 <img src="images/resultsIcon.png" alt="A passed test row in the Test Tree with the View Results button to the left of the Run Test button" width="330" />
@@ -198,7 +201,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
 <img src="images/testRounds.png" alt="The Test rounds table listing rounds 0 to 9, each with a status icon and counts for valid transactions, invalid transactions, inputs, outputs, and mints" width="760" />
 
-  Each row is one round, summarizing the status of that round and what that round produced: how many valid and invalid transactions it generated, and how many inputs and outputs those transactions used. A threat model table carries one more column, the number of attacks performed in the round.
+  Each row is one round, summarizing the status of that round and what that round produced: how many valid and invalid transactions it generated, and how many inputs and outputs those transactions used. A threat model table carries one more column, the number of attacks performed in the round. A threat-model round is discarded when an attack is skipped, unless another attack in the same round failed or errored, in which case the round is marked as failed.
 
   Open a round row to see the transactions inside it with one sub-table per transaction. 
 
@@ -236,9 +239,7 @@ Click it and the view narrows to that one test: the title becomes **Coverage: \<
 
 Adding a new test, or changing the name of an existing one, changes the set of tests in a suite, and the test ID mapping PBT built on the last run no longer matches. The mapping is what lets PBT ask the backend for one specific test, so until it is rebuilt the affected tests are not individually runnable and their play buttons are disabled.
 
-The tree itself keeps up on its own. PBT watches your workspace, so once you save the change your new or renamed test appears in the Test Tree without you doing anything.
-
-Rebuilding the ID mapping is the part you trigger. Click the refresh button on the parent test suite, and PBT rebuilds the mapping for every test in that suite in one go, which makes them runnable again.
+After saving a `.hs` file, PBT rescans the workspace automatically (after a short delay) and updates the static tree. It also rescans when workspace folders change. To obtain backend IDs for new or renamed tests, click the refresh button on their parent suite or run the whole suite. The automatic scan does not build suites, and the header refresh button only builds suites already in the tree. Changes that keep the same number of tests in a suite may not replace its existing static listing, so use the suite refresh when a rename does not appear. Changes to `.cabal` files alone do not trigger the automatic scan; reload the VS Code window to discover those changes.
 
 ## Troubleshooting
 

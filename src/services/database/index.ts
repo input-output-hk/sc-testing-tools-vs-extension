@@ -19,6 +19,7 @@ import {
 import {
   getAllTestSuitesIds,
   handleTestSuiteBuild,
+  handleTestSuiteBuildJobEvent,
   handleTestSuiteBuildErrorEvent,
   handleTestSuiteUpdateEvent,
   onTestSuiteUpdate
@@ -64,6 +65,12 @@ export default class Database {
 
   public async handleTestContextEvent(event: TestContextEvent): Promise<void> {
     return await handleTestContextEvent(this.database!, event);
+  }
+
+  public async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    if (event.payload.job.type === 'build') {
+      return await handleTestSuiteBuildJobEvent(this.database!, event.payload.job as TestBuildJob);
+    }
   }
 
   public async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {

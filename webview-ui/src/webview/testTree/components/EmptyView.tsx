@@ -12,7 +12,7 @@ const MESSAGE_EMPTY_TREE = 'No test suites found in this workspace. Open a diffe
 
 const EmptyView: React.FC<Props> = ({ vscode, message }) => (
   <div className="h-full p-4">
-    <p className="text-[12px] opacity-60">
+    <p className="text-[12px]">
       {message === 'empty-workspaces' ? MESSAGE_EMPTY_WORKSPACES : MESSAGE_EMPTY_TREE}
     </p>
     <VscodeButton
