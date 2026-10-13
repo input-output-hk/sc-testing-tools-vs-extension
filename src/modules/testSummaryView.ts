@@ -31,6 +31,7 @@ export default class TestSummaryView {
     this.testId = testId;
     this.runId = null;
     this.sendTestSummary();
+    vscode.commands.executeCommand('pbt-test-summary.focus');
   }
 
   private clearTestRunsHistory(): void {
