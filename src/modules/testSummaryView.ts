@@ -34,7 +34,12 @@ export default class TestSummaryView {
     vscode.commands.executeCommand('pbt-test-summary.focus');
   }
 
-  private clearTestRunsHistory(): void {
+  private async clearTestRunsHistory(): Promise<void> {
+    await vscode.commands.executeCommand('pbt-extension.clearAllTestsResults');
+    this.testId = null;
+    this.runId = null;
+    this.webview?.postMessage({ type: 'test-summary-clear' } as ExtensionToWebviewMessage);
+    this.sendTestSummaryHistory();
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {

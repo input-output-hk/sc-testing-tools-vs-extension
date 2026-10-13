@@ -42,6 +42,9 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         setSummaryRunId(message.payload.runId);
       } else if (message.type === 'test-summary-history') {
         setHistory(message.payload);
+      } else if (message.type === 'test-summary-clear') {
+        setTestSummary(null);
+        setSummaryRunId(null);
       }
     };
 

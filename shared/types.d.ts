@@ -564,6 +564,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-result", payload: TestResult }
   | { type: "test-summary-details", payload: { testResult: TestResult, runId: string | null } }
   | { type: "test-summary-history", payload: TestSummaryHistory }
+  | { type: "test-summary-clear" }
   | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "test-result-run", payload: { startedOn: number | null } }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
