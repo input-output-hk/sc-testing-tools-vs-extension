@@ -132,10 +132,14 @@ const HistoryTest: React.FC<TestProps> = ({ node, showDescription = false, onSel
     onSelectTest(node);
   };
 
+  const isNeverRun = node.test.status === 'undetermined' && !node.status.isRunning;
+
   return (
     <VscodeTreeItem>
       <HistoryLabel
-        icon={<TestStatusIcon status={node.status} isThreatModel={node.test.type === 'threat-model'} />}
+        icon={isNeverRun
+          ? <StatusIcon className="shrink-0 codicon-question text-[var(--vscode-descriptionForeground)]" />
+          : <TestStatusIcon status={node.status} isThreatModel={node.test.type === 'threat-model'} />}
         label={node.name}
         description={showDescription ? node.description : undefined}
         time={node.test.time}

@@ -37,9 +37,7 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
   const threatModels: GenericMap<HistoryThreatModelsNode> = {};
 
   for (const test of run.tests) {
-    if (test.type === undefined || test.type === 'unit-test') continue;
     const isRunning = isRunActive && test.status === 'undetermined';
-    if (test.status === 'undetermined' && !isRunning) continue;
 
     const location = getLocation(test.id, test.group);
     const testNode: HistoryTestNode = {

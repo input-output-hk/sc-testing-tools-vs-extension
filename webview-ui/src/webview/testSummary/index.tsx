@@ -108,7 +108,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
               {path} <span className="text-base-06">&gt; {testSummary.test.name}</span>
             </div>
 
-            {testSummary.rounds.length > 0 ?
+            {testSummary.test.type === 'unit-test' ? null : testSummary.rounds.length > 0 ?
               <>
                 <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
                   <table className="w-full text-left">

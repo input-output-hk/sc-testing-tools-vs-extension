@@ -56,16 +56,22 @@ export default class TestSummaryView {
             this.context.testResultView.openRun(message.payload.testId, message.payload.runId, message.payload.roundId);
             break;
           case 'test-summary-open-test':
-            this.testId = message.payload.testId;
-            this.runId = message.payload.runId;
-            this.sendTestSummary();
-            this.context.testResultView.openRun(message.payload.testId, message.payload.runId, null);
+            this.openTest(message.payload.testId, message.payload.runId);
             break;
         }
       },
       undefined,
       this.context.extension.subscriptions
     );
+  }
+
+  private async openTest(testId: TestId, runId: string): Promise<void> {
+    this.testId = testId;
+    this.runId = runId;
+    this.sendTestSummary();
+    const testResult = await this.context.testResultView.getTestRunResult(testId, runId);
+    if (testResult.test.type === 'unit-test') return;
+    this.context.testResultView.openRun(testId, runId, null);
   }
 
   private onTestTreeUpdate(payload: TestTreeUpdate): void {
