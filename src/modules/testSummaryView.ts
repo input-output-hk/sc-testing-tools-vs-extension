@@ -8,7 +8,6 @@ export default class TestSummaryView {
   private webview: vscode.Webview | null = null;
   private testId: TestId | null = null;
   private runId: string | null = null;
-  private activeRunId: string | null = null;
 
   constructor() {
     this.context = {} as PbtContext;
@@ -87,7 +86,6 @@ export default class TestSummaryView {
   }
 
   private onTestJobUpdate(job: TestJob | null): void {
-    this.activeRunId = job !== null && job.type === 'run' && job.status === 'running' ? job.id : null;
     this.sendTestSummaryHistory();
     if (job !== null && job.type === 'run' && (job.status === 'success' || job.status === 'failed')) {
       vscode.commands.executeCommand('pbt-test-summary.focus');
@@ -100,25 +98,28 @@ export default class TestSummaryView {
     const testStore = this.context.store.testStore;
     const runs = await testStore.getTestRunsHistory();
     const names: GenericMap<string> = {};
-    this.collectTestNames(await testStore.getTestTree(), names);
-    this.webview?.postMessage({ type: 'test-summary-history', payload: { runs, names, activeRunId: this.activeRunId } } as ExtensionToWebviewMessage);
+    const live: GenericMap<RunStatusContext> = {};
+    this.collectTestNames(await testStore.getTestTree(), names, live);
+    this.webview?.postMessage({ type: 'test-summary-history', payload: { runs, names, live, activeRunId: testStore.getActiveHistoryRunId() } } as ExtensionToWebviewMessage);
   }
 
-  private collectTestNames(testTree: TestTree, names: GenericMap<string>): void {
+  private collectTestNames(testTree: TestTree, names: GenericMap<string>, live: GenericMap<RunStatusContext>): void {
     for (const testPackage of Object.values(testTree.packages)) {
       for (const suite of Object.values(testPackage.suites)) {
-        this.collectNodeNames(suite.tests, names);
+        this.collectNodeNames(suite.tests, names, live);
       }
     }
   }
 
-  private collectNodeNames(nodes: TestTreeNodeMap, names: GenericMap<string>): void {
+  private collectNodeNames(nodes: TestTreeNodeMap, names: GenericMap<string>, live: GenericMap<RunStatusContext>): void {
     for (const node of Object.values(nodes)) {
       if (node.type === 'group') {
-        this.collectNodeNames((node as TestTreeGroupNode).nodes, names);
+        this.collectNodeNames((node as TestTreeGroupNode).nodes, names, live);
       } else {
         const test = (node as TestTreeTestNode).test;
-        names[test.id.join(':')] = test.name;
+        const key = test.id.join(':');
+        names[key] = test.name;
+        live[key] = { status: test.status, isWaiting: test.isWaiting, isBuilding: test.isBuilding, isRunning: test.isRunning };
       }
     }
   }

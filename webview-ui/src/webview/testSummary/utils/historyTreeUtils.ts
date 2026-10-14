@@ -31,13 +31,19 @@ const getLocation = (id: TestId, group: Array<string>): string =>
 const compareNodes = (a: HistoryNode, b: HistoryNode): number =>
   a.description.localeCompare(b.description);
 
-const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunId: string | null): HistoryRunNode => {
+const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, live: GenericMap<RunStatusContext>, activeRunId: string | null): HistoryRunNode => {
   const isRunActive = run.runId === activeRunId;
   const nodes: Array<HistoryNode> = [];
   const threatModels: GenericMap<HistoryThreatModelsNode> = {};
 
   for (const test of run.tests) {
-    const isRunning = isRunActive && test.status === 'undetermined';
+    const liveStatus = isRunActive ? live[test.id.join(':')] : undefined;
+    const status: RunStatusContext = {
+      status: test.status,
+      isWaiting: liveStatus?.isWaiting ?? false,
+      isBuilding: liveStatus?.isBuilding ?? false,
+      isRunning: liveStatus?.isRunning ?? false,
+    };
 
     const location = getLocation(test.id, test.group);
     const testNode: HistoryTestNode = {
@@ -47,7 +53,7 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
       test,
       name: names[test.id.join(':')] ?? test.id[3],
       description: location,
-      status: { status: test.status, isWaiting: false, isRunning, isBuilding: false },
+      status,
     };
 
     if (test.type !== 'threat-model') {
@@ -63,7 +69,9 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
       nodes.push(folder);
     }
     folder.tests.push(testNode);
-    if (isRunning) folder.status.isRunning = true;
+    if (status.isRunning) folder.status.isRunning = true;
+    if (status.isBuilding) folder.status.isBuilding = true;
+    if (status.isWaiting) folder.status.isWaiting = true;
     if (test.status === 'invalid') folder.status.status = 'invalid';
   }
 
@@ -74,7 +82,7 @@ const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, activeRunI
 export const buildHistoryTree = (history: TestSummaryHistory): Array<HistoryRunNode> => {
   const runs: Array<HistoryRunNode> = [];
   for (const run of history.runs) {
-    runs.push(buildRunNode(run, history.names, history.activeRunId));
+    runs.push(buildRunNode(run, history.names, history.live, history.activeRunId));
   }
   return runs;
 };

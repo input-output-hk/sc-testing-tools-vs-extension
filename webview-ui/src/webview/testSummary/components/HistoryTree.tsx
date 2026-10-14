@@ -132,7 +132,7 @@ const HistoryTest: React.FC<TestProps> = ({ node, showDescription = false, onSel
     onSelectTest(node);
   };
 
-  const isNeverRun = node.test.status === 'undetermined' && !node.status.isRunning;
+  const isNeverRun = node.test.status === 'undetermined' && !node.status.isRunning && !node.status.isWaiting && !node.status.isBuilding;
 
   return (
     <VscodeTreeItem>

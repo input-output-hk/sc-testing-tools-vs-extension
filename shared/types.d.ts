@@ -448,9 +448,12 @@ type TestResultHistory = {
   time?: number;
 };
 
+type HistoryRunTest = Pick<Test, 'id' | 'type' | 'group'>;
+
 type TestSummaryHistory = {
   runs: Array<TestRunHistory>;
   names: GenericMap<string>;
+  live: GenericMap<RunStatusContext>;
   activeRunId: string | null;
 };
 
