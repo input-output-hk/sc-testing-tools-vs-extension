@@ -565,7 +565,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-tree-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-tree-error" }
   | { type: "test-result", payload: TestResult }
-  | { type: "test-summary-details", payload: { testResult: TestResult, runId: string | null } }
+  | { type: "test-summary-details", payload: { testResult: TestResult, runId: string | null, previousRunStartedOn: number | null } }
   | { type: "test-summary-history", payload: TestSummaryHistory }
   | { type: "test-summary-clear" }
   | { type: "test-result-expand-round", payload: { roundId: number } }

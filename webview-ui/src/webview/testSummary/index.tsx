@@ -6,6 +6,7 @@ import RoundsAccordion from './components/RoundsAccordion';
 import HistoryTree from './components/HistoryTree';
 import TreeViewFilter from '../testTree/components/TreeViewFilter';
 import Tooltip from '../../components/Tooltip';
+import TestRunLabel from '../../components/TestRunLabel';
 import { formatRunTime } from '../../utils/format';
 import { buildHistoryTree, filterHistoryTree, isFilterActive } from './utils/historyTreeUtils';
 import type { HistoryTestNode } from './utils/historyTreeUtils';
@@ -28,6 +29,7 @@ const TableCell: React.FC<{ amount: number, label: string, color: string }> = ({
 const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [testSummary, setTestSummary] = useState<TestResult | null>(null);
   const [summaryRunId, setSummaryRunId] = useState<string | null>(null);
+  const [previousRunStartedOn, setPreviousRunStartedOn] = useState<number | null>(null);
   const [history, setHistory] = useState<TestSummaryHistory | null>(null);
   const [filter, setFilter] = useState<TestTreeFilter>(EMPTY_FILTER);
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
@@ -40,11 +42,13 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
       if (message.type === 'test-summary-details') {
         setTestSummary(message.payload.testResult);
         setSummaryRunId(message.payload.runId);
+        setPreviousRunStartedOn(message.payload.previousRunStartedOn);
       } else if (message.type === 'test-summary-history') {
         setHistory(message.payload);
       } else if (message.type === 'test-summary-clear') {
         setTestSummary(null);
         setSummaryRunId(null);
+        setPreviousRunStartedOn(null);
       }
     };
 
@@ -87,6 +91,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [currentRun] = filterHistoryTree(runs.slice(0, 1), filter);
   const olderRuns = filterHistoryTree(runs.slice(1), filter);
 
+  const previousRunDate = previousRunStartedOn === null ? null : new Date(previousRunStartedOn);
   const path = testSummary ? [testSummary.test.id[1], testSummary.test.id[2], ...testSummary.test.group].join(' > ') : '';
   const validRounds = testSummary?.rounds.filter(round => round.status === 'success').map(round => round.id) ?? [];
   const failedRounds = testSummary?.rounds.filter(round => round.status === 'failure').map(round => round.id) ?? [];
@@ -98,6 +103,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         {testSummary === null
           ? <div className="text-base-06">No test selected.</div>
           : <>
+            <TestRunLabel previousRunDate={previousRunDate} />
             <div className="flex items-center gap-2">
               <i className={`codicon codicon-${testSummary.test.status === 'valid' ? 'pass' : 'error'} ${testSummary.test.status === 'valid' ? 'text-green-01' : 'text-red-01'}`} />
               <span className="text-base-06 font-bold text-lg">{testSummary.test.name}</span>

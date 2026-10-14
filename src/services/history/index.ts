@@ -1,7 +1,7 @@
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
-import { eq, and, notInArray } from 'drizzle-orm';
+import { eq, and, desc, notInArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-sqlite';
 import { migrate } from 'drizzle-orm/node-sqlite/migrator';
 
@@ -254,6 +254,21 @@ export default class History {
         time: result.time ?? undefined,
       }))
     }));
+  }
+
+  public async getRun(runId: string): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    const [run] = await this.db.select()
+      .from(runs)
+      .where(eq(runs.runId, runId));
+    return run === undefined ? null : { ...run, finishedOn: run.finishedOn ?? undefined };
+  }
+
+  public async getLatestRun(): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    const [run] = await this.db.select()
+      .from(runs)
+      .orderBy(desc(runs.startedOn))
+      .limit(1);
+    return run === undefined ? null : { ...run, finishedOn: run.finishedOn ?? undefined };
   }
 
   public async getTestRounds(runId: string, id: TestId): Promise<Array<TestRound>> {

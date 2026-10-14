@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 
 import RunningIndicator from '../../components/RunningIndicator';
 import TestHeader from '../../components/TestHeader';
-import PreviousRunBanner from './components/PreviousRunBanner';
+import TestRunLabel from '../../components/TestRunLabel';
 import Tabs from './components/Tabs';
 import TestRoundsView from './components/TestRoundsView';
 import TransactionGraphView from './components/TransactionGraphView';
@@ -59,10 +59,12 @@ const TestResultView: React.FC<Props> = ({ vscode }) => {
 
   if (!test) return <></>;
 
+  const previousRunDate = previousRunStartedOn === null ? null : new Date(previousRunStartedOn);
+
   return (
     <div className="flex flex-col h-full bg-transparent">
       <div className="flex-none pt-4 px-4">
-        {previousRunStartedOn !== null && <PreviousRunBanner startedOn={previousRunStartedOn} />}
+        <TestRunLabel previousRunDate={previousRunDate} />
         <TestHeader test={test} />
       </div>
 

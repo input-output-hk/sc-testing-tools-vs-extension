@@ -408,6 +408,14 @@ export default class TestStore {
     return await this.history.getTestRuns();
   }
 
+  public async getTestRun(runId: string): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    return await this.history.getRun(runId);
+  }
+
+  public async getLatestTestRun(): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    return await this.history.getLatestRun();
+  }
+
   public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
     return await this.history.getTestRounds(runId, testId);
   }

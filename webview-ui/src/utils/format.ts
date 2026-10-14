@@ -8,3 +8,8 @@ export const formatRunTime = (time: number): string => {
     return `${(time / 1000 / 60).toFixed(2)}m`;
   }
 };
+const padTwo = (value: number): string => value.toString().padStart(2, '0');
+
+export const formatRunDate = (date: Date): string => {
+  return `${padTwo(date.getMonth() + 1)}/${padTwo(date.getDate())}/${date.getFullYear()}, ${padTwo(date.getHours())}:${padTwo(date.getMinutes())}:${padTwo(date.getSeconds())}`;
+};

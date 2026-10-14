@@ -92,8 +92,7 @@ export default class TestResultView {
   }
 
   private async loadTestRunResult(testId: TestId, runId: string): Promise<TestResult> {
-    const runs = await this.context.store.testStore.getTestRunsHistory();
-    this.previousRunStartedOn = this.findPreviousRunStartedOn(runs, runId);
+    this.previousRunStartedOn = await this.getPreviousRunStartedOn(runId);
     return await this.getTestRunResult(testId, runId);
   }
 
@@ -129,12 +128,17 @@ export default class TestResultView {
     return undefined;
   }
 
-  private findPreviousRunStartedOn(runs: Array<TestRunHistory>, runId: string): number | null {
-    if (runs.length === 0 || runs[0].runId === runId) return null;
-    for (const run of runs) {
-      if (run.runId === runId) return run.startedOn;
-    }
-    return null;
+  /**
+   * Returns the start time of `runId` when it's an older run, or `null` when it's the latest run
+   * (or `runId` is null). The run label shows `null` as "CURRENT TESTRUN", a time as "PREVIOUS RUN: <date>".
+   */
+  public async getPreviousRunStartedOn(runId: string | null): Promise<number | null> {
+    if (runId === null) return null;
+    const testStore = this.context.store.testStore;
+    const run = await testStore.getTestRun(runId);
+    const latestRun = await testStore.getLatestTestRun();
+    if (run === null || run.runId === latestRun?.runId) return null;
+    return run.startedOn;
   }
 
   private onTestResultLoaded(testResult: TestResult): void {

@@ -124,16 +124,15 @@ export default class TestSummaryView {
     }
   }
 
-  private sendTestSummary(): void {
+  private async sendTestSummary(): Promise<void> {
     if (this.webview === null || this.testId === null) return;
 
     const runId = this.runId;
-    const request = runId === null
-      ? this.context.store.testStore.getTestResult(this.testId)
-      : this.context.testResultView.getTestRunResult(this.testId, runId);
-    request.then(testResult => {
-      if (testResult.test.status === 'undetermined') return;
-      this.webview?.postMessage({ type: 'test-summary-details', payload: { testResult, runId } } as ExtensionToWebviewMessage);
-    });
+    const testResult = runId === null
+      ? await this.context.store.testStore.getTestResult(this.testId)
+      : await this.context.testResultView.getTestRunResult(this.testId, runId);
+    if (testResult.test.status === 'undetermined') return;
+    const previousRunStartedOn = await this.context.testResultView.getPreviousRunStartedOn(runId);
+    this.webview?.postMessage({ type: 'test-summary-details', payload: { testResult, runId, previousRunStartedOn } } as ExtensionToWebviewMessage);
   }
 }
