@@ -33,6 +33,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [filter, setFilter] = useState<TestTreeFilter>(EMPTY_FILTER);
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
   const [sortBy, setSortBy] = useState<SortBy>('location');
+  const [collapsedAt, setCollapsedAt] = useState<number | null>(null);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -48,6 +49,9 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         setHistory(message.payload);
       } else if (message.type === 'test-summary-set-sort') {
         setSortBy(message.payload.sortBy);
+      } else if (message.type === 'test-summary-collapse') {
+        setOpenState({});
+        setCollapsedAt(Date.now());
       } else if (message.type === 'test-summary-clear') {
         setTestSummary(null);
         setSummaryRunId(null);
@@ -170,6 +174,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
                 olderRuns={olderRuns}
                 filter={filter}
                 sortBy={sortBy}
+                collapsedAt={collapsedAt}
                 openState={openState}
                 forceOpen={isFilterActive(filter)}
                 onToggleOpen={handleToggleOpen}

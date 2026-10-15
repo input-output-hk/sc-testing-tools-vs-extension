@@ -40,6 +40,7 @@ interface Props {
   olderRuns: Array<TestRunTree>;
   filter: TestTreeFilter;
   sortBy: SortBy;
+  collapsedAt: number | null;
   openState: GenericMap<boolean>;
   forceOpen: boolean;
   onToggleOpen: (key: string, isOpen: boolean) => void;
@@ -109,7 +110,9 @@ const getOlderRunClassName = (status: TestJobStatus): string =>
     ? 'codicon-question text-[var(--vscode-descriptionForeground)]'
     : mapJobStatusToClassName(status);
 
-const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, openState, forceOpen, onToggleOpen, onSelectTest, onOpenTestResult }) => {
+const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, collapsedAt, openState, forceOpen, onToggleOpen, onSelectTest, onOpenTestResult }) => {
+  const isCurrentRunOpen = currentRun !== null && (collapsedAt === null || currentRun.startedOn > collapsedAt);
+
   const getTreeState = (runId: string, defaultOpen: boolean): TreeState => ({
     runId, filter, sortBy, openState, forceOpen, defaultOpen, onToggleOpen, onSelectTest, onOpenTestResult,
   });
@@ -117,12 +120,12 @@ const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, o
   return (
     <VscodeTree>
       {currentRun !== null && (
-        <HistoryFolder nodeKey="current" label="Current testrun" defaultOpen openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
-          <HistoryRun run={currentRun} tree={getTreeState(currentRun.runId, true)} />
+        <HistoryFolder nodeKey="current" label="Current testrun" defaultOpen={isCurrentRunOpen} openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
+          <HistoryRun run={currentRun} tree={getTreeState(currentRun.runId, isCurrentRunOpen)} />
         </HistoryFolder>
       )}
       {olderRuns.length > 0 && (
-        <HistoryFolder nodeKey="older" label={`${olderRuns.length} older results`} defaultOpen openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
+        <HistoryFolder nodeKey="older" label={`${olderRuns.length} older results`} defaultOpen={collapsedAt === null} openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
           {olderRuns.map(run => (
             <HistoryFolder
               key={run.runId}

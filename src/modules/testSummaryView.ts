@@ -23,6 +23,9 @@ export default class TestSummaryView {
     const clearHistoryCommand = vscode.commands.registerCommand('pbt-extension.clearTestRunsHistory', this.clearTestRunsHistory.bind(this));
     context.extension.subscriptions.push(clearHistoryCommand);
 
+    const collapseCommand = vscode.commands.registerCommand('pbt-extension.collapseTestSummary', this.collapseTestSummary.bind(this));
+    context.extension.subscriptions.push(collapseCommand);
+
     this.context.store.testStore.onTestTreeUpdate(this.onTestTreeUpdate.bind(this));
     this.context.store.testStore.onTestJobUpdate(this.onTestJobUpdate.bind(this));
   }
@@ -40,6 +43,10 @@ export default class TestSummaryView {
     this.runId = null;
     this.webview?.postMessage({ type: 'test-summary-clear' } as ExtensionToWebviewMessage);
     this.sendTestSummaryHistory();
+  }
+
+  private collapseTestSummary(): void {
+    this.webview?.postMessage({ type: 'test-summary-collapse' } as ExtensionToWebviewMessage);
   }
 
   private onWebviewResolved(webview: vscode.Webview): void {

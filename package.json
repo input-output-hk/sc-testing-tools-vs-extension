@@ -64,6 +64,11 @@
         "icon": "$(collapse-all)"
       },
       {
+        "command": "pbt-extension.collapseTestSummary",
+        "title": "PBT: Collapse Test Summary",
+        "icon": "$(collapse-all)"
+      },
+      {
         "command": "pbt-extension.clearTestRunsHistory",
         "title": "PBT: Clear Test Runs History",
         "icon": "$(clear-all)",
@@ -120,9 +125,14 @@
           "group": "navigation@2"
         },
         {
+          "command": "pbt-extension.collapseTestSummary",
+          "when": "view == pbt-test-summary",
+          "group": "navigation@1"
+        },
+        {
           "command": "pbt-extension.clearTestRunsHistory",
           "when": "view == pbt-test-summary && !pbt.activeTestRun && !pbt.activeSummaryRun",
-          "group": "navigation@1"
+          "group": "navigation@2"
         },
         {
           "command": "pbt-extension.collapseAllTests",
