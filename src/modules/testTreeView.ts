@@ -6,6 +6,7 @@ import type { PbtContext } from '../extension';
 export default class TestTreeView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  private sortBy: SortBy = 'location';
 
   constructor() {
     this.context = {} as PbtContext;
@@ -61,6 +62,7 @@ export default class TestTreeView {
             // container is open even if the user leaves the Test Run Configuration view collapsed
             this.context.testConfigurationView.surfaceDependencyStatus();
             this.checkWorkspaceAndFetchTestTree();
+            this.sendSortToWebview(this.sortBy);
             break;
           case 'test-tree-fetch':
             this.checkWorkspaceAndFetchTestTree();
@@ -190,7 +192,13 @@ export default class TestTreeView {
     this.sendSortToWebview('status');
   }
 
+  public getSortBy(): SortBy {
+    return this.sortBy;
+  }
+
   private sendSortToWebview(sortBy: SortBy): void {
+    this.sortBy = sortBy;
+    this.context.testSummaryView.setSortBy(sortBy);
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-tree-set-sort', payload: { sortBy } } as ExtensionToWebviewMessage);
     }

@@ -12,6 +12,7 @@ import {
   getGroupStatus,
   nodeMatchesFilter,
   isTestRunnable,
+  isThreatModelsGroup,
   sortTreeNodes,
 } from '../../utils/treeUtils';
 import { formatRunTime } from '../../../../utils/format';
@@ -54,7 +55,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   const [workspaceId, packageName, suiteName] = suiteId;
   const time = getGroupTime(node);
   const status = getGroupStatus(node);
-  const isThreatModel = node.name.toLowerCase() === 'threat models';
+  const isThreatModel = isThreatModelsGroup(node.name);
 
   const isRunnable = useMemo(
     () => getGroupTests(node).some(isTestRunnable),

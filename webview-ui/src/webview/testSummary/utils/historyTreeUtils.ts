@@ -1,125 +1,90 @@
-export type HistoryTestNode = {
-  type: 'test';
-  key: string;
-  runId: string;
-  test: TestResultHistory;
-  name: string;
-  description: string;
-  status: RunStatusContext;
+import {
+  getGroupStatus,
+  getGroupTests,
+  getGroupTime,
+  nodeMatchesFilter,
+  packageMatchesFilter,
+  sortPackages,
+  sortSuites,
+  sortTreeNodes,
+  suiteMatchesFilter,
+} from '../../testTree/utils/treeUtils';
+
+export const asGroup = (suite: TestSuite): TestTreeGroupNode => ({
+  type: 'group',
+  name: suite.name,
+  nodes: suite.tests,
+  isOpen: suite.isOpen,
+});
+
+const fillSuiteStatus = (suite: TestSuite): void => {
+  const group = asGroup(suite);
+  const status = getGroupStatus(group);
+  suite.status = status.status;
+  suite.isWaiting = status.isWaiting;
+  suite.isBuilding = status.isBuilding;
+  suite.isRunning = status.isRunning;
+  suite.time = getGroupTime(group);
 };
 
-export type HistoryThreatModelsNode = {
-  type: 'threat-models';
-  key: string;
-  description: string;
-  status: RunStatusContext;
-  tests: Array<HistoryTestNode>;
-};
-
-export type HistoryNode = HistoryTestNode | HistoryThreatModelsNode;
-
-export type HistoryRunNode = {
-  runId: string;
-  status: TestJobStatus;
-  startedOn: number;
-  nodes: Array<HistoryNode>;
-};
-
-const getLocation = (id: TestId, group: Array<string>): string =>
-  [id[1], id[2], ...group].join(' > ');
-
-const compareNodes = (a: HistoryNode, b: HistoryNode): number =>
-  a.description.localeCompare(b.description);
-
-const buildRunNode = (run: TestRunHistory, names: GenericMap<string>, live: GenericMap<RunStatusContext>, activeRunId: string | null): HistoryRunNode => {
-  const isRunActive = run.runId === activeRunId;
-  const nodes: Array<HistoryNode> = [];
-  const threatModels: GenericMap<HistoryThreatModelsNode> = {};
-
-  for (const test of run.tests) {
-    const liveStatus = isRunActive ? live[test.id.join(':')] : undefined;
-    const status: RunStatusContext = {
-      status: test.status,
-      isWaiting: liveStatus?.isWaiting ?? false,
-      isBuilding: liveStatus?.isBuilding ?? false,
-      isRunning: liveStatus?.isRunning ?? false,
-    };
-
-    const location = getLocation(test.id, test.group);
-    const testNode: HistoryTestNode = {
-      type: 'test',
-      key: `${run.runId}:${test.id.join(':')}`,
-      runId: run.runId,
-      test,
-      name: names[test.id.join(':')] ?? test.id[3],
-      description: location,
-      status,
-    };
-
-    if (test.type !== 'threat-model') {
-      nodes.push(testNode);
-      continue;
+export const fillRunStatus = (runs: Array<TestRunTree>): void => {
+  for (const run of runs) {
+    for (const testPackage of Object.values(run.testTree.packages)) {
+      for (const suite of Object.values(testPackage.suites)) {
+        fillSuiteStatus(suite);
+      }
     }
-
-    const folderKey = `${run.runId}:${test.id[0]}:${location}`;
-    let folder = threatModels[folderKey];
-    if (folder === undefined) {
-      folder = { type: 'threat-models', key: folderKey, description: location, status: { status: 'valid', isWaiting: false, isRunning: false, isBuilding: false }, tests: [] };
-      threatModels[folderKey] = folder;
-      nodes.push(folder);
-    }
-    folder.tests.push(testNode);
-    if (status.isRunning) folder.status.isRunning = true;
-    if (status.isBuilding) folder.status.isBuilding = true;
-    if (status.isWaiting) folder.status.isWaiting = true;
-    if (test.status === 'invalid') folder.status.status = 'invalid';
   }
-
-  nodes.sort(compareNodes);
-  return { runId: run.runId, status: run.status, startedOn: run.startedOn, nodes };
 };
 
-export const buildHistoryTree = (history: TestSummaryHistory): Array<HistoryRunNode> => {
-  const runs: Array<HistoryRunNode> = [];
-  for (const run of history.runs) {
-    runs.push(buildRunNode(run, history.names, history.live, history.activeRunId));
+export const isNeverRun = (test: Test): boolean =>
+  test.status === 'undetermined' && !test.isRunning && !test.isWaiting && !test.isBuilding;
+
+export const isGroupNeverRun = (group: TestTreeGroupNode): boolean =>
+  getGroupTests(group).every(isNeverRun);
+
+export const isSuiteNeverRun = (suite: TestSuite): boolean =>
+  isGroupNeverRun(asGroup(suite));
+
+export const isPackageNeverRun = (testPackage: TestPackage): boolean =>
+  Object.values(testPackage.suites).every(isSuiteNeverRun);
+
+export const getVisiblePackages = (testTree: TestTree, filter: TestTreeFilter, sortBy: SortBy): Array<TestPackage> => {
+  const packages: Array<TestPackage> = [];
+  for (const testPackage of Object.values(testTree.packages)) {
+    if (packageMatchesFilter(testPackage, filter)) packages.push(testPackage);
   }
-  return runs;
+  return packages.sort(sortPackages(sortBy));
 };
 
-const matchesTest = (node: HistoryTestNode, filter: TestTreeFilter): boolean => {
-  const text = filter.text?.trim().toLowerCase();
-  if (text && !node.name.toLowerCase().includes(text) && !node.description.toLowerCase().includes(text)) return false;
-  if (filter.status !== undefined && node.test.status !== filter.status) return false;
-  if (filter.type !== undefined && node.test.type !== filter.type) return false;
-  return true;
-};
-
-const filterNodes = (nodes: Array<HistoryNode>, filter: TestTreeFilter): Array<HistoryNode> => {
-  const result: Array<HistoryNode> = [];
-  for (const node of nodes) {
-    if (node.type === 'test') {
-      if (matchesTest(node, filter)) result.push(node);
-      continue;
-    }
-    const tests: Array<HistoryTestNode> = [];
-    for (const test of node.tests) {
-      if (matchesTest(test, filter)) tests.push(test);
-    }
-    if (tests.length > 0) result.push({ ...node, tests });
+export const getVisibleSuites = (testPackage: TestPackage, filter: TestTreeFilter, sortBy: SortBy): Array<TestSuite> => {
+  const suites: Array<TestSuite> = [];
+  for (const suite of Object.values(testPackage.suites)) {
+    if (suiteMatchesFilter(suite, filter)) suites.push(suite);
   }
-  return result;
+  return suites.sort(sortSuites(sortBy));
+};
+
+export const getVisibleNodes = (nodes: TestTreeNodeMap, filter: TestTreeFilter, sortBy: SortBy): Array<TestTreeNode> => {
+  const visible: Array<TestTreeNode> = [];
+  for (const node of Object.values(nodes)) {
+    if (nodeMatchesFilter(node, filter)) visible.push(node);
+  }
+  return visible.sort(sortTreeNodes(sortBy));
 };
 
 export const isFilterActive = (filter: TestTreeFilter): boolean =>
   !!filter.text?.trim() || filter.status !== undefined || filter.type !== undefined;
 
-export const filterHistoryTree = (runs: Array<HistoryRunNode>, filter: TestTreeFilter): Array<HistoryRunNode> => {
-  if (!isFilterActive(filter)) return runs;
-  const result: Array<HistoryRunNode> = [];
+export const filterRuns = (runs: Array<TestRunTree>, filter: TestTreeFilter): Array<TestRunTree> => {
+  const result: Array<TestRunTree> = [];
   for (const run of runs) {
-    const nodes = filterNodes(run.nodes, filter);
-    if (nodes.length > 0) result.push({ ...run, nodes });
+    for (const testPackage of Object.values(run.testTree.packages)) {
+      if (packageMatchesFilter(testPackage, filter)) {
+        result.push(run);
+        break;
+      }
+    }
   }
   return result;
 };

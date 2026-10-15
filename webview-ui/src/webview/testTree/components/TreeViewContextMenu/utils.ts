@@ -1,5 +1,6 @@
 import {
   getGroupTestRunnableIds,
+  hasTestResults,
   isTestRunnable,
   getPackageStatus,
 } from '../../utils/treeUtils';
@@ -78,7 +79,7 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: test.location !== undefined,
-      hasResults: test.type !== undefined && test.type !== 'unit-test',
+      hasResults: hasTestResults(test),
       hasCoverage: test.hasCoverage === true,
       runnableIds: [test.id],
       locationId: test.location !== undefined ? test.id : undefined,

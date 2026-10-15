@@ -450,10 +450,16 @@ type TestResultHistory = {
 
 type HistoryRunTest = Pick<Test, 'id' | 'type' | 'group'>;
 
+type TestRunTree = {
+  runId: string;
+  status: TestJobStatus;
+  startedOn: number;
+  finishedOn?: number;
+  testTree: TestTree;
+};
+
 type TestSummaryHistory = {
-  runs: Array<TestRunHistory>;
-  names: GenericMap<string>;
-  live: GenericMap<RunStatusContext>;
+  runs: Array<TestRunTree>;
   activeRunId: string | null;
 };
 
@@ -568,6 +574,7 @@ type ExtensionToWebviewMessage =
   | { type: "test-summary-details", payload: { testResult: TestResult, runId: string | null, previousRunStartedOn: number | null } }
   | { type: "test-summary-history", payload: TestSummaryHistory }
   | { type: "test-summary-clear" }
+  | { type: "test-summary-set-sort", payload: { sortBy: SortBy } }
   | { type: "test-result-expand-round", payload: { roundId: number } }
   | { type: "test-result-run", payload: { startedOn: number | null } }
   | { type: "coverage-tree", payload: { coverageTree: CoverageTree, scope: CoverageScope } }
@@ -584,6 +591,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-open-results", payload: { testId: TestId } }
   | { type: "test-summary-open-round", payload: { testId: TestId, runId: string, roundId: number } }
   | { type: "test-summary-open-test", payload: { testId: TestId, runId: string } }
+  | { type: "test-summary-open-results", payload: { testId: TestId, runId: string } }
   | { type: "test-tree-show-location", payload: { testId: TestId } }
   | { type: "test-tree-show-coverage", payload: { testId: TestId, testName: string, group: Array<string> } }
   | { type: "test-tree-run", payload: { testIds: Array<RunnableTestId> } }

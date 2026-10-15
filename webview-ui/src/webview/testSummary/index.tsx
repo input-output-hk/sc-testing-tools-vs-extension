@@ -8,8 +8,7 @@ import TreeViewFilter from '../testTree/components/TreeViewFilter';
 import Tooltip from '../../components/Tooltip';
 import TestRunLabel from '../../components/TestRunLabel';
 import { formatRunTime } from '../../utils/format';
-import { buildHistoryTree, filterHistoryTree, isFilterActive } from './utils/historyTreeUtils';
-import type { HistoryTestNode } from './utils/historyTreeUtils';
+import { fillRunStatus, filterRuns, isFilterActive } from './utils/historyTreeUtils';
 
 const EMPTY_FILTER: TestTreeFilter = {};
 
@@ -33,6 +32,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [history, setHistory] = useState<TestSummaryHistory | null>(null);
   const [filter, setFilter] = useState<TestTreeFilter>(EMPTY_FILTER);
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
+  const [sortBy, setSortBy] = useState<SortBy>('location');
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -44,7 +44,10 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         setSummaryRunId(message.payload.runId);
         setPreviousRunStartedOn(message.payload.previousRunStartedOn);
       } else if (message.type === 'test-summary-history') {
+        fillRunStatus(message.payload.runs);
         setHistory(message.payload);
+      } else if (message.type === 'test-summary-set-sort') {
+        setSortBy(message.payload.sortBy);
       } else if (message.type === 'test-summary-clear') {
         setTestSummary(null);
         setSummaryRunId(null);
@@ -80,16 +83,23 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
     setOpenState(previous => ({ ...previous, [key]: isOpen }));
   };
 
-  const handleSelectTest = (node: HistoryTestNode) => {
+  const handleSelectTest = (testId: TestId, runId: string) => {
     vscode.postMessage({
       type: 'test-summary-open-test',
-      payload: { testId: node.test.id, runId: node.runId }
+      payload: { testId, runId }
     } as WebviewToExtensionMessage);
   };
 
-  const runs = history !== null ? buildHistoryTree(history) : [];
-  const [currentRun] = filterHistoryTree(runs.slice(0, 1), filter);
-  const olderRuns = filterHistoryTree(runs.slice(1), filter);
+  const handleOpenTestResult = (testId: TestId, runId: string) => {
+    vscode.postMessage({
+      type: 'test-summary-open-results',
+      payload: { testId, runId }
+    } as WebviewToExtensionMessage);
+  };
+
+  const runs = history?.runs ?? [];
+  const [currentRun] = filterRuns(runs.slice(0, 1), filter);
+  const olderRuns = filterRuns(runs.slice(1), filter);
 
   const previousRunDate = previousRunStartedOn === null ? null : new Date(previousRunStartedOn);
   const path = testSummary ? [testSummary.test.id[1], testSummary.test.id[2], ...testSummary.test.group].join(' > ') : '';
@@ -114,7 +124,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
               {path} <span className="text-base-06">&gt; {testSummary.test.name}</span>
             </div>
 
-            {testSummary.test.type === 'unit-test' ? null : testSummary.rounds.length > 0 ?
+            {testSummary.test.type === 'unit-test' ? <div className="mt-4 text-base-06">Custom tests do not have rounds.</div> : testSummary.rounds.length > 0 ?
               <>
                 <div className="mt-4 mb-4 border border-base-12 rounded-md bg-white/5">
                   <table className="w-full text-left">
@@ -158,10 +168,13 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
             : <HistoryTree
                 currentRun={currentRun ?? null}
                 olderRuns={olderRuns}
+                filter={filter}
+                sortBy={sortBy}
                 openState={openState}
                 forceOpen={isFilterActive(filter)}
                 onToggleOpen={handleToggleOpen}
                 onSelectTest={handleSelectTest}
+                onOpenTestResult={handleOpenTestResult}
               />
           }
         </div>

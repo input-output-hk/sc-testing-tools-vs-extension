@@ -102,6 +102,12 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
     .reduce((sum, time) => sum + time, 0);
 };
 
+export const isThreatModelsGroup = (name: string): boolean =>
+  name.toLowerCase() === 'threat models';
+
+export const hasTestResults = (test: Test): boolean =>
+  test.type !== undefined && test.type !== 'unit-test';
+
 export const isTestRunnable = (test: Test): boolean =>
   !test.isStatic && !test.isRunning && !test.isBuilding && !test.isWaiting;
 
