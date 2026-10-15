@@ -18,6 +18,7 @@ interface Props {
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onShowTestLocation: (testId: TestId) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenTestSummary: (testId: TestId) => void;
   onShowCoverage: (test: Test) => void;
 }
 
@@ -68,6 +69,7 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     isBuildEnabled,
     hasLocation,
     hasResults,
+    hasSummary,
     hasCoverage,
     runnableIds,
     buildableIds,
@@ -95,6 +97,11 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     if (test) props.onOpenTestResult(test.id);
   };
 
+  const handleViewSummary = (): void => {
+    setContextMenu(null);
+    if (test) props.onOpenTestSummary(test.id);
+  };
+
   const handleViewCoverage = (): void => {
     setContextMenu(null);
     if (test) props.onShowCoverage(test);
@@ -110,11 +117,13 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
       isBuildEnabled={isBuildEnabled}
       hasLocation={hasLocation}
       hasResults={hasResults}
+      hasSummary={hasSummary}
       hasCoverage={hasCoverage}
       onRun={handleRun}
       onBuild={handleBuild}
       onShowLocation={handleViewLocation}
       onViewResults={handleViewResults}
+      onViewSummary={handleViewSummary}
       onViewCoverage={handleViewCoverage}
     />
   );

@@ -8,11 +8,13 @@ interface Props {
   isBuildEnabled: boolean;
   hasLocation: boolean;
   hasResults: boolean;
+  hasSummary: boolean;
   hasCoverage: boolean;
   onRun: () => void;
   onBuild: () => void;
   onShowLocation: () => void;
   onViewResults: () => void;
+  onViewSummary: () => void;
   onViewCoverage: () => void;
 }
 
@@ -24,11 +26,13 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
   isBuildEnabled,
   hasLocation,
   hasResults,
+  hasSummary,
   hasCoverage,
   onRun,
   onBuild,
   onShowLocation,
   onViewResults,
+  onViewSummary,
   onViewCoverage,
 }, ref) => {
   const handleContextMenu = (event: React.MouseEvent): void => {
@@ -69,6 +73,16 @@ const ContextMenu: React.FC<Props & React.RefAttributes<HTMLDivElement>> = forwa
         >
           <i className="codicon codicon-tasklist" />
           <span>View Results</span>
+        </button>
+      }
+      {hasSummary &&
+        <button
+          type="button"
+          className="flex items-center gap-1 w-full px-3 py-1 border-0 bg-transparent text-left cursor-pointer hover:bg-(--vscode-menu-selectionBackground) hover:text-(--vscode-menu-selectionForeground)"
+          onClick={onViewSummary}
+        >
+          <i className="codicon codicon-checklist" />
+          <span>View Test Summary</span>
         </button>
       }
       {hasCoverage &&

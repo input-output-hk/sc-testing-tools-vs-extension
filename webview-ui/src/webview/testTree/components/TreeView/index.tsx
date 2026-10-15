@@ -22,6 +22,7 @@ interface TreeViewProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenTestSummary: (testId: TestId) => void;
   onShowCoverage: (test: Test) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
@@ -40,6 +41,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   onBuildTestSuite,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onOpenTestSummary,
   onShowCoverage,
   onShowTestLocation
 }) => {
@@ -127,6 +129,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
         onOpenTestResult={onOpenTestResult}
+        onOpenTestSummary={onOpenTestSummary}
         onShowCoverage={onShowCoverage}
       />
       <Tooltip id="tree-node-action" place="left" />

@@ -589,6 +589,7 @@ type WebviewToExtensionMessage =
   | { type: "test-tree-fetch" }
   | { type: "test-tree-open-folder" }
   | { type: "test-tree-open-results", payload: { testId: TestId } }
+  | { type: "test-tree-open-summary", payload: { testId: TestId } }
   | { type: "test-summary-open-round", payload: { testId: TestId, runId: string, roundId: number } }
   | { type: "test-summary-open-test", payload: { testId: TestId, runId: string } }
   | { type: "test-summary-open-results", payload: { testId: TestId, runId: string } }
