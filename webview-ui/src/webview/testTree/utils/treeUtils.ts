@@ -102,6 +102,12 @@ export const getGroupTime = (group: TestTreeGroupNode): number => {
     .reduce((sum, time) => sum + time, 0);
 };
 
+export const isThreatModelsGroup = (name: string): boolean =>
+  name.toLowerCase() === 'threat models';
+
+export const hasTestResults = (test: Test): boolean =>
+  test.type !== undefined && test.type !== 'unit-test';
+
 export const isTestRunnable = (test: Test): boolean =>
   !test.isStatic && !test.isRunning && !test.isBuilding && !test.isWaiting;
 
@@ -153,5 +159,18 @@ export const sortTreeNodes = (sortBy: SortBy) => (a: TestTreeNode, b: TestTreeNo
     const testA = (a as TestTreeTestNode).test;
     const testB = (b as TestTreeTestNode).test;
     return getTestComparator(sortBy)(testA, testB);
+  }
+};
+
+export const mapJobStatusToClassName = (status: TestJobStatus): string => {
+  switch (status) {
+    case 'waiting':
+      return 'codicon-history text-yellow-02';
+    case 'running':
+      return 'codicon-loading';
+    case 'success':
+      return 'codicon-pass text-green-01';
+    case 'failed':
+      return 'codicon-error text-red-01';
   }
 };

@@ -64,12 +64,24 @@
         "icon": "$(collapse-all)"
       },
       {
+        "command": "pbt-extension.collapseTestSummary",
+        "title": "PBT: Collapse Test Summary",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "pbt-extension.clearTestRunsHistory",
+        "title": "PBT: Clear Test Runs History",
+        "icon": "$(clear-all)",
+        "enablement": "!pbt.activeTestRun && !pbt.activeSummaryRun"
+      },
+      {
         "command": "pbt-extension.collapseAllTests",
         "title": "Collapse all Tests"
       },
       {
         "command": "pbt-extension.clearAllTestsResults",
-        "title": "Clear all Results"
+        "title": "Clear all Results",
+        "enablement": "!pbt.activeTestRun && !pbt.activeSummaryRun"
       },
       {
         "command": "pbt-extension.sortTestsByLocation",
@@ -110,6 +122,16 @@
         {
           "command": "pbt-extension.closeTestCoverage",
           "when": "view == pbt-test-coverage",
+          "group": "navigation@2"
+        },
+        {
+          "command": "pbt-extension.collapseTestSummary",
+          "when": "view == pbt-test-summary",
+          "group": "navigation@1"
+        },
+        {
+          "command": "pbt-extension.clearTestRunsHistory",
+          "when": "view == pbt-test-summary && !pbt.activeTestRun && !pbt.activeSummaryRun",
           "group": "navigation@2"
         },
         {
@@ -161,6 +183,13 @@
           "title": "PBT",
           "icon": "images/pbt-icon.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "pbt-test-summary",
+          "title": "Test Summary",
+          "icon": "images/pbt-icon.svg"
+        }
       ]
     },
     "views": {
@@ -182,6 +211,13 @@
           "name": "Test Run Configuration",
           "type": "webview",
           "icon": "images/pbt-icon.svg"
+        }
+      ],
+      "pbt-test-summary": [
+        {
+          "id": "pbt-test-summary",
+          "name": "Test Summary",
+          "type": "webview"
         }
       ]
     },

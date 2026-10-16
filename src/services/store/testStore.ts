@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { queue } from 'async';
 import { BehaviorSubject, Subject, concatMap, debounceTime, from } from 'rxjs';
 
@@ -18,6 +18,13 @@ import type { QueueObject } from 'async';
 
 const TEST_TREE_REFRESH_DEBOUNCE_MS = 1000;
 
+type HistoryRun = {
+  runId: string;
+  pendingJobs: number;
+  runningJobIds: Set<string>;
+  hasFailed: boolean;
+};
+
 export default class TestStore {
   private context: PbtContext = {} as PbtContext;
   private database: Database;
@@ -32,6 +39,8 @@ export default class TestStore {
   private coverageTree: CoverageTree | null = null;
   private coverageOpenState: Record<string, boolean> = {};
   private testOpenState: Record<string, boolean> = {};
+  private historyRun: HistoryRun | null = null;
+  private historyRunIds: Map<string, string> = new Map();
 
   constructor(context: vscode.ExtensionContext) {
     this.rpcClient = new RpcClient(context);
@@ -67,6 +76,11 @@ export default class TestStore {
   }
 
   private async handleTestEvent(event: TestEvent): Promise<void> {
+    const historyRunId = this.historyRunIds.get(event.testJobId);
+    if (historyRunId !== undefined && event.eventType !== 'test-run-update' && event.eventType !== 'test-run-error') {
+      event.testJobId = historyRunId;
+    }
+
     switch (event.eventType) {
       case 'test-suite-update':
         await this.handleTestSuiteUpdateEvent(event as TestSuiteUpdateEvent);
@@ -104,9 +118,44 @@ export default class TestStore {
   }
 
   private async handleTestRunUpdateEvent(event: TestRunUpdateEvent): Promise<void> {
+    await this.updateHistoryRun(event.payload.job);
     this.updateTestJob(event);
     await this.database.handleTestRunUpdateEvent(event);
-    await this.history.handleTestRunUpdateEvent(event);
+  }
+
+  /**
+   * Links server run jobs to the active history run and ends it when its last job finishes.
+   * A `running` job not seen yet takes the next pending play (the server runs jobs in send order).
+   * A finished job is removed; when none are pending or running, the run is stored as success/failed.
+   */
+  private async updateHistoryRun(job: TestJob): Promise<void> {
+    const run = this.historyRun;
+    if (job.type !== 'run' || run === null) return;
+
+    if (job.status === 'running') {
+      if (this.historyRunIds.has(job.id) || run.pendingJobs === 0) return;
+      run.pendingJobs -= 1;
+      run.runningJobIds.add(job.id);
+      this.historyRunIds.set(job.id, run.runId);
+      return;
+    }
+
+    if (!run.runningJobIds.delete(job.id)) return;
+    if (job.status === 'failed') run.hasFailed = true;
+    if (run.pendingJobs > 0 || run.runningJobIds.size > 0) return;
+    await this.endHistoryRun(run.hasFailed ? 'failed' : 'success', job.finishedOn ?? Date.now());
+  }
+
+  /**
+   * Ends the active history run: clears it synchronously (so the next play starts a new run),
+   * unlocks the clear buttons (`pbt.activeSummaryRun`) and stores its final status and end time.
+   */
+  private async endHistoryRun(status: TestJobStatus, finishedOn: number): Promise<void> {
+    const run = this.historyRun;
+    if (run === null) return;
+    this.historyRun = null;
+    vscode.commands.executeCommand('setContext', 'pbt.activeSummaryRun', false);
+    await this.history.finishTestRun(run.runId, status, finishedOn);
   }
 
   private async handleTestRunErrorEvent(event: TestRunErrorEvent): Promise<void> {
@@ -270,6 +319,16 @@ export default class TestStore {
       testRuns.get(workspaceId)!.push(testRunId);
     }
 
+    const isNewRun = this.historyRun === null;
+    if (this.historyRun === null) {
+      this.historyRun = { runId: randomUUID(), pendingJobs: 0, runningJobIds: new Set(), hasFailed: false };
+      vscode.commands.executeCommand('setContext', 'pbt.activeSummaryRun', true);
+    }
+    const historyRun = this.historyRun;
+    historyRun.pendingJobs += testRuns.size;
+    if (isNewRun) await this.history.insertTestRun(historyRun.runId, Date.now());
+    await this.history.mirrorTestResults(historyRun.runId, await this.database.getRunTests(testIds));
+
     for (const [workspaceId, testIds] of testRuns.entries()) {
       const { mode, rounds } = this.context!.store.settingStore.getSettings();
       this.rpcClient.testRun({
@@ -294,7 +353,12 @@ export default class TestStore {
   public async stopTestRun(): Promise<void> {
     await this.rpcClient.stopTestRun();
     await this.database!.handleTestRunStop();
+    await this.endHistoryRun('failed', Date.now());
     this.testJob.next(null);
+  }
+
+  public getActiveHistoryRunId(): string | null {
+    return this.historyRun?.runId ?? null;
   }
 
   public async clearTestTreeResults(): Promise<void> {
@@ -344,10 +408,18 @@ export default class TestStore {
     return await this.history.getTestRuns();
   }
 
+  public async getTestRun(runId: string): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    return await this.history.getRun(runId);
+  }
+
+  public async getLatestTestRun(): Promise<Omit<TestRunHistory, 'tests'> | null> {
+    return await this.history.getLatestRun();
+  }
+
   public async getTestRoundsHistory(runId: string, testId: TestId): Promise<Array<TestRound>> {
     return await this.history.getTestRounds(runId, testId);
   }
-  
+
   public async getCoverage(): Promise<CoverageTree> {
     const files = await this.database.getCoverage();
     this.coverageTree = buildCoverageTree(files, this.coverageOpenState);

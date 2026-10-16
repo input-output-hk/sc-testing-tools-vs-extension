@@ -6,6 +6,7 @@ import TestTreeView from './modules/testTreeView';
 import TestResultView from './modules/testResultView';
 import TestConfigurationView from './modules/testConfigurationView';
 import TestCoverageView from './modules/testCoverageView';
+import TestSummaryView from './modules/testSummaryView';
 import { getBinaryPath } from './utils/binary';
 
 export type PbtContext = {
@@ -15,6 +16,7 @@ export type PbtContext = {
   testResultView: TestResultView;
   testConfigurationView: TestConfigurationView;
   testCoverageView: TestCoverageView;
+  testSummaryView: TestSummaryView;
   outputChannel: vscode.OutputChannel;
   statusBarItem: vscode.StatusBarItem;
 };
@@ -49,6 +51,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // Init test coverage view
   const testCoverageView = new TestCoverageView();
 
+  // Init test summary view
+  const testSummaryView = new TestSummaryView();
+
   // Init output channel
   const outputChannel = vscode.window.createOutputChannel('PBT Extension');
 
@@ -63,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
     testResultView,
     testConfigurationView,
     testCoverageView,
+    testSummaryView,
     outputChannel,
     statusBarItem,
   };
@@ -74,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
     testResultView.activate(pbtContext);
     testConfigurationView.activate(pbtContext);
     testCoverageView.activate(pbtContext);
+    testSummaryView.activate(pbtContext);
   });
 
   // Add subscriptions to context

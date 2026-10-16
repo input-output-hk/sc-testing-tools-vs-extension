@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 
 import {
   VscodeTableRow,
   VscodeTableCell
 } from '@vscode-elements/react-elements';
+
+import type { VscodeTableRow as VscodeTableRowElement } from '@vscode-elements/elements/dist/vscode-table-row/vscode-table-row.js';
+import type { RoundRowHandle } from './TransitionRoundRow';
 
 import Tooltip from '../../../../components/Tooltip';
 import RoundStatusIcon from './RoundStatusIcon';
@@ -69,10 +72,19 @@ const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (
   </VscodeTableCell>
 );
 
-const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => {
+const ThreatModelRoundRow: React.FC<Props & React.RefAttributes<RoundRowHandle>> = forwardRef<RoundRowHandle, Props>(
+  ({ index, round, onOpenGraph }, ref) => {
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const { validTxs, invalidTxs, inputs, outputs, mints, attacks } = getRoundStats(round);
   const rowBackgroundClass = index % 2 === 0 ? 'bg-[var(--vscode-panel-background)]' : 'bg-[var(--vscode-sideBar-background)]';
+  const rowRef = useRef<VscodeTableRowElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    expand: (): void => {
+      setCollapsed(false);
+      requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center' }));
+    }
+  }));
 
   const handleOpenRoundGraph = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -83,7 +95,7 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
 
   return (
     <>
-      <VscodeTableRow className={rowBackgroundClass}>
+      <VscodeTableRow ref={rowRef} className={rowBackgroundClass}>
         <RoundCell id onClick={() => setCollapsed(!collapsed)}>
           <span>
             <button
@@ -126,6 +138,6 @@ const ThreatModelRoundRow: React.FC<Props> = ({ index, round, onOpenGraph }) => 
       }
     </>
   );
-};
+});
 
 export default ThreatModelRoundRow;

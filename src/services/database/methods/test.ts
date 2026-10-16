@@ -204,6 +204,28 @@ export const handleTestRun = async (database: Database, testIds: Array<RunnableT
     .update({ $set: { isWaiting: true, time: undefined } });
 }
 
+// Expands the ids sent on play (single tests or whole suites) into the tests of the run,
+// with what the history needs to mirror them as pending rows. Static (preview) tests are included.
+export const getRunTests = async (database: Database, testIds: Array<RunnableTestId>): Promise<Array<HistoryRunTest>> => {
+  // Keyed by test id, so a suite and one of its tests don't add the test twice
+  const tests: Map<string, HistoryRunTest> = new Map();
+  for (const [workspaceId, packageName, suiteName, testId] of testIds) {
+    // No test id = the whole suite
+    const selector = testId !== undefined
+      ? { id: `${workspaceId}:${packageName}:${suiteName}:${testId}` }
+      : { workspaceId, packageName, suiteName };
+    const testDocuments: Array<TestDocument> = await database.tests.find({ selector }).exec();
+    for (const document of testDocuments) {
+      tests.set(document.id, {
+        id: [document.workspaceId, document.packageName, document.suiteName, document.testId],
+        type: document.type,
+        group: document.group,
+      });
+    }
+  }
+  return Array.from(tests.values());
+}
+
 export const getTest = async (database: Database, testId: TestId): Promise<Test> => {
   const testDocument: TestDocument | null = await database.tests.findOne({
     selector: { id: testId.join(':') }
