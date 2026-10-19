@@ -183,6 +183,7 @@ export default class TestTreeView {
   }
 
   private async clearAllTestsResults(): Promise<void> {
+    await this.context.testSummaryView.showLoading();
     await this.context.store.testStore.clearTestTreeResults();
     this.fetchTestTree();
   }

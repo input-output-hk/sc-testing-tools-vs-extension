@@ -80,6 +80,10 @@ export default class TestSummaryView {
     this.webview?.postMessage({ type: 'test-summary-set-sort', payload: { sortBy } } as ExtensionToWebviewMessage);
   }
 
+  public async showLoading(): Promise<void> {
+    await this.webview?.postMessage({ type: 'test-summary-loading' } as ExtensionToWebviewMessage);
+  }
+
   private openTest(testId: TestId, runId: string): void {
     this.testId = testId;
     this.runId = runId;

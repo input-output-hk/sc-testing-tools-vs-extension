@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 
 import type { WebviewApi } from 'vscode-webview';
+import { VscodeProgressBar } from '@vscode-elements/react-elements';
 
 import RoundsAccordion from './components/RoundsAccordion';
 import HistoryTree from './components/HistoryTree';
@@ -34,6 +35,8 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
   const [sortBy, setSortBy] = useState<SortBy>('location');
   const [collapsedAt, setCollapsedAt] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     vscode.postMessage({ type: 'webview-ready' } as WebviewToExtensionMessage);
@@ -47,6 +50,8 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
       } else if (message.type === 'test-summary-history') {
         fillRunStatus(message.payload.runs);
         setHistory(message.payload);
+        setIsLoading(false);
+        if (message.payload.runs.length === 0) setIsClearing(false);
       } else if (message.type === 'test-summary-set-sort') {
         setSortBy(message.payload.sortBy);
       } else if (message.type === 'test-summary-collapse') {
@@ -56,6 +61,8 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
         setTestSummary(null);
         setSummaryRunId(null);
         setPreviousRunStartedOn(null);
+      } else if (message.type === 'test-summary-loading') {
+        setIsClearing(true);
       }
     };
 
@@ -166,8 +173,15 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
           onChangeFilter={handleChangeFilter}
           onClear={handleClearSearch}
         />
+        <div className="h-0.5 shrink-0">
+          {(isLoading || isClearing) &&
+            <VscodeProgressBar indeterminate className="[--vscode-progressBar-background:var(--vscode-descriptionForeground)]" />
+          }
+        </div>
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {runs.length === 0
+          {isLoading
+            ? null
+            : runs.length === 0
             ? <div className="p-4 text-[var(--vscode-descriptionForeground)]">No test runs yet.</div>
             : <HistoryTree
                 currentRun={currentRun ?? null}
