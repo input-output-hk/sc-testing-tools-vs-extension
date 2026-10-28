@@ -131,7 +131,7 @@
         },
         {
           "command": "pbt-extension.clearTestRunsHistory",
-          "when": "view == pbt-test-summary && !pbt.activeTestRun && !pbt.activeSummaryRun",
+          "when": "view == pbt-test-summary",
           "group": "navigation@2"
         },
         {
