@@ -49,6 +49,11 @@
         "icon": "$(stop-circle)"
       },
       {
+        "command": "pbt-extension.showOutput",
+        "title": "Show Output",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "PBT: Refresh Test Configuration",
         "icon": "$(refresh)"
@@ -96,6 +101,11 @@
           "command": "pbt-extension.stopTestRun",
           "when": "view == pbt-test-tree && pbt.activeTestRun",
           "group": "navigation@3"
+        },
+        {
+          "command": "pbt-extension.showOutput",
+          "when": "view == pbt-test-tree",
+          "group": "navigation@4"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",
