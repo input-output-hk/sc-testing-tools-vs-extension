@@ -186,6 +186,7 @@ export default class TestTreeView {
     await this.context.testSummaryView.showLoading();
     await this.context.store.testStore.clearTestTreeResults();
     this.fetchTestTree();
+    vscode.commands.executeCommand('workbench.panel.markers.view.focus');
   }
 
   private sortTestsByLocation(): void {

@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { VscodeTree, VscodeTreeItem } from '@vscode-elements/react-elements';
+
+import type { VscodeTreeItem as VscodeTreeItemElement } from '@vscode-elements/elements/dist/vscode-tree-item/vscode-tree-item.js';
 
 import StatusIcon from '../../../components/StatusIcon';
 import TestStatusIcon from '../../../components/TestStatusIcon';
@@ -38,6 +41,7 @@ interface Props {
   filter: TestTreeFilter;
   sortBy: SortBy;
   collapsedAt: number | null;
+  selectCurrentAt: number | null;
   openState: GenericMap<boolean>;
   forceOpen: boolean;
   onToggleOpen: (key: string, isOpen: boolean) => void;
@@ -51,6 +55,7 @@ interface FolderProps {
   description?: string;
   icon?: React.ReactNode;
   defaultOpen?: boolean;
+  selectedAt?: number | null;
   openState: GenericMap<boolean>;
   forceOpen: boolean;
   onToggleOpen: (key: string, isOpen: boolean) => void;
@@ -105,7 +110,11 @@ const getOlderRunClassName = (status: TestJobStatus): string =>
     ? 'codicon-question text-[var(--vscode-descriptionForeground)]'
     : mapJobStatusToClassName(status);
 
-const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, collapsedAt, openState, forceOpen, onToggleOpen, onSelectTest, onOpenTestResult }) => {
+const deselectTreeItem = (treeItem: VscodeTreeItemElement): void => {
+  treeItem.selected = false;
+};
+
+const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, collapsedAt, selectCurrentAt, openState, forceOpen, onToggleOpen, onSelectTest, onOpenTestResult }) => {
   const isCurrentRunOpen = currentRun !== null && (collapsedAt === null || currentRun.startedOn > collapsedAt);
 
   const getTreeState = (runId: string, defaultOpen: boolean): TreeState => ({
@@ -115,7 +124,7 @@ const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, c
   return (
     <VscodeTree>
       {currentRun !== null && (
-        <HistoryFolder nodeKey="current" label="Current testrun" defaultOpen={isCurrentRunOpen} openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
+        <HistoryFolder nodeKey="current" label="Current testrun" defaultOpen={isCurrentRunOpen} selectedAt={selectCurrentAt} openState={openState} forceOpen={forceOpen} onToggleOpen={onToggleOpen}>
           <HistoryRun run={currentRun} tree={getTreeState(currentRun.runId, isCurrentRunOpen)} />
         </HistoryFolder>
       )}
@@ -140,11 +149,20 @@ const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, c
   );
 };
 
-const HistoryFolder: React.FC<FolderProps> = ({ nodeKey, label, description, icon, defaultOpen = false, openState, forceOpen, onToggleOpen, children }) => {
+const HistoryFolder: React.FC<FolderProps> = ({ nodeKey, label, description, icon, defaultOpen = false, selectedAt = null, openState, forceOpen, onToggleOpen, children }) => {
   const handleToggleCollapsed = (isCollapsed: boolean) => {
     onToggleOpen(nodeKey, !isCollapsed);
   };
   const treeItemRef = useTreeItemState({ onToggleCollapsed: handleToggleCollapsed });
+
+  useEffect(() => {
+    const treeItem = treeItemRef.current;
+    if (selectedAt === null || treeItem === null) return;
+    treeItem.closest('vscode-tree')?.querySelectorAll<VscodeTreeItemElement>('vscode-tree-item[selected]').forEach(deselectTreeItem);
+    treeItem.selected = true;
+    onToggleOpen(nodeKey, true);
+    treeItem.scrollIntoView({ block: 'nearest' });
+  }, [selectedAt]);
 
   return (
     <VscodeTreeItem ref={treeItemRef} open={forceOpen || (openState[nodeKey] ?? defaultOpen)}>

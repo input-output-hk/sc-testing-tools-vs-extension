@@ -7,6 +7,8 @@ import type { PbtContext } from '../extension';
 export default class TestSummaryView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  private webviewView: vscode.WebviewView | null = null;
+  private isSelectCurrentPending = false;
   private testId: TestId | null = null;
   private runId: string | null = null;
 
@@ -25,6 +27,9 @@ export default class TestSummaryView {
 
     const collapseCommand = vscode.commands.registerCommand('pbt-extension.collapseTestSummary', this.collapseTestSummary.bind(this));
     context.extension.subscriptions.push(collapseCommand);
+
+    const showCommand = vscode.commands.registerCommand('pbt-extension.showTestSummary', this.focusTestSummary.bind(this));
+    context.extension.subscriptions.push(showCommand);
 
     this.context.store.testStore.onTestTreeUpdate(this.onTestTreeUpdate.bind(this));
     this.context.store.testStore.onTestJobUpdate(this.onTestJobUpdate.bind(this));
@@ -45,12 +50,28 @@ export default class TestSummaryView {
     this.sendTestSummaryHistory();
   }
 
+  private focusTestSummary(): void {
+    if (this.webviewView?.visible) {
+      this.webview?.postMessage({ type: 'test-summary-select-current' } as ExtensionToWebviewMessage);
+    } else {
+      this.isSelectCurrentPending = true;
+    }
+    vscode.commands.executeCommand('pbt-test-summary.focus');
+  }
+
+  private sendPendingSelectCurrent(): void {
+    if (!this.isSelectCurrentPending) return;
+    this.isSelectCurrentPending = false;
+    this.webview?.postMessage({ type: 'test-summary-select-current' } as ExtensionToWebviewMessage);
+  }
+
   private collapseTestSummary(): void {
     this.webview?.postMessage({ type: 'test-summary-collapse' } as ExtensionToWebviewMessage);
   }
 
-  private onWebviewResolved(webview: vscode.Webview): void {
+  private onWebviewResolved(webview: vscode.Webview, webviewView: vscode.WebviewView): void {
     this.webview = webview;
+    this.webviewView = webviewView;
 
     this.webview.onDidReceiveMessage(
       (message: WebviewToExtensionMessage) => {
@@ -59,6 +80,7 @@ export default class TestSummaryView {
             this.setSortBy(this.context.testTreeView.getSortBy());
             this.sendTestSummary();
             this.sendTestSummaryHistory();
+            this.sendPendingSelectCurrent();
             break;
           case 'test-summary-open-round':
             this.context.testResultView.openRun(message.payload.testId, message.payload.runId, message.payload.roundId);
@@ -114,10 +136,11 @@ export default class TestSummaryView {
   }
 
   private async sendTestSummaryHistory(): Promise<void> {
-    if (this.webview === null) return;
-
     const testStore = this.context.store.testStore;
     const history = await testStore.getTestRunsHistory();
+    vscode.commands.executeCommand('setContext', 'pbt.hasTestRuns', history.length > 0);
+    if (this.webview === null) return;
+
     const activeRunId = testStore.getActiveHistoryRunId();
     const liveTests: GenericMap<Test> = {};
     const livePackages: GenericMap<TestPackage> = {};

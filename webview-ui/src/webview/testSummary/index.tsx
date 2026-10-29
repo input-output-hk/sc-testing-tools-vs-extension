@@ -35,6 +35,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
   const [openState, setOpenState] = useState<GenericMap<boolean>>({});
   const [sortBy, setSortBy] = useState<SortBy>('location');
   const [collapsedAt, setCollapsedAt] = useState<number | null>(null);
+  const [selectCurrentAt, setSelectCurrentAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -57,10 +58,13 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
       } else if (message.type === 'test-summary-collapse') {
         setOpenState({});
         setCollapsedAt(Date.now());
+      } else if (message.type === 'test-summary-select-current') {
+        setSelectCurrentAt(Date.now());
       } else if (message.type === 'test-summary-clear') {
         setTestSummary(null);
         setSummaryRunId(null);
         setPreviousRunStartedOn(null);
+        setSelectCurrentAt(null);
       } else if (message.type === 'test-summary-loading') {
         setIsClearing(true);
       }
@@ -189,6 +193,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
                 filter={filter}
                 sortBy={sortBy}
                 collapsedAt={collapsedAt}
+                selectCurrentAt={selectCurrentAt}
                 openState={openState}
                 forceOpen={isFilterActive(filter)}
                 onToggleOpen={handleToggleOpen}
