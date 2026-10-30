@@ -2,13 +2,17 @@ import {
   getGroupStatus,
   getGroupTests,
   getGroupTime,
-  nodeMatchesFilter,
-  packageMatchesFilter,
+  getVisibleItems,
+  parseFilterText,
   sortPackages,
   sortSuites,
   sortTreeNodes,
-  suiteMatchesFilter,
 } from '../../testTree/utils/treeUtils';
+
+export type VisibleRun = {
+  run: TestRunTree;
+  visible: Set<VisibleItem>;
+};
 
 export const asGroup = (suite: TestSuite): TestTreeGroupNode => ({
   type: 'group',
@@ -49,42 +53,41 @@ export const isSuiteNeverRun = (suite: TestSuite): boolean =>
 export const isPackageNeverRun = (testPackage: TestPackage): boolean =>
   Object.values(testPackage.suites).every(isSuiteNeverRun);
 
-export const getVisiblePackages = (testTree: TestTree, filter: TestTreeFilter, sortBy: SortBy): Array<TestPackage> => {
+export const getVisiblePackages = (testTree: TestTree, visible: Set<VisibleItem>, sortBy: SortBy): Array<TestPackage> => {
   const packages: Array<TestPackage> = [];
   for (const testPackage of Object.values(testTree.packages)) {
-    if (packageMatchesFilter(testPackage, filter)) packages.push(testPackage);
+    if (visible.has(testPackage)) packages.push(testPackage);
   }
   return packages.sort(sortPackages(sortBy));
 };
 
-export const getVisibleSuites = (testPackage: TestPackage, filter: TestTreeFilter, sortBy: SortBy): Array<TestSuite> => {
+export const getVisibleSuites = (testPackage: TestPackage, visible: Set<VisibleItem>, sortBy: SortBy): Array<TestSuite> => {
   const suites: Array<TestSuite> = [];
   for (const suite of Object.values(testPackage.suites)) {
-    if (suiteMatchesFilter(suite, filter)) suites.push(suite);
+    if (visible.has(suite)) suites.push(suite);
   }
   return suites.sort(sortSuites(sortBy));
 };
 
-export const getVisibleNodes = (nodes: TestTreeNodeMap, filter: TestTreeFilter, sortBy: SortBy): Array<TestTreeNode> => {
-  const visible: Array<TestTreeNode> = [];
+export const getVisibleNodes = (nodes: TestTreeNodeMap, visible: Set<VisibleItem>, sortBy: SortBy): Array<TestTreeNode> => {
+  const visibleNodes: Array<TestTreeNode> = [];
   for (const node of Object.values(nodes)) {
-    if (nodeMatchesFilter(node, filter)) visible.push(node);
+    if (visible.has(node)) visibleNodes.push(node);
   }
-  return visible.sort(sortTreeNodes(sortBy));
+  return visibleNodes.sort(sortTreeNodes(sortBy));
 };
 
-export const isFilterActive = (filter: TestTreeFilter): boolean =>
-  !!filter.text?.trim() || filter.status !== undefined || filter.type !== undefined;
+export const isFilterActive = (filter: TestTreeFilter): boolean => {
+  const { positiveKeywords, negativeKeywords, tagKeywords } = parseFilterText(filter.text);
+  return positiveKeywords.length > 0 || negativeKeywords.length > 0 || tagKeywords.length > 0 ||
+    filter.status !== undefined || filter.type !== undefined;
+};
 
-export const filterRuns = (runs: Array<TestRunTree>, filter: TestTreeFilter): Array<TestRunTree> => {
-  const result: Array<TestRunTree> = [];
+export const filterRuns = (runs: Array<TestRunTree>, filter: TestTreeFilter): Array<VisibleRun> => {
+  const result: Array<VisibleRun> = [];
   for (const run of runs) {
-    for (const testPackage of Object.values(run.testTree.packages)) {
-      if (packageMatchesFilter(testPackage, filter)) {
-        result.push(run);
-        break;
-      }
-    }
+    const visible = getVisibleItems(run.testTree, filter);
+    if (visible.size > 0) result.push({ run, visible });
   }
   return result;
 };

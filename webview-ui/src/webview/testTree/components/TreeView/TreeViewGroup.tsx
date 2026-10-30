@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
@@ -10,7 +10,6 @@ import {
   getGroupTestRunnableIds,
   getGroupTime,
   getGroupStatus,
-  nodeMatchesFilter,
   isTestRunnable,
   isThreatModelsGroup,
   sortTreeNodes,
@@ -21,7 +20,7 @@ interface TreeViewGroupProps {
   suiteId: TestSuiteId;
   node: TestTreeGroupNode;
   path: Array<string>;
-  filter: TestTreeFilter;
+  visible: Set<VisibleItem>;
   sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -42,7 +41,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
   suiteId,
   node,
   path,
-  filter,
+  visible,
   sortBy,
   onRunTest,
   onUpdateSelection,
@@ -71,12 +70,18 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
     },
   });
 
+  /** Returns whether the filter left this item visible. */
+  const isVisible = useCallback(
+    (item: VisibleItem): boolean => visible.has(item),
+    [visible],
+  );
+
   const filteredNodes = useMemo(
     () =>
       Object.values(node.nodes)
-        .filter(node => nodeMatchesFilter(node, filter))
+        .filter(isVisible)
         .sort(sortTreeNodes(sortBy)),
-    [node.nodes, filter, sortBy]
+    [node.nodes, isVisible, sortBy]
   );
 
   const handleRunGroup = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -134,7 +139,7 @@ const TreeViewGroup: React.FC<TreeViewGroupProps> = ({
           suiteId={suiteId}
           node={childNode}
           path={[...path, node.name]}
-          filter={filter}
+          visible={visible}
           sortBy={sortBy}
           onRunTest={onRunTest}
           onUpdateSelection={onUpdateSelection}

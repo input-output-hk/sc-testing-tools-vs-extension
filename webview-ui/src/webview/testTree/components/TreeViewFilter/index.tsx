@@ -9,7 +9,7 @@ interface Props {
   onClear?: () => void;
 }
 
-const TreeViewFilter: React.FC<Props> = ({ filter, placeholder = 'Filter (e.g. test)', onChangeFilter, onClear }) => {
+const TreeViewFilter: React.FC<Props> = ({ filter, placeholder = 'Filter (e.g. text, !exclude, @tag)', onChangeFilter, onClear }) => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
 
