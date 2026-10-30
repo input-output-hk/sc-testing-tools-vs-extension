@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
@@ -6,7 +6,6 @@ import TreeViewSuite from './TreeViewSuite';
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 import {
-  suiteMatchesFilter,
   getPackageTime,
   getPackageStatus,
   sortSuites,
@@ -15,7 +14,7 @@ import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewPackageProps {
   testPackage: TestPackage;
-  filter: TestTreeFilter;
+  visible: Set<VisibleItem>;
   sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
@@ -35,7 +34,7 @@ interface TreeViewPackageProps {
 
 const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
   testPackage,
-  filter,
+  visible,
   sortBy,
   onRunTest,
   onBuildTestSuite,
@@ -57,12 +56,18 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
     },
   });
 
+  /** Returns whether the filter left this item visible. */
+  const isVisible = useCallback(
+    (item: VisibleItem): boolean => visible.has(item),
+    [visible],
+  );
+
   const filteredSuites = useMemo(
     () =>
       Object.values(testPackage.suites)
-        .filter(suite => suiteMatchesFilter(suite, filter))
+        .filter(isVisible)
         .sort(sortSuites(sortBy)),
-    [testPackage.suites, filter, sortBy],
+    [testPackage.suites, isVisible, sortBy],
   );
 
   const handleBuildPackage = (event: React.MouseEvent): void => {
@@ -133,7 +138,7 @@ const TreeViewPackage: React.FC<TreeViewPackageProps> = ({
           key={suite.name}
           packageId={packageId}
           suite={suite}
-          filter={filter}
+          visible={visible}
           sortBy={sortBy}
           onRunTest={onRunTest}
           onBuildTestSuite={onBuildTestSuite}

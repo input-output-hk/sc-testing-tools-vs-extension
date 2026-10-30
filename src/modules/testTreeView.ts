@@ -6,6 +6,7 @@ import type { PbtContext } from '../extension';
 export default class TestTreeView {
   private context: PbtContext;
   private webview: vscode.Webview | null = null;
+  private sortBy: SortBy = 'location';
 
   constructor() {
     this.context = {} as PbtContext;
@@ -61,6 +62,7 @@ export default class TestTreeView {
             // container is open even if the user leaves the Test Run Configuration view collapsed
             this.context.testConfigurationView.surfaceDependencyStatus();
             this.checkWorkspaceAndFetchTestTree();
+            this.sendSortToWebview(this.sortBy);
             break;
           case 'test-tree-fetch':
             this.checkWorkspaceAndFetchTestTree();
@@ -76,6 +78,9 @@ export default class TestTreeView {
             break;
           case 'test-tree-open-results':
             this.openTestResults(message.payload.testId);
+            break;
+          case 'test-tree-open-summary':
+            this.context.testSummaryView.showTestSummary(message.payload.testId);
             break;
           case 'test-tree-show-coverage':
             this.context.testCoverageView.showTestCoverage(message.payload.testId, message.payload.testName, message.payload.group);
@@ -178,8 +183,10 @@ export default class TestTreeView {
   }
 
   private async clearAllTestsResults(): Promise<void> {
+    await this.context.testSummaryView.showLoading();
     await this.context.store.testStore.clearTestTreeResults();
     this.fetchTestTree();
+    vscode.commands.executeCommand('workbench.panel.markers.view.focus');
   }
 
   private sortTestsByLocation(): void {
@@ -190,7 +197,13 @@ export default class TestTreeView {
     this.sendSortToWebview('status');
   }
 
+  public getSortBy(): SortBy {
+    return this.sortBy;
+  }
+
   private sendSortToWebview(sortBy: SortBy): void {
+    this.sortBy = sortBy;
+    this.context.testSummaryView.setSortBy(sortBy);
     if (this.webview !== null) {
       this.webview.postMessage({ type: 'test-tree-set-sort', payload: { sortBy } } as ExtensionToWebviewMessage);
     }
@@ -198,6 +211,7 @@ export default class TestTreeView {
 
   private openTestResults(testId: TestId): void {
     this.context.testResultView.open(testId);
+    this.context.testSummaryView.showTestSummary(testId);
   }
 
   private async showTestLocation(testId: TestId): Promise<void> {

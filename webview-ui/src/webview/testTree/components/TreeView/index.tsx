@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { VscodeTree } from '@vscode-elements/react-elements';
 
 import TestJob from '../TestJob';
@@ -6,7 +6,7 @@ import TreeViewFilter from '../TreeViewFilter';
 import TreeViewPackage from './TreeViewPackage';
 import TreeViewContextMenu, { type TreeViewContextMenuRef } from '../TreeViewContextMenu';
 import Tooltip from '../../../../components/Tooltip';
-import { packageMatchesFilter, sortPackages } from '../../utils/treeUtils';
+import { getVisibleItems, sortPackages } from '../../utils/treeUtils';
 
 interface TreeViewProps {
   testJob: TestJob | null;
@@ -22,6 +22,7 @@ interface TreeViewProps {
     path?: Array<string>
   ) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenTestSummary: (testId: TestId) => void;
   onShowCoverage: (test: Test) => void;
   onShowTestLocation: (testId: TestId) => void;
 }
@@ -40,6 +41,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   onBuildTestSuite,
   onUpdateOpenTestTreeNode,
   onOpenTestResult,
+  onOpenTestSummary,
   onShowCoverage,
   onShowTestLocation
 }) => {
@@ -47,12 +49,23 @@ const TreeView: React.FC<TreeViewProps> = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<TestTreeFilter>({});
 
+  const visible = useMemo(
+    () => getVisibleItems(testTree, filter),
+    [testTree, filter],
+  );
+
+  /** Returns whether the filter left this item visible. */
+  const isVisible = useCallback(
+    (item: VisibleItem): boolean => visible.has(item),
+    [visible],
+  );
+
   const filteredPackages = useMemo(
     () =>
       Object.values(testTree.packages)
-        .filter(testPackage => packageMatchesFilter(testPackage, filter))
+        .filter(isVisible)
         .sort(sortPackages(sortBy)),
-    [testTree.packages, filter, sortBy],
+    [testTree.packages, isVisible, sortBy],
   );
 
   const handleUpdateSelection = (testIds: Array<RunnableTestId>, selected: boolean) => {
@@ -90,6 +103,10 @@ const TreeView: React.FC<TreeViewProps> = ({
     }
   };
 
+  const handleClearSearch = () => {
+    setFilter({ ...filter, text: undefined });
+  };
+
   const handleContextMenu = (event: React.MouseEvent, item: TestTreeItem): void => {
     contextMenuRef.current?.open(event, item);
   };
@@ -99,6 +116,7 @@ const TreeView: React.FC<TreeViewProps> = ({
       <TreeViewFilter
         filter={filter}
         onChangeFilter={setFilter}
+        onClear={handleClearSearch}
       />
       <TestJob testJob={testJob} />
       <div className="flex-1 overflow-y-auto">
@@ -107,7 +125,7 @@ const TreeView: React.FC<TreeViewProps> = ({
             <TreeViewPackage
               key={testPackage.name}
               testPackage={testPackage}
-              filter={filter}
+              visible={visible}
               sortBy={sortBy}
               onRunTest={handleRunTest}
               onBuildTestSuite={onBuildTestSuite}
@@ -127,6 +145,7 @@ const TreeView: React.FC<TreeViewProps> = ({
         onBuildTestSuite={onBuildTestSuite}
         onShowTestLocation={onShowTestLocation}
         onOpenTestResult={onOpenTestResult}
+        onOpenTestSummary={onOpenTestSummary}
         onShowCoverage={onShowCoverage}
       />
       <Tooltip id="tree-node-action" place="left" />
