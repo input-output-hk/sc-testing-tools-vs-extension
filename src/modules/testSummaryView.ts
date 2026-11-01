@@ -241,7 +241,12 @@ export default class TestSummaryView {
     const testResult = runId === null
       ? await this.context.store.testStore.getTestResult(this.testId)
       : await this.context.testResultView.getTestRunResult(this.testId, runId);
-    if (testResult.test.status === 'undetermined') return;
+    if (testResult.test.status === 'undetermined') {
+      if (this.testId?.join(':') === testResult.test.id.join(':') && this.runId === runId) {
+        this.webview?.postMessage({ type: 'test-summary-clear' } as ExtensionToWebviewMessage);
+      }
+      return;
+    }
     const previousRunStartedOn = await this.context.testResultView.getPreviousRunStartedOn(runId);
     this.webview?.postMessage({ type: 'test-summary-details', payload: { testResult, runId, previousRunStartedOn } } as ExtensionToWebviewMessage);
   }
