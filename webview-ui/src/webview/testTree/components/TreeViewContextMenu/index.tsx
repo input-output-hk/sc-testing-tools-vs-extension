@@ -13,13 +13,14 @@ interface ContextMenuState {
   item: TestTreeItem;
 }
 
-type TreeViewContextMenuAction = 'run' | 'build' | 'results' | 'coverage' | 'location';
+type TreeViewContextMenuAction = 'run' | 'build' | 'results' | 'summary' | 'coverage' | 'location';
 
 interface Props {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
   onShowTestLocation: (testId: TestId) => void;
   onOpenTestResult: (testId: TestId) => void;
+  onOpenTestSummary: (testId: TestId) => void;
   onShowCoverage: (test: Test) => void;
 }
 
@@ -40,6 +41,7 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     isBuildEnabled,
     hasLocation,
     hasResults,
+    hasSummary,
     hasCoverage,
     runnableIds,
     buildableIds,
@@ -67,6 +69,12 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
       content: <><i className="codicon codicon-tasklist" /><span>View Results</span></>,
     });
   }
+  if (hasSummary) {
+    items.push({
+      value: 'summary',
+      content: <><i className="codicon codicon-checklist" /><span>View Test Summary</span></>,
+    });
+  }
   if (hasCoverage) {
     items.push({
       value: 'coverage',
@@ -90,6 +98,9 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
         break;
       case 'results':
         if (test) props.onOpenTestResult(test.id);
+        break;
+      case 'summary':
+        if (test) props.onOpenTestSummary(test.id);
         break;
       case 'coverage':
         if (test) props.onShowCoverage(test);

@@ -2,7 +2,7 @@ import { VscodeTreeItem } from '@vscode-elements/react-elements';
 
 import TestStatusIcon from '../../../../components/TestStatusIcon';
 import useTreeItemState from '../../../../hooks/useTreeItemState';
-import { isTestRunnable } from '../../utils/treeUtils';
+import { hasTestResults, isTestRunnable, isThreatModelsGroup } from '../../utils/treeUtils';
 import { formatRunTime } from '../../../../utils/format';
 
 interface TreeViewTestProps {
@@ -27,7 +27,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
   onContextMenu,
 }) => {
   const isRunnable = isTestRunnable(node.test);
-  const isThreatModel = path.length > 0 && path[path.length - 1].toLowerCase() === 'threat models';
+  const isThreatModel = path.length > 0 && isThreatModelsGroup(path[path.length - 1]);
 
   const treeItemRef = useTreeItemState({
     onToggleSelection: (selected) => {
@@ -96,7 +96,7 @@ const TreeViewTest: React.FC<TreeViewTestProps> = ({
           }
         </span>
 
-        {node.test.type !== undefined && node.test.type !== 'unit-test' &&
+        {hasTestResults(node.test) &&
           <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 opacity-60 hover:opacity-100 cursor-pointer"

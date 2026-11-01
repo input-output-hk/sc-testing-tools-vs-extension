@@ -1,5 +1,6 @@
 import {
   getGroupTestRunnableIds,
+  hasTestResults,
   isTestRunnable,
   getPackageStatus,
 } from '../../utils/treeUtils';
@@ -10,6 +11,7 @@ interface ItemContext {
   isBuildEnabled: boolean;
   hasLocation: boolean;
   hasResults: boolean;
+  hasSummary: boolean;
   hasCoverage: boolean;
   runnableIds: Array<RunnableTestId>;
   buildableIds?: Array<TestSuiteId>;
@@ -39,6 +41,7 @@ const getPackageContext = (packageNode: TestPackage): ItemContext => {
     isBuildEnabled: isRunnable,
     hasLocation: false,
     hasResults: false,
+    hasSummary: false,
     hasCoverage: false,
     runnableIds: suiteIds,
     buildableIds: suiteIds,
@@ -53,6 +56,7 @@ const getSuiteContext = (suiteId: TestSuiteId, suiteNode: TestSuite): ItemContex
     isBuildEnabled: isRunnable,
     hasLocation: false,
     hasResults: false,
+    hasSummary: false,
     hasCoverage: false,
     runnableIds: [suiteId],
     buildableIds: [suiteId],
@@ -68,6 +72,7 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildEnabled: false,
       hasLocation: false,
       hasResults: false,
+      hasSummary: false,
       hasCoverage: false,
       runnableIds,
     };
@@ -78,7 +83,8 @@ const getNodeContext = (node: TestTreeNode): ItemContext => {
       isBuildable: false,
       isBuildEnabled: false,
       hasLocation: test.location !== undefined,
-      hasResults: test.type !== undefined && test.type !== 'unit-test',
+      hasResults: hasTestResults(test),
+      hasSummary: test.status !== 'undetermined',
       hasCoverage: test.hasCoverage === true,
       runnableIds: [test.id],
       locationId: test.location !== undefined ? test.id : undefined,
