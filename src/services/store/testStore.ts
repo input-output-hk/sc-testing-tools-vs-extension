@@ -319,6 +319,8 @@ export default class TestStore {
       testRuns.get(workspaceId)!.push(testRunId);
     }
 
+    if (testRuns.size === 0) return;
+
     const isNewRun = this.historyRun === null;
     if (this.historyRun === null) {
       this.historyRun = { runId: randomUUID(), pendingJobs: 0, runningJobIds: new Set(), hasFailed: false };
