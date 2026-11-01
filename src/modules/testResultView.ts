@@ -83,9 +83,15 @@ export default class TestResultView {
         this.panel !== null &&
         this.testResult !== null &&
         test.id.join(':') === this.testResult.test.id.join(':') &&
-        test.status !== this.testResult.test.status
+        (
+          test.status !== this.testResult.test.status ||
+          test.isRunning !== this.testResult.test.isRunning ||
+          test.isWaiting !== this.testResult.test.isWaiting ||
+          test.lastRunId !== this.testResult.test.lastRunId ||
+          test.failureMessage !== this.testResult.test.failureMessage
+        )
       ) {
-        if (test.status !== "valid" && test.status !== "invalid") {
+        if (test.isRunning || test.isWaiting || test.status !== "valid" && test.status !== "invalid") {
           this.updateTest(test);
         } else {
           this.updateTestRounds(test);

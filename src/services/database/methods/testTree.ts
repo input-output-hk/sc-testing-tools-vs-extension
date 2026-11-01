@@ -209,7 +209,8 @@ export const fetchTestTree = async (database: Database, openState: Record<string
         } : undefined,
         time: testDocument.time,
         percentage: testDocument.percentage,
-        type: testDocument.type
+        type: testDocument.type,
+        failureMessage: testDocument.failureMessage,
       }));
 
       suiteNode.tests = createTestTree(suiteId, openState, tests);
@@ -233,6 +234,7 @@ export const clearTestTreeResults = async (database: Database): Promise<void> =>
     type: undefined,
     time: undefined,
     percentage: undefined,
+    failureMessage: undefined,
     hasCoverage: false
   }});
 };

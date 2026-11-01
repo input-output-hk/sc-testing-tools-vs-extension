@@ -34,27 +34,44 @@ interface RoundStats {
 }
 
 const getRoundStats = (round: ThreatModelTestRound): RoundStats => {
-  let validTxs = 0;
-  let invalidTxs = 0;
-  let inputs = 0;
-  let outputs = 0;
-  let mints = 0;
-  let attacks = 0;
+  const validTxs: Set<string> = new Set();
+  const invalidTxs: Set<string> = new Set();
+  const inputs: Set<string> = new Set();
+  const outputs: Set<string> = new Set();
+  const mints: Set<string> = new Set();
+  const attacks: Set<string> = new Set();
 
   for (const trace of round.traces) {
-    if (trace.tx) {
-      validTxs += 1;
-      inputs += trace.tx.inputs.length;
-      outputs += trace.tx.outputs.length;
-      mints += trace.tx.mint ? trace.tx.mint.assets.length : 0;
+    if (trace.tx && trace.tx.id) {
+      validTxs.add(trace.tx.id);
+      for (const input of trace.tx.inputs) {
+        inputs.add(input.utxo);
+      }
+      for (const output of trace.tx.outputs) {
+        outputs.add(output.utxo);
+      }
+      if (trace.tx.mint) {
+        for (const asset of trace.tx.mint.assets) {
+          mints.add(`${trace.tx.id}:${asset.policyId}`);
+        }
+      }
     }
-    if (trace.modifiedTx && trace.validation?.status !== 'valid') {
-      invalidTxs += 1;
+    if (trace.modifiedTx && trace.modifiedTx.id && trace.validation?.status !== 'valid') {
+      invalidTxs.add(trace.modifiedTx.id);
     }
-    attacks += trace.modifiedTx ? 1 : 0;
+    if (trace.modifiedTx && trace.modifiedTx.id) {
+      attacks.add(trace.modifiedTx.id);
+    }
   }
 
-  return { validTxs, invalidTxs, inputs, outputs, mints, attacks };
+  return {
+    validTxs: validTxs.size,
+    invalidTxs: invalidTxs.size,
+    inputs: inputs.size,
+    outputs: outputs.size,
+    mints: mints.size,
+    attacks: attacks.size
+  };
 };
 
 const RoundCell: React.FC<RoundCellProps> = (props: RoundCellProps) => (

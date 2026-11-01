@@ -55,13 +55,14 @@ export const updateSuiteTests = async (database: Database, testSuiteId: TestSuit
         percentage: test.percentage,
         type: test.type,
         lastRunId: test.lastRunId,
+        failureMessage: test.failureMessage,
       }))
     );
   }
 }
 
 export const handleTestUpdateEvent = async (database: Database, event: TestUpdateEvent): Promise<void> => {
-  const { id, status, isRunning, time, percentage, type } = event.payload;
+  const { id, status, isRunning, time, percentage, type, failureMessage } = event.payload;
 
   const testDocument: TestDocument | null = await database.tests.findOne({
     selector: { id: id.join(':') }
@@ -81,11 +82,13 @@ export const handleTestUpdateEvent = async (database: Database, event: TestUpdat
     if (isRunning === true) {
       updateData.isWaiting = false;
       updateData.hasCoverage = false;
+      updateData.failureMessage = undefined;
     }
     
     if (status !== undefined) {
       updateData.status = status;
       updateData.isRunning = false;
+      updateData.failureMessage = status === 'invalid' ? failureMessage : undefined;
       if (testDocument.type === undefined) {
         if (type !== undefined) {
           updateData.type = type;
@@ -190,14 +193,14 @@ export const handleTestRun = async (database: Database, testIds: Array<RunnableT
 
   await database.tests
     .findByIds(Array.from(allTestsIds))
-    .update({ $set: { isWaiting: true } });
+    .update({ $set: { isWaiting: true, failureMessage: undefined } });
 
   await database.tests
     .find({ selector: { $or: Array.from(testSuitesIds)
       .map(id => id.split(':') as TestSuiteId)
       .map(([workspaceId, packageName, suiteName]) => ({ workspaceId, packageName, suiteName }))
     }})
-    .update({ $set: { isWaiting: true } });
+    .update({ $set: { isWaiting: true, failureMessage: undefined } });
 
   await database.suites
     .findByIds(Array.from(allSuitesIds))
@@ -238,6 +241,7 @@ export const getTest = async (database: Database, testId: TestId): Promise<Test>
     percentage: testDocument.percentage,
     type: testDocument.type,
     lastRunId: testDocument.lastRunId,
+    failureMessage: testDocument.failureMessage,
   };
 }
 
@@ -278,6 +282,7 @@ export const onTestUpdate = (database: Database, callback: (payload: TestTreeUpd
         percentage: document.percentage,
         type: document.type,
         lastRunId: document.lastRunId,
+        failureMessage: document.failureMessage,
       }
     });
   });

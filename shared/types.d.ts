@@ -46,6 +46,7 @@ type Test = {
   percentage?: number;
   type?: TestType;
   lastRunId?: string;
+  failureMessage?: string;
 };
 
 type TestRangePosition = {
@@ -657,6 +658,7 @@ type TestUpdateEvent = TestEvent & {
     time?: number;
     percentage?: number;
     type?: TestType;
+    failureMessage?: string;
   };
 };
 

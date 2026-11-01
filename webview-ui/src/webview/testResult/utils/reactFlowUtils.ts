@@ -111,9 +111,15 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
   for (let i = 0; i < graphTxs.length; i++) {
     const tx = graphTxs[i].tx;
     const txId = `tx-${tx.identifier}`;
-    const iColN = i * 2;
-    const tColN = iColN + 1;
-    const oColN = tColN + 1;
+    let iColN = i * 2;
+    let tColN = iColN + 1;
+    let oColN = tColN + 1;
+
+    if (nodes[txId] !== undefined) {
+      tColN = nodes[txId].position.x / NODE_COLUMN_WIDTH;
+      iColN = tColN - 1;
+      oColN = tColN + 1;
+    }
 
     if (!columns[iColN]) columns[iColN] = [];
     if (!columns[tColN]) columns[tColN] = [];
