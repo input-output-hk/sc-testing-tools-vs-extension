@@ -55,6 +55,11 @@
         "enablement": "pbt.hasTestRuns"
       },
       {
+        "command": "pbt-extension.showOutput",
+        "title": "PBT: Show Output",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "pbt-extension.refreshTestConfiguration",
         "title": "PBT: Refresh Test Configuration",
         "icon": "$(refresh)"
@@ -119,6 +124,11 @@
           "command": "pbt-extension.showTestSummary",
           "when": "view == pbt-test-tree",
           "group": "navigation@4"
+        },
+        {
+          "command": "pbt-extension.showOutput",
+          "when": "view == pbt-test-tree",
+          "group": "navigation@5"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",
