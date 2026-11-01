@@ -26,6 +26,9 @@ export default class TestTreeView {
     const stopTestRunCommand = vscode.commands.registerCommand('pbt-extension.stopTestRun', this.stopTestRun.bind(this));
     context.extension.subscriptions.push(stopTestRunCommand);
 
+    const showOutputCommand = vscode.commands.registerCommand('pbt-extension.showOutput', this.showOutput.bind(this));
+    context.extension.subscriptions.push(showOutputCommand);
+
     const collapseAllTestsCommand = vscode.commands.registerCommand('pbt-extension.collapseAllTests', this.collapseAllTests.bind(this));
     context.extension.subscriptions.push(collapseAllTestsCommand);
 
@@ -170,6 +173,10 @@ export default class TestTreeView {
 
   private async stopTestRun(): Promise<void> {
     await this.context.store.testStore.stopTestRun();
+  }
+
+  private showOutput(): void {
+    this.context.outputChannel.show();
   }
 
   private collapseAllTests(): void {
