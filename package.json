@@ -50,7 +50,7 @@
       },
       {
         "command": "pbt-extension.showOutput",
-        "title": "Show Output",
+        "title": "PBT: Show Output",
         "icon": "$(terminal)"
       },
       {
