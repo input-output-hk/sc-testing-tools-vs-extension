@@ -91,6 +91,7 @@ const TableBody: React.FC<TableBodyProps> = ({ testType, testRounds, onOpenGraph
 const TestRoundsView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>(
   ({ test, testRounds, isActive, onOpenGraph }, ref) => {
   const rowRefs = useRef<Map<number, RoundRowHandle>>(new Map());
+  const pendingRoundId = useRef<number | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   const handleSelectFilter = (value: string) => {
@@ -100,13 +101,26 @@ const TestRoundsView: React.FC<Props & React.RefAttributes<Handle>> = forwardRef
   const registerRowRef = (roundId: number, handle: RoundRowHandle | null): void => {
     if (handle) {
       rowRefs.current.set(roundId, handle);
+      if (pendingRoundId.current === roundId) {
+        pendingRoundId.current = null;
+        handle.expand();
+      }
     } else {
       rowRefs.current.delete(roundId);
     }
   };
 
   useImperativeHandle(ref, () => ({
-    expandRound: (roundId: number): void => rowRefs.current.get(roundId)?.expand()
+    expandRound: (roundId: number): void => {
+      const handle = rowRefs.current.get(roundId);
+      if (handle) {
+        pendingRoundId.current = null;
+        handle.expand();
+      } else {
+        pendingRoundId.current = roundId;
+        setSelectedFilter(null);
+      }
+    }
   }));
 
   return (
