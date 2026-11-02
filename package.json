@@ -6,7 +6,7 @@
   "displayName": "PBT",
   "description": "Run property-based and threat-model tests for Plinth smart contracts, and explore results, transaction graphs, and script coverage.",
   "icon": "images/pbt-logo.png",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "repository": {
     "type": "git",
     "url": "https://github.com/input-output-hk/sc-testing-tools-vs-extension.git"
@@ -47,6 +47,11 @@
         "command": "pbt-extension.stopTestRun",
         "title": "PBT: Cancel Test Run",
         "icon": "$(stop-circle)"
+      },
+      {
+        "command": "pbt-extension.showOutput",
+        "title": "PBT: Show Output",
+        "icon": "$(terminal)"
       },
       {
         "command": "pbt-extension.refreshTestConfiguration",
@@ -96,6 +101,11 @@
           "command": "pbt-extension.stopTestRun",
           "when": "view == pbt-test-tree && pbt.activeTestRun",
           "group": "navigation@3"
+        },
+        {
+          "command": "pbt-extension.showOutput",
+          "when": "view == pbt-test-tree",
+          "group": "navigation@4"
         },
         {
           "command": "pbt-extension.refreshTestConfiguration",

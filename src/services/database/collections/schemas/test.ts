@@ -48,6 +48,7 @@ const testSchemaLiteral = {
     hasCoverage: booleanSchema,
     type: testTypeSchema,
     lastRunId: stringSchema,
+    failureMessage: stringSchema,
     location: {
       type: 'object',
       properties: {

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 
-import ContextMenu from './ContextMenu';
+import ContextMenu, { type ContextMenuItem } from '../../../../components/ContextMenu';
 import { getItemContext } from './utils';
 
 interface Handle {
@@ -13,6 +13,8 @@ interface ContextMenuState {
   item: TestTreeItem;
 }
 
+type TreeViewContextMenuAction = 'run' | 'build' | 'results' | 'coverage' | 'location';
+
 interface Props {
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onBuildTestSuite: (suiteId: TestSuiteId) => void;
@@ -23,42 +25,12 @@ interface Props {
 
 const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwardRef<Handle, Props>((props, ref) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useImperativeHandle(ref, () => ({
     open: (event: React.MouseEvent, item: TestTreeItem): void => {
       setContextMenu({ x: event.clientX, y: event.clientY, item });
     }
   }));
-
-  useEffect(() => {
-    if (!contextMenu) return;
-
-    const handleDocumentClick = (event: MouseEvent) => {
-      const menu = menuRef.current;
-      if (menu && !menu.contains(event.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setContextMenu(null);
-      }
-    };
-
-    document.addEventListener('click', handleDocumentClick, true);
-    document.addEventListener('contextmenu', handleDocumentClick, true);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('blur', () => setContextMenu(null));
-
-    return () => {
-      document.removeEventListener('click', handleDocumentClick, true);
-      document.removeEventListener('contextmenu', handleDocumentClick, true);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('blur', () => setContextMenu(null));
-    };
-  }, [contextMenu]);
 
   if (!contextMenu) return null;
 
@@ -75,47 +47,69 @@ const TreeViewContextMenu: React.FC<Props & React.RefAttributes<Handle>> = forwa
     test,
   } = getItemContext(contextMenu.item);
 
-  const handleRun = (): void => {
-    setContextMenu(null);
-    props.onRunTest(runnableIds);
+  const items: Array<ContextMenuItem<TreeViewContextMenuAction>> = [
+    {
+      value: 'run',
+      disabled: !isRunnable,
+      content: <><i className="codicon codicon-run-all" /><span>Run Tests</span></>,
+    },
+  ];
+  if (isBuildable) {
+    items.push({
+      value: 'build',
+      disabled: !isBuildEnabled,
+      content: <><i className="codicon codicon-refresh" /><span>Refresh Test Tree</span></>,
+    });
+  }
+  if (hasResults) {
+    items.push({
+      value: 'results',
+      content: <><i className="codicon codicon-tasklist" /><span>View Results</span></>,
+    });
+  }
+  if (hasCoverage) {
+    items.push({
+      value: 'coverage',
+      content: <><i className="codicon codicon-coverage" /><span>View Test Coverage</span></>,
+    });
+  }
+  if (hasLocation) {
+    items.push({
+      value: 'location',
+      content: <><i className="codicon codicon-go-to-file" /><span>View in source file</span></>,
+    });
+  }
+
+  const handleSelect = (action: TreeViewContextMenuAction): void => {
+    switch (action) {
+      case 'run':
+        props.onRunTest(runnableIds);
+        break;
+      case 'build':
+        if (buildableIds) buildableIds.forEach(props.onBuildTestSuite);
+        break;
+      case 'results':
+        if (test) props.onOpenTestResult(test.id);
+        break;
+      case 'coverage':
+        if (test) props.onShowCoverage(test);
+        break;
+      case 'location':
+        if (locationId) props.onShowTestLocation(locationId);
+        break;
+    }
   };
 
-  const handleBuild = (): void => {
+  const handleClose = (): void => {
     setContextMenu(null);
-    if (buildableIds) buildableIds.forEach(props.onBuildTestSuite);
-  };
-
-  const handleViewLocation = (): void => {
-    setContextMenu(null);
-    if (locationId) props.onShowTestLocation(locationId);
-  };
-
-  const handleViewResults = (): void => {
-    setContextMenu(null);
-    if (test) props.onOpenTestResult(test.id);
-  };
-
-  const handleViewCoverage = (): void => {
-    setContextMenu(null);
-    if (test) props.onShowCoverage(test);
   };
 
   return (
     <ContextMenu
-      ref={menuRef}
-      x={contextMenu.x}
-      y={contextMenu.y}
-      isRunnable={isRunnable}
-      isBuildable={isBuildable}
-      isBuildEnabled={isBuildEnabled}
-      hasLocation={hasLocation}
-      hasResults={hasResults}
-      hasCoverage={hasCoverage}
-      onRun={handleRun}
-      onBuild={handleBuild}
-      onShowLocation={handleViewLocation}
-      onViewResults={handleViewResults}
-      onViewCoverage={handleViewCoverage}
+      position={contextMenu}
+      items={items}
+      onSelect={handleSelect}
+      onClose={handleClose}
     />
   );
 });
