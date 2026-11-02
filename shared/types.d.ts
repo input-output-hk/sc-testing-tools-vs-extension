@@ -151,8 +151,6 @@ type TestTreeItem =
 
 type TestTreeFilter = {
   text?: string;
-  type?: TestType;
-  status?: RunStatus;
 }
 
 type VisibleItem = TestPackage | TestSuite | TestTreeNode;

@@ -1,3 +1,4 @@
+import { getKnownTags, type FilterTag } from './filterTags';
 
 type FilterKeywords = {
   positiveKeywords: Array<string>;
@@ -79,22 +80,16 @@ const keepPositive = (item: VisibleItem, positiveKeywords: Array<string>, visibl
   for (const child of getItemChildren(item)) keepPositive(child, unmatched, visible);
 };
 
-/** Step 3: mock until #228 defines the tags; keeps every test. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const keepTags = (_item: VisibleItem, _tagKeywords: Array<string>, _visible: Set<VisibleItem>): void => {};
-
-/** Removes every test that doesn't match the status and type picked in the filter menu. */
-const keepMenuFilter = (item: VisibleItem, filter: TestTreeFilter, visible: Set<VisibleItem>): void => {
+/** Step 3: removes every test that doesn't match all known tags (typed, or added by the filter menu). */
+const keepTags = (item: VisibleItem, tags: Array<FilterTag>, visible: Set<VisibleItem>): void => {
   if ('test' in item) {
     const test = (item as TestTreeTestNode).test;
-    if (
-      test === undefined ||
-      (filter.status !== undefined && test.status !== filter.status) ||
-      (filter.type !== undefined && test.type !== filter.type)
-    ) visible.delete(item);
+    for (const tag of tags) {
+      if (!tag.matches(test)) visible.delete(item);
+    }
     return;
   }
-  for (const child of getItemChildren(item)) keepMenuFilter(child, filter, visible);
+  for (const child of getItemChildren(item)) keepTags(child, tags, visible);
 };
 
 /** Removes every package, suite or group with no visible test left. Returns whether the item stays. */
@@ -111,17 +106,17 @@ const pruneEmpty = (item: VisibleItem, visible: Set<VisibleItem>): boolean => {
 
 /**
  * Runs the filter over the whole tree and returns the visible packages, suites, groups and tests.
- * Starts with everything visible; each step only removes items: negative, positive, tags, menu filter, then prune.
+ * Starts with everything visible; each step only removes items: negative, positive, tags, then prune.
  */
 export const getVisibleItems = (testTree: TestTree, filter: TestTreeFilter): Set<VisibleItem> => {
   const { positiveKeywords, negativeKeywords, tagKeywords } = parseFilterText(filter.text);
+  const tags = getKnownTags(tagKeywords);
   const packages = Object.values(testTree.packages);
   const visible = new Set<VisibleItem>();
   for (const testPackage of packages) addItems(testPackage, visible);
   for (const testPackage of packages) removeNegative(testPackage, negativeKeywords, visible);
   for (const testPackage of packages) keepPositive(testPackage, positiveKeywords, visible);
-  for (const testPackage of packages) keepTags(testPackage, tagKeywords, visible);
-  for (const testPackage of packages) keepMenuFilter(testPackage, filter, visible);
+  for (const testPackage of packages) keepTags(testPackage, tags, visible);
   for (const testPackage of packages) pruneEmpty(testPackage, visible);
   return visible;
 };
