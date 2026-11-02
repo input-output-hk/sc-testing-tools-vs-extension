@@ -1,29 +1,129 @@
 
-export const nodeMatchesFilter = (node: TestTreeNode, filter: TestTreeFilter): boolean => {
-  const textFilter = filter.text?.toLowerCase();
-  if (node.type === 'test') {
-    const test = (node as TestTreeTestNode).test;
-    return test !== undefined &&
-      (textFilter === undefined || test.name.toLowerCase().includes(textFilter)) &&
-      (filter.status === undefined || test.status === filter.status) &&
-      (filter.type === undefined || test.type === filter.type);
+type FilterKeywords = {
+  positiveKeywords: Array<string>;
+  negativeKeywords: Array<string>;
+  tagKeywords: Array<string>;
+};
+
+/**
+ * Splits the filter box text into lowercase keywords. Only the first character of a word picks its list:
+ * `!word` → negative, `@word` → tag, anything else → positive. A lone `!` or `@` is ignored.
+ * @example parseFilterText('Mint !slow @executed') // { positiveKeywords: ['mint'], negativeKeywords: ['slow'], tagKeywords: ['executed'] }
+ */
+export const parseFilterText = (text?: string): FilterKeywords => {
+  const keywords: FilterKeywords = { positiveKeywords: [], negativeKeywords: [], tagKeywords: [] };
+  for (const word of (text ?? '').toLowerCase().split(/\s+/)) {
+    if (word.startsWith('!')) {
+      if (word.length > 1) keywords.negativeKeywords.push(word.slice(1));
+    } else if (word.startsWith('@')) {
+      if (word.length > 1) keywords.tagKeywords.push(word.slice(1));
+    } else if (word !== '') {
+      keywords.positiveKeywords.push(word);
+    }
   }
-  const group = node as TestTreeGroupNode;
-  const text = textFilter === undefined || group.name.toLowerCase().includes(textFilter)
-    ? undefined : filter.text;
-  return Object.values(group.nodes).some((child) => nodeMatchesFilter(child, { ...filter, text }));
+  return keywords;
 };
 
-export const suiteMatchesFilter = (suite: TestSuite, filter: TestTreeFilter): boolean => {
-  const text = filter.text === undefined || suite.name.toLowerCase().includes(filter.text.toLowerCase())
-    ? undefined : filter.text;
-  return Object.values(suite.tests).some((node) => nodeMatchesFilter(node, { ...filter, text }));
+/** Returns the display name of a package, suite, group or test. */
+const getItemName = (item: VisibleItem): string => {
+  if ('test' in item) return (item as TestTreeTestNode).test.name;
+  return (item as TestPackage | TestSuite | TestTreeGroupNode).name;
 };
 
-export const packageMatchesFilter = (testPackage: TestPackage, filter: TestTreeFilter): boolean => {
-  const text = filter.text === undefined || testPackage.name.toLowerCase().includes(filter.text.toLowerCase())
-    ? undefined : filter.text;
-  return Object.values(testPackage.suites).some((suite) => suiteMatchesFilter(suite, { ...filter, text }));
+/** Returns the direct children of an item: suites of a package, nodes of a suite or group. A test has none. */
+const getItemChildren = (item: VisibleItem): Array<VisibleItem> => {
+  if ('suites' in item) return Object.values((item as TestPackage).suites);
+  if ('tests' in item) return Object.values((item as TestSuite).tests);
+  if ('nodes' in item) return Object.values((item as TestTreeGroupNode).nodes);
+  return [];
+};
+
+/** Returns the keywords that the name doesn't contain (case-insensitive). Keywords must already be lowercase. */
+const getUnmatchedKeywords = (name: string, keywords: Array<string>): Array<string> => {
+  const lowerName = name.toLowerCase();
+  const unmatched: Array<string> = [];
+  for (const keyword of keywords) {
+    if (!lowerName.includes(keyword)) unmatched.push(keyword);
+  }
+  return unmatched;
+};
+
+/** Adds the item and its whole subtree to the visible set. */
+const addItems = (item: VisibleItem, visible: Set<VisibleItem>): void => {
+  visible.add(item);
+  for (const child of getItemChildren(item)) addItems(child, visible);
+};
+
+/** Removes the item and its whole subtree from the visible set. */
+const removeItems = (item: VisibleItem, visible: Set<VisibleItem>): void => {
+  visible.delete(item);
+  for (const child of getItemChildren(item)) removeItems(child, visible);
+};
+
+/** Step 1: removes every item whose name contains any negative keyword, with its whole subtree. */
+const removeNegative = (item: VisibleItem, negativeKeywords: Array<string>, visible: Set<VisibleItem>): void => {
+  if (getUnmatchedKeywords(getItemName(item), negativeKeywords).length < negativeKeywords.length) {
+    removeItems(item, visible);
+    return;
+  }
+  for (const child of getItemChildren(item)) removeNegative(child, negativeKeywords, visible);
+};
+
+/** Step 2: removes every test whose path (ancestor names and its own name) misses any positive keyword. */
+const keepPositive = (item: VisibleItem, positiveKeywords: Array<string>, visible: Set<VisibleItem>): void => {
+  const unmatched = getUnmatchedKeywords(getItemName(item), positiveKeywords);
+  if ('test' in item) {
+    if (unmatched.length > 0) visible.delete(item);
+    return;
+  }
+  for (const child of getItemChildren(item)) keepPositive(child, unmatched, visible);
+};
+
+/** Step 3: mock until #228 defines the tags; keeps every test. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const keepTags = (_item: VisibleItem, _tagKeywords: Array<string>, _visible: Set<VisibleItem>): void => {};
+
+/** Removes every test that doesn't match the status and type picked in the filter menu. */
+const keepMenuFilter = (item: VisibleItem, filter: TestTreeFilter, visible: Set<VisibleItem>): void => {
+  if ('test' in item) {
+    const test = (item as TestTreeTestNode).test;
+    if (
+      test === undefined ||
+      (filter.status !== undefined && test.status !== filter.status) ||
+      (filter.type !== undefined && test.type !== filter.type)
+    ) visible.delete(item);
+    return;
+  }
+  for (const child of getItemChildren(item)) keepMenuFilter(child, filter, visible);
+};
+
+/** Removes every package, suite or group with no visible test left. Returns whether the item stays. */
+const pruneEmpty = (item: VisibleItem, visible: Set<VisibleItem>): boolean => {
+  if (!visible.has(item)) return false;
+  if ('test' in item) return true;
+  let hasVisibleChild = false;
+  for (const child of getItemChildren(item)) {
+    if (pruneEmpty(child, visible)) hasVisibleChild = true;
+  }
+  if (!hasVisibleChild) visible.delete(item);
+  return hasVisibleChild;
+};
+
+/**
+ * Runs the filter over the whole tree and returns the visible packages, suites, groups and tests.
+ * Starts with everything visible; each step only removes items: negative, positive, tags, menu filter, then prune.
+ */
+export const getVisibleItems = (testTree: TestTree, filter: TestTreeFilter): Set<VisibleItem> => {
+  const { positiveKeywords, negativeKeywords, tagKeywords } = parseFilterText(filter.text);
+  const packages = Object.values(testTree.packages);
+  const visible = new Set<VisibleItem>();
+  for (const testPackage of packages) addItems(testPackage, visible);
+  for (const testPackage of packages) removeNegative(testPackage, negativeKeywords, visible);
+  for (const testPackage of packages) keepPositive(testPackage, positiveKeywords, visible);
+  for (const testPackage of packages) keepTags(testPackage, tagKeywords, visible);
+  for (const testPackage of packages) keepMenuFilter(testPackage, filter, visible);
+  for (const testPackage of packages) pruneEmpty(testPackage, visible);
+  return visible;
 };
 
 export const getPackageStatus = (testPackage: TestPackage): RunStatusContext => {
