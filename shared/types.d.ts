@@ -154,8 +154,6 @@ type TestTreeFilter = {
   status?: RunStatus;
 }
 
-type VisibleItem = TestPackage | TestSuite | TestTreeNode;
-
 type SortBy = "location" | "status";
 
 // Test Result

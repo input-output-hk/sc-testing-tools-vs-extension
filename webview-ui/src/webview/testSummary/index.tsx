@@ -190,6 +190,7 @@ const TestSummaryView: React.FC<Props> = ({ vscode }) => {
             : <HistoryTree
                 currentRun={currentRun ?? null}
                 olderRuns={olderRuns}
+                filter={filter}
                 sortBy={sortBy}
                 collapsedAt={collapsedAt}
                 selectCurrentAt={selectCurrentAt}
