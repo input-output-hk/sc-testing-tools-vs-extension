@@ -169,7 +169,7 @@ const TreeViewFilter: React.FC<Props> = ({ filter, placeholder = 'Filter (e.g. t
           <i
             className={
               'codicon codicon-filter ' +
-              (hasActiveFilter || isMenuOpen ? 'text-base-01' : 'text-base-06 group-hover:text-base-01')
+              (hasActiveFilter || isMenuOpen ? 'opacity-100' : 'opacity-70 group-hover:opacity-100')
             }
           />
         </button>
