@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -9,6 +10,15 @@ export default defineConfig({
   base: './',
   root: resolve(__dirname, 'entrypoint'),
   publicDir: resolve(__dirname, 'public'),
+  test: {
+    root: __dirname,
+    include: ['src/**/*.test.ts'],
+    environment: 'node',
+    coverage: {
+      include: ['src/webview/testTree/utils/**'],
+      exclude: ['**/*.test.ts'],
+    },
+  },
   build: {
     outDir: resolve(__dirname, '../build'),
     emptyOutDir: true,
