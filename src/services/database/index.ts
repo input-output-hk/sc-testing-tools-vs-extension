@@ -30,6 +30,7 @@ import {
   handleTestContextEvent,
   handleTestRunErrorEvent,
   handleTestRun,
+  getRunTests,
   getTest,
   onTestUpdate
 } from './methods/test';
@@ -124,6 +125,10 @@ export default class Database {
 
   public async getPackage(packageId: TestPackageId): Promise<TestPackage> {
     return await getPackage(this.database!, packageId);
+  }
+
+  public async getRunTests(testIds: Array<RunnableTestId>): Promise<Array<HistoryRunTest>> {
+    return await getRunTests(this.database!, testIds);
   }
 
   public async getTest(testId: TestId): Promise<Test> {

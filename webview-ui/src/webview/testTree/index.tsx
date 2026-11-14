@@ -98,6 +98,10 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
     vscode.postMessage({ type: 'test-tree-open-results', payload: { testId } } as WebviewToExtensionMessage);
   };
 
+  const onOpenTestSummary = (testId: TestId) => {
+    vscode.postMessage({ type: 'test-tree-open-summary', payload: { testId } } as WebviewToExtensionMessage);
+  };
+
   const onShowCoverage = (test: Test) => {
     vscode.postMessage({
       type: 'test-tree-show-coverage',
@@ -135,6 +139,7 @@ const TestTreeView: React.FC<Props> = ({ vscode }) => {
           onBuildTestSuite={onBuildTestSuite}
           onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
           onOpenTestResult={onOpenTestResult}
+          onOpenTestSummary={onOpenTestSummary}
           onShowCoverage={onShowCoverage}
           onShowTestLocation={onShowTestLocation}
         />

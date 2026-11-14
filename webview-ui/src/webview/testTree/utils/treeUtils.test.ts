@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { getVisibleItems, parseFilterText } from './treeUtils';
+import { filterRuns, getVisibleNodes, getVisiblePackages, getVisibleSuites } from '../../testSummary/utils/historyTreeUtils';
 
 /** Builds a test node with the given name, status and type. */
 const makeTest = (id: string, name: string, status: RunStatus, type: TestType): TestTreeTestNode => ({
@@ -93,6 +94,20 @@ describe('getVisibleItems', () => {
   describe('no filter', () => {
     test('shows everything', () => {
       expect(getVisibleNames('')).toEqual(everything);
+    });
+
+    describe('summary history filtering', () => {
+      test('uses the same path, exclusion and tag matches at every tree level', () => {
+        const filter = { text: 'token-suite mint !twice @valid' };
+        const visible = getVisibleItems(testTree, filter);
+        const run: TestRunTree = { runId: 'run', status: 'success', startedOn: 1, testTree };
+        expect(filterRuns([run], filter)).toEqual([run]);
+        expect(getVisiblePackages(testTree, visible, 'location')).toEqual([testPackage]);
+        expect(getVisibleSuites(testPackage, visible, 'location')).toEqual([suite]);
+        expect(getVisibleNodes(suite.tests, visible, 'location')).toEqual([mintGroup]);
+        expect(getVisibleNodes(mintGroup.nodes, visible, 'location')).toEqual([mintValid]);
+        expect(filterRuns([run], { text: 'mint !mint' })).toEqual([]);
+      });
     });
   });
 
