@@ -5,7 +5,7 @@ interface TreeViewNodeProps {
   suiteId: TestSuiteId;
   node: TestTreeNode;
   path: Array<string>;
-  filter: TestTreeFilter;
+  visible: Set<VisibleItem>;
   sortBy: SortBy;
   onRunTest: (testIds: Array<RunnableTestId>) => void;
   onUpdateSelection: (testIds: Array<RunnableTestId>, selected: boolean) => void;
@@ -26,7 +26,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
   suiteId,
   node,
   path,
-  filter,
+  visible,
   sortBy,
   onRunTest,
   onUpdateSelection,
@@ -41,7 +41,7 @@ const TreeViewNode: React.FC<TreeViewNodeProps> = ({
       suiteId={suiteId}
       node={node as TestTreeGroupNode}
       path={path}
-      filter={filter}
+      visible={visible}
       sortBy={sortBy}
       onRunTest={onRunTest}
       onUpdateOpenTestTreeNode={onUpdateOpenTestTreeNode}
