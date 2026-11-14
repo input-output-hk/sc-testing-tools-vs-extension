@@ -9,6 +9,7 @@ import useTreeItemState from '../../../hooks/useTreeItemState';
 import {
   getGroupStatus,
   getPackageStatus,
+  getVisibleItems,
   hasTestResults,
   isThreatModelsGroup,
   mapJobStatusToClassName,
@@ -26,6 +27,7 @@ import {
 interface TreeState {
   runId: string;
   filter: TestTreeFilter;
+  visible: Set<VisibleItem>;
   sortBy: SortBy;
   openState: GenericMap<boolean>;
   forceOpen: boolean;
@@ -118,7 +120,7 @@ const HistoryTree: React.FC<Props> = ({ currentRun, olderRuns, filter, sortBy, c
   const isCurrentRunOpen = currentRun !== null && (collapsedAt === null || currentRun.startedOn > collapsedAt);
 
   const getTreeState = (runId: string, defaultOpen: boolean): TreeState => ({
-    runId, filter, sortBy, openState, forceOpen, defaultOpen, onToggleOpen, onSelectTest, onOpenTestResult,
+    runId, filter, visible: new Set(), sortBy, openState, forceOpen, defaultOpen, onToggleOpen, onSelectTest, onOpenTestResult,
   });
 
   return (
@@ -176,13 +178,16 @@ const NeverRunIcon: React.FC = () => (
   <StatusIcon className="shrink-0 codicon-question text-[var(--vscode-descriptionForeground)]" />
 );
 
-const HistoryRun: React.FC<RunProps> = ({ run, tree }) => (
-  <>
-    {getVisiblePackages(run.testTree, tree.filter, tree.sortBy).map(testPackage => (
-      <HistoryPackage key={testPackage.id.join(':')} testPackage={testPackage} tree={tree} />
-    ))}
-  </>
-);
+const HistoryRun: React.FC<RunProps> = ({ run, tree }) => {
+  const runTree = { ...tree, visible: getVisibleItems(run.testTree, tree.filter) };
+  return (
+    <>
+      {getVisiblePackages(run.testTree, runTree.visible, tree.sortBy).map(testPackage => (
+        <HistoryPackage key={testPackage.id.join(':')} testPackage={testPackage} tree={runTree} />
+      ))}
+    </>
+  );
+};
 
 const HistoryPackage: React.FC<PackageProps> = ({ testPackage, tree }) => (
   <HistoryFolder
@@ -194,7 +199,7 @@ const HistoryPackage: React.FC<PackageProps> = ({ testPackage, tree }) => (
     forceOpen={tree.forceOpen}
     onToggleOpen={tree.onToggleOpen}
   >
-    {getVisibleSuites(testPackage, tree.filter, tree.sortBy).map(suite => (
+    {getVisibleSuites(testPackage, tree.visible, tree.sortBy).map(suite => (
       <HistorySuite key={suite.name} suite={suite} tree={tree} />
     ))}
     </HistoryFolder>
@@ -215,7 +220,7 @@ const HistorySuite: React.FC<SuiteProps> = ({ suite, tree }) => {
       forceOpen={tree.forceOpen}
       onToggleOpen={tree.onToggleOpen}
     >
-      {getVisibleNodes(suite.tests, tree.filter, tree.sortBy).map(node => (
+      {getVisibleNodes(suite.tests, tree.visible, tree.sortBy).map(node => (
         <HistoryNode key={getNodeKey(node)} node={node} suiteKey={suiteKey} path={[]} tree={tree} />
       ))}
     </HistoryFolder>
@@ -250,7 +255,7 @@ const HistoryGroup: React.FC<GroupProps> = ({ node, suiteKey, path, tree }) => {
       forceOpen={tree.forceOpen}
       onToggleOpen={tree.onToggleOpen}
     >
-      {getVisibleNodes(node.nodes, tree.filter, tree.sortBy).map(child => (
+      {getVisibleNodes(node.nodes, tree.visible, tree.sortBy).map(child => (
         <HistoryNode key={getNodeKey(child)} node={child} suiteKey={suiteKey} path={groupPath} tree={tree} />
       ))}
     </HistoryFolder>

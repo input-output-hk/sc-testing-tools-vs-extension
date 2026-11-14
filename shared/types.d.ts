@@ -46,6 +46,7 @@ type Test = {
   percentage?: number;
   type?: TestType;
   lastRunId?: string;
+  failureMessage?: string;
 };
 
 type TestRangePosition = {
@@ -150,9 +151,9 @@ type TestTreeItem =
 
 type TestTreeFilter = {
   text?: string;
-  type?: TestType;
-  status?: RunStatus;
 }
+
+type VisibleItem = TestPackage | TestSuite | TestTreeNode;
 
 type SortBy = "location" | "status";
 
@@ -685,6 +686,7 @@ type TestUpdateEvent = TestEvent & {
     time?: number;
     percentage?: number;
     type?: TestType;
+    failureMessage?: string;
   };
 };
 

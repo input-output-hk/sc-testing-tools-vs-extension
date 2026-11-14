@@ -176,6 +176,7 @@ const parseTestDoneEvent = (
       type: event.threat_model ? 'threat-model' : undefined,
       status: event.success ? 'valid' : 'invalid',
       time: event.duration * 1000,
+      failureMessage: event.success ? undefined : event.failure?.message || event.description,
     },
   };
 };
