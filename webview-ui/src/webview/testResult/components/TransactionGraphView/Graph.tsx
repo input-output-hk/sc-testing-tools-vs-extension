@@ -16,20 +16,19 @@ import GraphNode from './GraphNode';
 import MiniMapNode from './MiniMapNode';
 
 import {
-  mapTestRoundToGraphData,
   applyMeasuredLayout,
   resolveNodeCollisions
 } from '../../utils/reactFlowUtils';
+
+import type { GraphData } from '../../utils/reactFlowUtils';
 
 import type { Node, Edge, OnNodeDrag, OnNodesChange } from '@xyflow/react';
 
 import "@xyflow/react/dist/style.css";
 
 interface Props {
-  mode: GraphMode;
-  round: TestRound;
+  graphData: GraphData;
   nodeId?: string;
-  stepIndex: number;
   isActive: boolean;
 }
 
@@ -49,25 +48,18 @@ const mapNodeToColor = (node: Node): string => {
 };
 
 const Graph: React.FC<Props> = (props) => {
-  const [mode, setMode] = useState<GraphMode | null>(null);
-  const [stepIndex, setStepIndex] = useState<number | null>(null);
-  const [round, setRound] = useState<TestRound | null>(null);
-  const [stepNodes, setStepNodes] = useState<Array<string> | null>(null);
+  const [source, setSource] = useState(props.graphData);
   const [layouted, setLayouted] = useState<boolean>(false);
 
-  const [nodes, setNodes] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [nodes, setNodes] = useNodesState<Node>(props.graphData.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(props.graphData.edges);
   const reactFlowInstance = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
-  if (round === null || round !== props.round || mode !== props.mode || stepIndex !== props.stepIndex) {
-    const graphData = mapTestRoundToGraphData(props.mode, props.round, props.stepIndex);
-    setNodes(Object.values(graphData.nodes));
-    setEdges(Object.values(graphData.edges));
-    setStepNodes(graphData.stepNodes);
-    setMode(props.mode);
-    setRound(props.round);
-    setStepIndex(props.stepIndex);
+  if (source !== props.graphData) {
+    setSource(props.graphData);
+    setNodes(props.graphData.nodes);
+    setEdges(props.graphData.edges);
     setLayouted(false);
   }
 
@@ -97,8 +89,8 @@ const Graph: React.FC<Props> = (props) => {
 
   useEffect(() => {
     if (props.isActive && layouted) {
-      const nodes: Array<string> | null = props.nodeId ? [props.nodeId] : stepNodes; 
-      if (nodes !== null && nodes.length > 0) {
+      const nodes = props.nodeId && reactFlowInstance.getNode(props.nodeId) ? [props.nodeId] : props.graphData.stepNodes;
+      if (nodes.length > 0) {
         setTimeout(() =>
           reactFlowInstance.fitView({
             nodes: nodes.map(id => ({ id })),
@@ -109,7 +101,7 @@ const Graph: React.FC<Props> = (props) => {
         );
       }
     }
-  }, [props.isActive, props.nodeId, layouted, stepNodes, reactFlowInstance]);
+  }, [props.isActive, props.nodeId, layouted, props.graphData.stepNodes, reactFlowInstance]);
 
   const onNodeDrag: OnNodeDrag<Node> = (_, draggedNode) => {
     setNodes(currentNodes => resolveNodeCollisions(

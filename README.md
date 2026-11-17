@@ -215,9 +215,11 @@ Click that button to open view the results panel. Inside the results panel you w
 
   The selector at the top right switches between rounds, so you can compare the same flow across the rounds the test generated. The map icon at the top left opens the **Graph Explorer**, a panel listing every transaction in the round with its valid or invalid status. Click one and the graph moves that transaction into the center of the view.
 
-  Nodes are colored by what they are: transactions are green, wallet UTxOs blue, script UTxOs green, and withdrawals purple. Each node shows its key fields inline, and its **View details** button switches to a view of the node's complete detail as formatted raw JSON. The lines running into a transaction tell you how a script node is involved: a solid line is a UTxO the transaction consumes, and a dashed line is a reference script.
+  Nodes are colored by what they are: transactions are green, wallet UTxOs blue, script UTxOs green, and withdrawals purple. Each node shows its key fields inline, and its **View details** button switches to a view of the node's complete detail as formatted raw JSON. The lines running into a transaction tell you how a script node is involved: connections show the supplied transaction inputs. The summary does not distinguish spending inputs from reference inputs, so script credentials alone do not change the line style.
 
-  A threat model adds an **Attack Timeline** alongside the **Result Graph**. The timeline is an interactive stepper, so you can walk through the attack one step at a time and watch how the transaction was modified at each one. Changed fields are highlighted on the node, with the previous value struck through next to the new one.
+  A threat model adds an **Attack Timeline** alongside the **Result Graph**. The Result Graph and round tables show original transactions. The timeline selects one attack attempt and lets you switch between its **Original** and **After attack (candidate)** snapshots. The candidate includes all supplied inputs, outputs and withdrawals, whether it validated or not. Input comparisons use UTxO references; output correspondence is unavailable, so output fields are not paired by position. Candidate validation and the property outcome are shown separately. If no candidate is supplied, the original remains available with the reason reported by the backend.
+
+  For a controlled local demo and the manual regression checklist, see [local DQuadrant testing](docs/dquadrant-local-testing.md).
 
 ### 8. Read the coverage
 
