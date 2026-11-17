@@ -16,6 +16,7 @@ export type GraphData = {
   nodes: Array<Node>;
   edges: Array<Edge>;
   stepNodes: Array<string>;
+  transactions: Array<{ nodeId: string; data: GraphNodeTx }>;
 };
 
 type CollisionBox = {
@@ -111,15 +112,11 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
   for (let i = 0; i < graphTxs.length; i++) {
     const tx = graphTxs[i].tx;
     const txId = `tx-${tx.identifier}`;
-    let iColN = i * 2;
-    let tColN = iColN + 1;
-    let oColN = tColN + 1;
+    const iColN = i * 2;
+    const tColN = iColN + 1;
+    const oColN = tColN + 1;
 
-    if (nodes[txId] !== undefined) {
-      tColN = nodes[txId].position.x / NODE_COLUMN_WIDTH;
-      iColN = tColN - 1;
-      oColN = tColN + 1;
-    }
+    if (nodes[txId] !== undefined) continue;
 
     if (!columns[iColN]) columns[iColN] = [];
     if (!columns[tColN]) columns[tColN] = [];
@@ -178,9 +175,6 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
           type: MarkerType.Arrow,
           height: 20, width: 20
         },
-        style: graphTxs[i].inputs[j].type === 'script' ? {
-          strokeDasharray: "6 3"
-        } : undefined
       } as Edge;
     }
 
@@ -226,7 +220,7 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
 
     for (let j = 0; j < graphTxs[i].withdrawals.length; j++) {
       const txHandler = `${txId}-w-${j}`;
-      const utxoId = `utxo-${graphTxs[i].withdrawals[j].identifier}`;
+      const utxoId = `withdrawal-${tx.identifier}-${j}`;
       if (nodes[utxoId] !== undefined) {
         nodes[utxoId]['data'] = {
           ...nodes[utxoId]['data'],
@@ -270,301 +264,116 @@ const mapGraphTxsToGraphData = (graphTxs: Array<GraphTx>): InternalGraphData => 
   };
 };
 
-const mapTxToGraphTx = (tx: Tx, index: number, status: GraphNodeTx['status']): GraphNodeTx => ({
-  identifier: tx.id ?? '',
-  label: `Transaction #${index + 1}`,
-  type: 'tx',
-  status,
-  id: { current: tx.id ?? '', previous: tx.id ?? '' },
-  fee: { current: tx.fee, previous: tx.fee },
-  signers: { current: tx.signers, previous: tx.signers },
-  mint: { current: tx.mint, previous: tx.mint },
-  inputCount: tx.inputs.length,
-  outputCount: tx.outputs.length,
-  withdrawalCount: tx.withdrawals.length,
+const graphValue = <T>(current: T, previous?: T, comparisonAvailable = false): GraphNodeValue<T> => ({
+  current, ...(comparisonAvailable ? { previous, comparisonAvailable: true } : {}),
 });
 
-const mapModifiedTxToGraphTx = (
-  tx: Tx,
-  modifiedTx: Tx | undefined,
-  modifications: Array<TxMod>,
-  index: number,
-  status: GraphNodeTx['status']
-): GraphNodeTx => {
-  if (!modifiedTx) return mapTxToGraphTx(tx, index, status);
-  
-  const graphTx: GraphNodeTx = {
-    identifier: tx.id ?? '',
-    label: `Transaction #${index + 1}`,
-    type: 'tx',
-    status,
-    inputCount: tx.inputs.length,
-    outputCount: tx.outputs.length,
-    withdrawalCount: tx.withdrawals.length,
-    id: {
-      current: modifiedTx.id ?? '',
-      previous: tx.id ?? '',
-    },
-    mint: {
-      current: modifiedTx.mint,
-      previous: tx.mint,
-    },
-    fee: {
-      current: modifiedTx.fee,
-      previous: tx.fee,
-    },
-    signers: {
-      current: modifiedTx.signers,
-      previous: tx.signers,
-    },
-  };
+// Duplicate references cannot establish a unique counterpart.
+const uniqueBy = <T>(items: T[], key: (item: T) => string): Map<string, T | undefined> => {
+  const result = new Map<string, T | undefined>();
+  for (const item of items) {
+    const id = key(item);
+    result.set(id, result.has(id) ? undefined : item);
+  }
+  return result;
+};
 
-  for (const mod of modifications) {
-    if (mod.type === 'removeRequiredSigner') {
-      graphTx.signers = {
-        current: tx.signers?.filter(s => s !== mod.keyHash),
-        previous: tx.signers
+const validationStatus = (validation?: ThreatModelValidation): Pick<GraphNodeTx, 'status' | 'statusLabel'> => {
+  switch (validation?.status) {
+    case 'valid': return { status: 'success', statusLabel: 'Candidate valid' };
+    case 'phase1_invalid': return { status: 'failure', statusLabel: 'Candidate rejected in phase 1' };
+    case 'phase2_invalid': return { status: 'failure', statusLabel: 'Candidate rejected in phase 2' };
+    case 'rebalance_failed': return { status: 'not-evaluated', statusLabel: 'Rebalancing failed' };
+    default: return { status: 'unknown', statusLabel: 'Validation unknown' };
+  }
+};
+
+const mapSnapshot = (
+  tx: Tx, index: number, status: GraphNodeTx['status'],
+  identifier = tx.id || `missing-id-${index}`, previous?: Tx, scoped = false,
+): GraphTx => {
+  const originals = uniqueBy(previous?.inputs ?? [], input => input.utxo);
+  const inputs = uniqueBy(tx.inputs, input => input.utxo);
+  const outputs = uniqueBy(tx.outputs, output => output.utxo);
+  const oldWithdrawals = uniqueBy(previous?.withdrawals ?? [], w => w.stakeAddress);
+  const withdrawals = uniqueBy(tx.withdrawals, w => w.stakeAddress);
+  return {
+    tx: {
+      identifier, label: `Transaction #${index + 1}`, type: 'tx', status,
+      warning: inputs.size < tx.inputs.length || outputs.size < tx.outputs.length || withdrawals.size < tx.withdrawals.length
+        ? 'Repeated references in this snapshot; ambiguous elements are not compared.' : undefined,
+      id: graphValue(tx.id ?? '', previous?.id ?? '', !!previous),
+      fee: graphValue(tx.fee, previous?.fee, !!previous),
+      signers: graphValue(tx.signers, previous?.signers, !!previous),
+      mint: graphValue(tx.mint, previous?.mint, !!previous),
+      inputCount: tx.inputs.length, outputCount: tx.outputs.length, withdrawalCount: tx.withdrawals.length,
+    },
+    inputs: tx.inputs.map((input, i) => {
+      const old = input.utxo && inputs.get(input.utxo) ? originals.get(input.utxo) : undefined;
+      return {
+        identifier: scoped || !input.utxo || !inputs.get(input.utxo) ? `${identifier}-input-${i}` : input.utxo,
+        label: input.addressLabel ?? (input.addressType === 'script' ? 'Script' : 'Wallet'),
+        type: input.addressType === 'script' ? 'script' : 'wallet', consumed: false,
+        address: graphValue(input.address, old?.address, !!old),
+        utxo: graphValue(input.utxo, old?.utxo, !!old),
+        value: graphValue(input.value, old?.value, !!old),
+        redeemer: graphValue(input.redeemerKind, old?.redeemerKind, !!old),
       };
-    }
-  }
-
-  return graphTx;
-};
-
-const mapTxInputToGraphUTxO = (input: TxInput): GraphNodeUTxO => ({
-  identifier: input.utxo,
-  label: input.addressLabel ?? input.addressType,
-  type: input.addressType === 'script' ? 'script' : 'wallet',
-  address: { current: input.address, previous: input.address },
-  utxo: { current: input.utxo, previous: input.utxo },
-  value: { current: input.value, previous: input.value },
-  redeemer: { current: input.redeemerKind, previous: input.redeemerKind },
-  consumed: false,
-});
-
-const mapModifiedTxInputToGraphUTxO = (
-  input: TxInput,
-  modifiedInput: TxInput | undefined,
-  modifications: Array<TxMod>
-): GraphNodeUTxO => {
-  if (!modifiedInput) return mapTxInputToGraphUTxO(input);
-  
-  const graphUtxo: GraphNodeUTxO = {
-    identifier: input.utxo,
-    label: input.addressLabel ?? input.addressType,
-    type: input.addressType === 'script' ? 'script' : 'wallet',
-    address: {
-      current: modifiedInput.address,
-      previous: input.address,
-    },
-    utxo: {
-      current: modifiedInput.utxo,
-      previous: input.utxo,
-    },
-    value: {
-      current: modifiedInput.value,
-      previous: input.value,
-    },
-    redeemer: {
-      current: modifiedInput.redeemerKind,
-      previous: input.redeemerKind,
-    },
-    consumed: false,
-  };
-
-  for (const mod of modifications) {
-    if (mod.type === 'changeInput' && mod.utxo === input.utxo) {
-      if (mod.address) {
-        graphUtxo.address = {
-          current: mod.address,
-          previous: input.address
-        };
-      }
-      if (mod.value) {
-        graphUtxo.value = {
-          current: mod.value,
-          previous: input.value
-        };
-      }
-    }
-  }
-
-  return graphUtxo;
-};
-
-const mapTxOutputToGraphUTxO = (output: TxOutput): GraphNodeUTxO => ({
-  identifier: output.utxo,
-  label: output.addressLabel ?? output.addressType,
-  type: output.addressType === 'script' ? 'script' : 'wallet',
-  address: { current: output.address, previous: output.address },
-  utxo: { current: output.utxo, previous: output.utxo },
-  value: { current: output.value, previous: output.value },
-  datum: { current: output.datum, previous: output.datum },
-  consumed: false,
-});
-
-const mapModifiedTxOutputToGraphUTxO = (
-  output: TxOutput,
-  modifiedOutput: TxOutput | undefined,
-  modifications: Array<TxMod>
-): GraphNodeUTxO => {
-  if (!modifiedOutput) return mapTxOutputToGraphUTxO(output);
-  
-  const graphUtxo: GraphNodeUTxO = {
-    identifier: output.utxo,
-    label: output.addressLabel ?? output.addressType,
-    type: output.addressType === 'script' ? 'script' : 'wallet',
-    address: {
-      current: modifiedOutput.address,
-      previous: output.address,
-    },
-    utxo: {
-      current: modifiedOutput.utxo,
-      previous: output.utxo,
-    },
-    value: {
-      current: modifiedOutput.value,
-      previous: output.value,
-    },
-    datum: {
-      current: modifiedOutput.datum,
-      previous: output.datum,
-    },
-    consumed: false,
-  };
-
-  for (const mod of modifications) {
-    if (mod.type === 'changeOutput' && mod.index === output.index) {
-      if (mod.address) {
-        graphUtxo.address = {
-          current: mod.address,
-          previous: output.address
-        };
-      }
-      if (mod.value) {
-        graphUtxo.value = {
-          current: mod.value,
-          previous: output.value
-        };
-      }
-      if (mod.datum) {
-        graphUtxo.datum = {
-          current: mod.datum,
-          previous: output.datum
-        };
-      }
-    }
-  }
-
-  return graphUtxo;
-};
-
-const mapTxWithdrawalToGraphUTxO = (withdrawal: TxWithdrawal): GraphNodeUTxO => ({
-  identifier: withdrawal.stakeAddress,
-  label: withdrawal.addressLabel ?? 'withdrawal',
-  type: 'withdrawal',
-  stakeAddress: { current: withdrawal.stakeAddress, previous: withdrawal.stakeAddress },
-  redeemer: { current: withdrawal.redeemerKind, previous: withdrawal.redeemerKind },
-  amount: { current: withdrawal.amount, previous: withdrawal.amount },
-  consumed: false,
-});
-
-const mapTransitionTestRoundToGraphData = (round: TransitionTestRound): GraphData => {
-  const graphTxs: Array<GraphTx> = [];
-  const stepNodes: Array<string> = [];
-
-  for (const [index, transition] of round.transitions.entries()) {
-    if (!transition.tx) continue;
-    graphTxs.push({
-      tx: mapTxToGraphTx(transition.tx, index, transition.result.status),
-      inputs: transition.tx.inputs.map(mapTxInputToGraphUTxO),
-      outputs: transition.tx.outputs.map(mapTxOutputToGraphUTxO),
-      withdrawals: transition.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
-    });
-  }
-
-  if (graphTxs.length > 0) {
-    stepNodes.push(...[
-      `tx-${graphTxs[0].tx.identifier}`,
-      ...graphTxs[0].inputs.map(({ identifier }) => `utxo-${identifier}`),
-      ...graphTxs[0].outputs.map(({ identifier }) => `utxo-${identifier}`)
-    ]);
-  }
-
-  return {
-    ...mapGraphTxsToGraphData(graphTxs),
-    stepNodes
-  };
-};
-
-const mapThreatModelTestRoundToGraphData = (
-  mode: GraphMode,
-  round: ThreatModelTestRound,
-  stepIndex: number
-): GraphData => {
-  const graphTxs: Array<GraphTx> = [];
-  const stepNodes: Array<string> = [];
-
-  for (const [index, trace] of round.traces.entries()) {
-    if (mode === 'attack-timeline' && index > stepIndex) {
-      break;
-    }
-    if (mode === 'result-graph' || index < stepIndex) {
-      graphTxs.push({
-        tx: mapTxToGraphTx(trace.tx, index, 'success'),
-        inputs: trace.tx.inputs.map(mapTxInputToGraphUTxO),
-        outputs: trace.tx.outputs.map(mapTxOutputToGraphUTxO),
-        withdrawals: trace.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
-      });
-    } else {
-      graphTxs.push({
-        tx: mapModifiedTxToGraphTx(
-          trace.tx,
-          trace.modifiedTx,
-          trace.modifications,
-          index,
-          trace.modifiedTx && trace.validation?.status !== 'valid' ? 'failure' : 'success'
-        ),
-        inputs: trace.tx.inputs.map((input, index) => {
-          const modifiedInput = trace.modifiedTx?.inputs[index];
-          return mapModifiedTxInputToGraphUTxO(input, modifiedInput, trace.modifications);
-        }),
-        outputs: trace.tx.outputs.map((output, index) => {
-          const modifiedOutput = trace.modifiedTx?.outputs[index];
-          return mapModifiedTxOutputToGraphUTxO(output, modifiedOutput, trace.modifications);
-        }),
-        withdrawals: trace.tx.withdrawals.map(mapTxWithdrawalToGraphUTxO),
-      });
-    }
-  }
-
-  if (graphTxs.length > 0) {
-    const index = graphTxs.length > stepIndex ? stepIndex : 0;
-    stepNodes.push(...[
-      `tx-${graphTxs[index].tx.identifier}`,
-      ...graphTxs[index].inputs.map(({ identifier }) => `utxo-${identifier}`),
-      ...graphTxs[index].outputs.map(({ identifier }) => `utxo-${identifier}`)
-    ]);
-  }
-
-  return {
-    ...mapGraphTxsToGraphData(graphTxs),
-    stepNodes
+    }),
+    // Output position and content do not establish provenance across transaction hashes.
+    outputs: tx.outputs.map((output, i) => ({
+      identifier: scoped || !output.utxo || !outputs.get(output.utxo) ? `${identifier}-output-${i}` : output.utxo,
+      label: output.addressLabel ?? (output.addressType === 'script' ? 'Script' : 'Wallet'),
+      type: output.addressType === 'script' ? 'script' : 'wallet', consumed: false,
+      address: graphValue(output.address), utxo: graphValue(output.utxo),
+      value: graphValue(output.value), datum: graphValue(output.datum),
+    })),
+    withdrawals: tx.withdrawals.map((withdrawal, i) => {
+      const old = withdrawal.stakeAddress && withdrawals.get(withdrawal.stakeAddress) ? oldWithdrawals.get(withdrawal.stakeAddress) : undefined;
+      return {
+        identifier: `${identifier}-withdrawal-${i}`, label: withdrawal.addressLabel ?? 'Withdrawal',
+        type: 'withdrawal', consumed: false,
+        stakeAddress: graphValue(withdrawal.stakeAddress, old?.stakeAddress, !!old),
+        redeemer: graphValue(withdrawal.redeemerKind, old?.redeemerKind, !!old),
+        amount: graphValue(withdrawal.amount, old?.amount, !!old),
+      };
+    }),
   };
 };
 
 export const mapTestRoundToGraphData = (
-  mode: GraphMode,
-  round: TestRound,
-  stepIndex: number
+  mode: GraphMode, round: TestRound, stepIndex: number, snapshot: GraphSnapshot = 'modified',
 ): GraphData => {
+  const graphTxs: GraphTx[] = [];
   if (round.type === 'positive' || round.type === 'negative') {
-    return mapTransitionTestRoundToGraphData(
-      round as TransitionTestRound
-    );
+    for (const [index, transition] of (round as TransitionTestRound).transitions.entries()) {
+      if (transition.tx) graphTxs.push(mapSnapshot(transition.tx, index, transition.result.status));
+    }
   } else {
-    return mapThreatModelTestRoundToGraphData(
-      mode, round as ThreatModelTestRound, stepIndex
-    );
+    const traces = (round as ThreatModelTestRound).traces;
+    const selectedIndex = Math.min(Math.max(0, Number.isFinite(stepIndex) ? Math.trunc(stepIndex) : 0), Math.max(0, traces.length - 1));
+    for (const [index, trace] of traces.entries()) {
+      if (mode === 'attack-timeline' && index !== selectedIndex) continue;
+      const candidate = mode === 'attack-timeline' && snapshot === 'modified' ? trace.modifiedTx : undefined;
+      const tx = candidate ?? trace.tx;
+      const identifier = mode === 'attack-timeline'
+        ? `attack-${round.id}-${index}-${candidate ? 'modified' : 'original'}`
+        : tx.id || `missing-id-${index}`;
+      const graphTx = mapSnapshot(tx, index, 'unknown', identifier, candidate ? trace.tx : undefined, mode === 'attack-timeline');
+      Object.assign(graphTx.tx, candidate ? validationStatus(trace.validation) : { statusLabel: 'Original transaction; validation not supplied' });
+      graphTxs.push(graphTx);
+    }
   }
+  const graph = mapGraphTxsToGraphData(graphTxs);
+  const first = graphTxs[0];
+  const stepNodes = first ? [
+    `tx-${first.tx.identifier}`,
+    ...first.inputs.map(n => `utxo-${n.identifier}`),
+    ...first.outputs.map(n => `utxo-${n.identifier}`),
+    ...first.withdrawals.map((_, i) => `withdrawal-${first.tx.identifier}-${i}`),
+  ] : [];
+  return {
+    ...graph, stepNodes,
+    transactions: graph.nodes.filter(n => n.type === 'tx').map(n => ({ nodeId: n.id, data: n.data as GraphNodeTx })),
+  };
 };

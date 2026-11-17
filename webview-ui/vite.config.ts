@@ -12,10 +12,10 @@ export default defineConfig({
   publicDir: resolve(__dirname, 'public'),
   test: {
     root: __dirname,
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     environment: 'node',
     coverage: {
-      include: ['src/webview/testTree/utils/**'],
+      include: ['src/webview/testTree/utils/**', 'src/webview/testResult/utils/**'],
       exclude: ['**/*.test.ts'],
     },
   },

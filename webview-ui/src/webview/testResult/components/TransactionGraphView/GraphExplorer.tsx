@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
 import { VscodeTree, VscodeTreeItem } from '@vscode-elements/react-elements';
+
+import type { GraphData } from '../../utils/reactFlowUtils';
+import GraphStatusIcon from './GraphStatusIcon';
 
 import useTreeItemState from '../../../../hooks/useTreeItemState';
 
 interface Props {
-  mode: GraphMode;
-  round: TestRound;
-  stepIndex: number;
+  txs: GraphData['transactions'];
   selectedNodeId: string | null;
   onSelectTx: (nodeId: string) => void;
   onClose: () => void;
@@ -18,39 +18,7 @@ interface ExplorerRowProps {
   onSelect: (nodeId: string) => void;
 }
 
-interface ExplorerTx {
-  index: number;
-  id: string;
-  nodeId: string;
-  isValid: boolean;
-}
-
-const getTestRoundTxs = (mode: GraphMode, round: TestRound, stepIndex: number): Array<ExplorerTx> => {
-  const txs: Array<ExplorerTx> = [];
-  if (round.type === 'positive' || round.type === 'negative') {
-    for (const [index, transition] of (round as TransitionTestRound).transitions.entries()) {
-      if (!transition.tx || !transition.tx.id) continue;
-      txs.push({
-        index,
-        id: transition.tx.id,
-        nodeId: `tx-${transition.tx.id}`,
-        isValid: transition.result.status === 'success'
-      });
-    }
-  } else {
-    for (const [index, trace] of (round as ThreatModelTestRound).traces.entries()) {
-      if (!trace.tx || !trace.tx.id || mode === 'attack-timeline' && index > stepIndex) continue;
-      const txId = mode === 'result-graph' || mode === 'attack-timeline' && index < stepIndex ? trace.tx.id : trace.modifiedTx?.id ?? trace.tx.id;
-      txs.push({
-        index,
-        id: txId,
-        nodeId: `tx-${txId}`,
-        isValid: trace.outcome.status === 'passed'
-      });
-    }
-  }
-  return txs;
-};
+type ExplorerTx = GraphData['transactions'][number];
 
 const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => {
   const treeItemRef = useTreeItemState({
@@ -62,13 +30,13 @@ const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => 
   return (
     <VscodeTreeItem ref={treeItemRef} selected={selected}>
       <span className="flex items-center gap-1.5 pl-1.5">
-        <i className={`codicon shrink-0 ${tx.isValid ? 'codicon-pass text-green-01' : 'codicon-error text-red-01'}`} />
+        <GraphStatusIcon status={tx.data.status} label={tx.data.statusLabel} />
         <span className="flex items-center gap-1 overflow-hidden">
           <span className="text-[var(--vscode-sideBarTitle-foreground)] text-[11px] font-medium whitespace-nowrap">
-            {`Transaction #${tx.index + 1}`}
+            {tx.data.label}
           </span>
           <span className="text-[var(--vscode-descriptionForeground)] text-[11px] font-medium whitespace-nowrap">
-            {`${tx.id.slice(0, 4)}...${tx.id.slice(-4)}`}
+            {tx.data.id.current ? `${tx.data.id.current.slice(0, 4)}...${tx.data.id.current.slice(-4)}` : 'ID unavailable'}
           </span>
         </span>
       </span>
@@ -76,8 +44,7 @@ const ExplorerRow: React.FC<ExplorerRowProps> = ({ tx, selected, onSelect }) => 
   );
 };
 
-const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId, onSelectTx, onClose }) => {
-  const txs = useMemo(() => getTestRoundTxs(mode, round, stepIndex), [mode, round, stepIndex]);
+const GraphExplorer: React.FC<Props> = ({ txs, selectedNodeId, onSelectTx, onClose }) => {
 
   return (
     <div className="absolute left-0 top-0 h-full w-90 z-10">
