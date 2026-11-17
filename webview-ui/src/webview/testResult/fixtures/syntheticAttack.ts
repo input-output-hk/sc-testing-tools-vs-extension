@@ -1,4 +1,4 @@
-// Controlled data for regression tests and the local demo. Not a DQuadrant trace.
+// Controlled data for regression tests. Not a DQuadrant trace.
 export const createSyntheticAttackRound = (): ThreatModelTestRound => {
   const input = (utxo: string, addressType: TxAddressType, addressLabel?: string): TxInput => ({
     utxo, addressType, addressLabel, address: `address-${utxo}`,

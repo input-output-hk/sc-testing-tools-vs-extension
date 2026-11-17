@@ -219,7 +219,7 @@ Click that button to open view the results panel. Inside the results panel you w
 
   A threat model adds an **Attack Timeline** alongside the **Result Graph**. The Result Graph and round tables show original transactions. The timeline selects one attack attempt and lets you switch between its **Original** and **After attack (candidate)** snapshots. The candidate includes all supplied inputs, outputs and withdrawals, whether it validated or not. Input comparisons use UTxO references; output correspondence is unavailable, so output fields are not paired by position. Candidate validation and the property outcome are shown separately. If no candidate is supplied, the original remains available with the reason reported by the backend.
 
-  For a controlled local demo and the manual regression checklist, see [local DQuadrant testing](docs/dquadrant-local-testing.md).
+  For native VS Code testing and backend reproduction steps, see [local DQuadrant testing](docs/dquadrant-local-testing.md).
 
 ### 8. Read the coverage
 
