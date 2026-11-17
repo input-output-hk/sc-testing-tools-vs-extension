@@ -44,7 +44,7 @@ const getTestRoundTxs = (mode: GraphMode, round: TestRound, stepIndex: number): 
       txs.push({
         index,
         id: txId,
-        nodeId: `tx-${txId}`,
+        nodeId: `tx-${trace.tx.id}`,
         isValid: trace.outcome.status === 'passed'
       });
     }
@@ -107,7 +107,7 @@ const GraphExplorer: React.FC<Props> = ({ mode, round, stepIndex, selectedNodeId
           <VscodeTree>
             {txs.map(tx =>
               <ExplorerRow
-                key={tx.nodeId}
+                key={tx.index}
                 tx={tx}
                 selected={tx.nodeId === selectedNodeId}
                 onSelect={onSelectTx}
