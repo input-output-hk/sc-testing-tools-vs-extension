@@ -191,7 +191,7 @@ const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
           label={data.label}
           content={getTxNodeContent(data)}
           status={data.status}
-          colorClass="bg-green-05"
+          colorClass={data.status === 'success' ? 'bg-green-05' : 'bg-red-04'}
           expanded={expanded}
           onCollapseNode={() => setExpanded(false)}
         />
