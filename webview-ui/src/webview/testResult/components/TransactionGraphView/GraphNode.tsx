@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { useState, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react';
 
 import { txValueToString } from '../../utils/txUtils';
+import GraphStatusIcon from './GraphStatusIcon';
 import CopyButton from '../../../../components/CopyButton';
 
 interface GraphNodeProps {
@@ -23,6 +24,7 @@ interface GraphNodeHeaderProps {
   label: string;
   content: string;
   status?: GraphStatus;
+  statusLabel?: string;
   colorClass: string;
   expanded: boolean;
   onCollapseNode: () => void;
@@ -36,12 +38,12 @@ const getExpandedRowContent = (
   const previousIsEmpty = value?.previous === undefined || value.previous === '';
   if (value === undefined || currentIsEmpty && previousIsEmpty) return null;
 
-  const isModified = value.current !== value.previous;
-  const hasPrevious = value.previous !== undefined && value.previous.length > 0;
+  const isModified = value.comparisonAvailable === true && value.current !== value.previous;
+  const hasPrevious = value.comparisonAvailable === true;
   const current = currentIsEmpty ? 'Empty' : value.current;
 
   return isModified && hasPrevious
-    ? `${label}:\nPrevious value:\n${value.previous}\nCurrent value:\n${current}`
+    ? `${label}:\nPrevious value:\n${previousIsEmpty ? 'Empty' : value.previous}\nCurrent value:\n${current}`
     : `${label}:\n${current}`;
 };
 
@@ -49,16 +51,19 @@ const getNodeContent = (label: string, rows: Array<string | null>): string =>
   [label, ...rows.filter(row => row !== null)].join('\n\n');
 
 const getTxNodeContent = (data: GraphNodeTx): string => getNodeContent(data.label, [
-  getExpandedRowContent('Transaction ID', data.id),
+  getExpandedRowContent('Transaction ID', { ...data.id, current: data.id.current || 'ID unavailable' }),
   getExpandedRowContent('Mints', {
+    ...data.mint,
     current: txValueToString(data.mint.current),
     previous: txValueToString(data.mint.previous),
   }),
   getExpandedRowContent('Fee', {
+    ...data.fee,
     current: `${data.fee.current} lovelace`,
-    previous: data.fee.previous ? `${data.fee.previous} lovelace` : undefined,
+    previous: data.fee.previous !== undefined ? `${data.fee.previous} lovelace` : undefined,
   }),
   getExpandedRowContent('Signers', {
+    ...data.signers,
     current: data.signers.current?.join(', '),
     previous: data.signers.previous?.join(', '),
   }),
@@ -69,9 +74,11 @@ const getUTxONodeContent = (data: GraphNodeUTxO): string => getNodeContent(data.
   getExpandedRowContent('Stake Address', data.stakeAddress),
   getExpandedRowContent('UTxO', data.utxo),
   getExpandedRowContent('Amount', data.value ? {
+    ...data.value,
     current: txValueToString(data.value.current),
     previous: txValueToString(data.value.previous),
   } : data.amount ? {
+    ...data.amount,
     current: data.amount.current.toString(),
     previous: data.amount.previous?.toString(),
   } : undefined),
@@ -90,8 +97,8 @@ const GraphNodeCollapsedRow: React.FC<GraphNodeRowProps> = ({ label, value, copy
   const previousIsEmpty = value?.previous === undefined || value?.previous === '';
   if (value === undefined || currentIsEmpty && previousIsEmpty) return;
 
-  const isModified = value.current !== value.previous;
-  const hasPrevious = value.previous !== undefined && value.previous.length > 0;
+  const isModified = value.comparisonAvailable === true && value.current !== value.previous;
+  const hasPrevious = value.comparisonAvailable === true;
 
   return (
     <div className="text-[11px] pb-2 mb-2 border-b border-b-[var(--vscode-sideBar-border)]">
@@ -99,8 +106,8 @@ const GraphNodeCollapsedRow: React.FC<GraphNodeRowProps> = ({ label, value, copy
         <span className="text-[var(--vscode-sideBarTitle-foreground)]">{label}</span>
         {!currentIsEmpty && copyButton && <CopyButton text={value.current!} />}
       </p>
-      {isModified && hasPrevious && <p className="opacity-70 line-through truncate">{value.previous}</p>}
-      <p className="truncate">{value.current}</p>
+      {isModified && hasPrevious && <p className="opacity-70 line-through truncate">{previousIsEmpty ? 'Empty' : value.previous}</p>}
+      <p className="truncate">{currentIsEmpty ? 'Empty' : value.current}</p>
     </div>
   );
 };
@@ -110,8 +117,8 @@ const GraphNodeExpandedRow: React.FC<GraphNodeRowProps> = ({ label, value }) => 
   const previousIsEmpty = value?.previous === undefined || value?.previous === '';
   if (value === undefined || currentIsEmpty && previousIsEmpty) return;
 
-  const isModified = value.current !== value.previous;
-  const hasPrevious = value.previous !== undefined && value.previous.length > 0;
+  const isModified = value.comparisonAvailable === true && value.current !== value.previous;
+  const hasPrevious = value.comparisonAvailable === true;
 
   return (
     <p className="w-full min-w-0 font-mono text-xs whitespace-pre-wrap break-all mt-2">
@@ -153,7 +160,7 @@ const GraphNodeFooter: React.FC<GraphNodeFooterProps> = ({ onExpandNode }) => (
   </div>
 );
 
-const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, content, colorClass, expanded, onCollapseNode }) => (
+const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, statusLabel, content, colorClass, expanded, onCollapseNode }) => (
   <div className={`flex flex-row items-center py-1 px-2 gap-1 ${colorClass}`}>
     <span className="flex-1 text-white text-[12px] capitalize">
       {label}
@@ -177,12 +184,16 @@ const GraphNodeHeader: React.FC<GraphNodeHeaderProps> = ({ label, status, conten
       </>
     }
     {status !== undefined &&
-      <i className={`text-white codicon ${status === 'success' ? 'codicon-pass' : 'codicon-error'}`} />
+      <GraphStatusIcon status={status} label={statusLabel} />
     }
   </div>
 );
 
 const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    updateNodeInternals(`tx-${data.identifier}`);
+  }, [data.identifier, data.inputCount, data.outputCount, data.withdrawalCount, updateNodeInternals]);
   const [expanded, setExpanded] = useState<boolean>(false);
   return (
     <div className="relative">
@@ -191,20 +202,25 @@ const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
           label={data.label}
           content={getTxNodeContent(data)}
           status={data.status}
-          colorClass={data.status === 'success' ? 'bg-green-05' : 'bg-red-04'}
+          statusLabel={data.statusLabel}
+          colorClass={data.status === 'success' ? 'bg-green-05' : data.status === 'failure' ? 'bg-red-04' : 'bg-base-14'}
           expanded={expanded}
           onCollapseNode={() => setExpanded(false)}
         />
         <div className={expanded ? 'px-2 pb-2 max-h-130 overflow-y-scroll' : 'p-2'}>
+          {data.statusLabel && <p className="text-xs mb-2">{data.statusLabel}</p>}
+          <p className="text-xs mb-2">Inputs: {data.inputCount} · Outputs: {data.outputCount} · Withdrawals: {data.withdrawalCount}</p>
+          {data.warning && <p className="text-xs mb-2" role="alert">{data.warning}</p>}
           <GraphNodeRow
-            copyButton
+            copyButton={!!data.id.current}
             label="Transaction ID"
-            value={data.id}
+            value={{ ...data.id, current: data.id.current || 'ID unavailable' }}
             expanded={expanded}
           />
           <GraphNodeRow
             label="Mints"
             value={{
+              ...data.mint,
               current: txValueToString(data.mint.current),
               previous: txValueToString(data.mint.previous)
             }}
@@ -213,14 +229,16 @@ const GraphNodeTx: React.FC<GraphNodeTx> = (data) => {
           <GraphNodeRow
             label="Fee"
             value={{
+              ...data.fee,
               current: `${data.fee.current} lovelace`,
-              previous: data.fee.previous ? `${data.fee.previous} lovelace` : undefined
+              previous: data.fee.previous !== undefined ? `${data.fee.previous} lovelace` : undefined
             }}
             expanded={expanded}
           />
           <GraphNodeRow
             label="Signers"
             value={{
+              ...data.signers,
               current: data.signers.current?.join(', '),
               previous: data.signers.previous?.join(', ')
             }}
@@ -324,10 +342,12 @@ const GraphNodeUTxO: React.FC<GraphNodeUTxO> = (data) => {
             label="Amount"
             value={
               data.value ? {
+                ...data.value,
                 current: txValueToString(data.value.current),
                 previous: txValueToString(data.value.previous)
               } : (
               data.amount ? {
+                ...data.amount,
                 current: data.amount.current.toString(),
                 previous: data.amount.previous?.toString()
               } :

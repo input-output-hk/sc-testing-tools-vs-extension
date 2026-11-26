@@ -4,7 +4,7 @@ export const txValueToString = (value?: TxValue): string | undefined => {
 
   const parts: string[] = [];
   
-  if (value.lovelace > 0) {
+  if (value.lovelace !== 0 || value.assets.length === 0) {
     parts.push(`${value.lovelace} lovelace`);
   }
   
