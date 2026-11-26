@@ -107,6 +107,7 @@ const ThreatModelRoundSubTable: React.FC<Props> = ({ round, onOpenGraph, backgro
 
   return (
     <div className="relative z-1">
+      <p className="px-3 pt-2 text-xs">Original transactions — inspect each candidate in Attack Timeline.</p>
       <Tabs
         className={`px-3 pt-3 pb-1 ${backgroundClass}`}
         panelClassName="mt-3"

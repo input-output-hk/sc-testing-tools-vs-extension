@@ -387,7 +387,8 @@ type TxMod =
 // Test Graph
 
 type GraphMode = "result-graph" | "attack-timeline";
-type GraphStatus = "success" | "failure";
+type GraphStatus = "success" | "failure" | "unknown" | "not-evaluated";
+type GraphSnapshot = "original" | "modified";
 
 type GraphNode = {
   type: "tx" | "wallet" | "script" | "withdrawal";
@@ -396,6 +397,7 @@ type GraphNode = {
 };
 
 type GraphNodeValue<T> = {
+  comparisonAvailable?: boolean;
   current: T;
   previous?: T;
 };
@@ -403,6 +405,8 @@ type GraphNodeValue<T> = {
 type GraphNodeTx = GraphNode & {
   type: "tx";
   status: GraphStatus;
+  statusLabel?: string;
+  warning?: string;
   inputCount: number;
   outputCount: number;
   withdrawalCount: number;
